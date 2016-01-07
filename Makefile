@@ -18,4 +18,4 @@ $(TARGET) : $(OBJECTS)
 	$(CC) $(CFLAGS) -c $<
 
 clean:
-	/bin/rm $(TARGET) $(OBJECTS) $(EXTRA)
+	/bin/rm -rf $(TARGET) $(OBJECTS) $(EXTRA)
