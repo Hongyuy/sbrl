@@ -1,5 +1,6 @@
 TARGET = analyze
 OBJECTS = rulelib.o analyze.o
+# OBJECTS = rulelib.o testcode.o train.o
 EXTRA = makedata.pyc
 INCLUDES = -I. -I/opt/local/include 
 
@@ -9,10 +10,9 @@ CC = cc
 CFLAGS = -g $(INCLUDES)
 #-DGMP
 LIBS = -L/opt/local/lib  -lc -lgsl 
-#Version = -mmacosx-version-min=10.5 
 
 $(TARGET) : $(OBJECTS)
-	$(CC) -o $(TARGET) $(OBJECTS) $(LIBS) $(Version)
+	$(CC) -o $(TARGET) $(OBJECTS) $(LIBS)
 
 %.o : %.c
 	$(CC) $(CFLAGS) -c $<

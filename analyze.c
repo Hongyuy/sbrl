@@ -1,4 +1,4 @@
-    /*
+/*
  * Program to read in lines of rule/evaluation pairs where rule is a string
  * representing a rule and the evaluation is a vector of 1's and 0's indicating
  * whether the ith sample evaluates to true or false for the given rule.
@@ -41,7 +41,6 @@ ruleset_t* run_mcmc_single_core(int, int, int, int, rule_t *, rule_t *, params_t
 ruleset_t* run_simulated_annealing_single_core(int, int, int, int, rule_t *, rule_t *, params_t);
 void ruleset_proposal(ruleset_t *, int, int *, int *, char *, double *);
 void ruleset_assign(ruleset_t **, ruleset_t *);
-void ruleset_backup(ruleset_t *, int **, double, double *);
 double compute_log_posterior(ruleset_t *, rule_t *, int, rule_t *, params_t, int, int, double *);
 void init_gsl_rand_gen();
 int gen_poission(double);
@@ -60,7 +59,8 @@ int debug;
 int
 usage(void)
 {
-	(void)fprintf(stderr, "Usage: analyze [-d] [-s ruleset-size] %s\n",
+	(void)fprintf(stderr,
+	    "Usage: analyze [-d level] [-s ruleset-size] %s\n",
 	    "[-c cmdfile] [-i iterations] [-S seed]");
 	return (-1);
 }
@@ -83,21 +83,20 @@ main (int argc, char *argv[])
     iters = 2;
     nchains=11;
     srandom( time(0)+clock()+random() );
-    while ((ch = getopt(argc, argv, "di:s:S:n:b:")) != EOF) {
-        printf("char = %c, %s\n", ch, optarg);
+    while ((ch = getopt(argc, argv, "d:i:s:S:n:b:")) != EOF) {
         switch (ch) {
         case 'c':
             cmdfile = optarg;
             break;
         case 'd':
-            debug = 1;
+            debug = atoi(optarg);
             break;
         case 'i':
             params.iters = atoi(optarg);
             break;
         case 's':
             params.init_size = atoi(optarg);
-            if (ret = (params.init_size <=1))
+            if ((ret = (params.init_size <= 1)) != 0)
                 return (ret);
             break;
         case 'S':
@@ -118,12 +117,10 @@ main (int argc, char *argv[])
     argc -= optind;
     argv += optind;
     
-    printf("argc == %d\n", argc);
     if (argc == 0)
         return (usage());
     /* read in the training data-rule relations */
     infile = argv[0];
-    printf("infile here = %s\n", infile);
 
     INIT_TIME(tv_acc);
     START_TIME(tv_start);
@@ -135,15 +132,18 @@ main (int argc, char *argv[])
 //        printf("rule[%d] is %s\n", i, rules[i].features);
 //    }
     
-    printf("\n%d rules %d samples\n\n", nrules, nsamples);
-    if (debug)
+    if (debug > 0)
+	    printf("\n%d rules %d samples\n\n", nrules, nsamples);
+
+    if (debug > 100)
         rule_print_all(rules, nrules, nsamples);
-    /* read in the training data-label relations */
+
+    /* Read in the training data-label relations. */
     infile = argv[1];
-    printf("infile here = %s\n", infile);
     if ((ret = rules_init(infile, &nlabels, &nsamples_dup, &labels, 0)) != 0)
         return (ret);
-    printf("#train points = %d\n", nsamples_dup);
+    assert (nsamples == nsamples_dup);
+
     /* read in the test data-rule relations */
 //    if (argc >= 4) {
 //        infile = argv[2];
@@ -196,9 +196,9 @@ main (int argc, char *argv[])
         outfile = fopen (argv[2], "w+");
         for (int i=0; i<pred_model_brl->rs->n_rules; i++)
             fprintf(outfile, "%d,%.8f\n", pred_model_brl->rs->rules[i].rule_id, pred_model_brl->theta[i]);
+    	fflush(outfile);
     }
     
-    printf("argc = %d\n", argc);
     END_TIME(tv_start, tv_end, tv_acc);
     REPORT_TIME("analyze", "per rule", tv_acc, nrules);
 
@@ -252,9 +252,11 @@ predict(data_t *test_data, pred_model_t *pred_model, params_t params) {
         int cnt = 0;
         int rule_id = pred_model->rs->rules[j].rule_id;
         for (int i = 0; i < test_data->nsamples; i++) {
-            if (prob[i]<1e-5 && isPositiveInTruthtable(test_data->rules[rule_id].truthtable, test_data->nsamples, i) == 1) {
-                prob[i] = pred_model->theta[j];
-                cnt ++;
+            if (prob[i]<1e-5 &&
+	        rule_isset(test_data->rules[rule_id].truthtable,
+		test_data->nsamples, i)) {
+			prob[i] = pred_model->theta[j];
+			cnt ++;
             }
         }
 //        printf(" rule %d captures %d samples, out of %d samples\n", rule_id, cnt, test_data->nsamples);
@@ -293,9 +295,9 @@ get_accuracy(ruleset_t *rs, double *theta, rule_t *test_rules, rule_t *test_labe
     VECTOR v0;
     rule_vinit(rs->n_samples, &v0);
     int *idarray = NULL;
-    double dummy1, dummy2;
-    ruleset_backup(rs, &idarray, dummy1, &dummy2);
     ruleset_t *rs_test;
+
+    ruleset_backup(rs, &idarray);
     ruleset_init(rs->n_rules, test_rules[0].support, idarray, test_rules, &rs_test);
     ruleset_print(rs_test, test_rules);
 //    for (int j=0; j< rs_test->n_rules; j++)
@@ -354,7 +356,7 @@ pickrule:
 	for (j = 0; j < rs->n_rules; j++)
 		if (rs->rules[j].rule_id == new_rule)
 			goto pickrule;
-	if (debug)
+	if (debug > 10)
 		printf("\nAdding rule: %d\n", new_rule);
 	return(ruleset_add(rules, nrules, rs, new_rule, ndx));
 }
@@ -374,7 +376,7 @@ run_experiment(int iters, int size, int nsamples, int nrules, rule_t *rules)
 		ret = create_random_ruleset(size, nsamples, nrules, rules, &rs);
 		if (ret != 0)
 			return;
-		if (debug) {
+		if (debug > 0) {
 			printf("Initial ruleset\n");
 			ruleset_print(rs, rules);
 		}
@@ -384,13 +386,13 @@ run_experiment(int iters, int size, int nsamples, int nrules, rule_t *rules)
 		START_TIME(tv_start);
 		for (j = 0; j < size; j++)
 			for (k = 1; k < (size-1); k++) {
-				if (debug)
+				if (debug > 0)
 					printf("\nSwapping rules %d and %d\n",
 					    rs->rules[k-1].rule_id,
 					    rs->rules[k].rule_id);
 				if (ruleset_swap(rs, k - 1, k, rules))
 					return;
-				if (debug)
+				if (debug > 0)
 					ruleset_print(rs, rules);
 			}
 		END_TIME(tv_start, tv_end, tv_acc);
@@ -403,13 +405,13 @@ run_experiment(int iters, int size, int nsamples, int nrules, rule_t *rules)
 		INIT_TIME(tv_acc);
 		START_TIME(tv_start);
 		for (j = 0; j < (size - 1); j++) {
-			if (debug)
+			if (debug > 0)
 				printf("\nDeleting rule %d\n", j);
 			ruleset_delete(rules, nrules, rs, j);
-			if (debug) 
+			if (debug > 0) 
 				ruleset_print(rs, rules);
 			add_random_rule(rules, nrules, rs, j);
-			if (debug)
+			if (debug > 0)
 				ruleset_print(rs, rules);
 		}
 		END_TIME(tv_start, tv_end, tv_acc);
@@ -443,7 +445,8 @@ run_mcmc_single_core(int iters, int init_size, int nsamples, int nrules, rule_t 
 //        ruleset_print(rs, rules);
         log_post_rs = compute_log_posterior(rs, rules, nrules, labels, params, 0, 0, &prefix_bound);
     }
-    ruleset_backup(rs, &rs_idarray, log_post_rs, &max_log_posterior);
+    ruleset_backup(rs, &rs_idarray);
+    max_log_posterior = log_post_rs;
     len = rs->n_rules;
 //
 //    for (int i=0; i<10; i++) {
@@ -453,7 +456,6 @@ run_mcmc_single_core(int iters, int init_size, int nsamples, int nrules, rule_t 
     
     //printf("%d\n", cou)
     ruleset_assign(&rs_proposal, rs); // rs_proposel <-- rs
-    ruleset_print_4test(rs);
 //    printf("\n*****************************************\n");
 //    printf("\n %p %p %d\n", rs, rs_proposal, rs_proposal==NULL);
     
@@ -463,7 +465,6 @@ run_mcmc_single_core(int iters, int init_size, int nsamples, int nrules, rule_t 
     printf("iters = %d", iters);
     for (int i=0; i<iters; i++) {
         
-//        ruleset_print_4test(rs);
         
         ruleset_proposal(rs, nrules, &ndx1, &ndx2, &stepchar, &jump_prob);
 //        printf("\nnrules=%d, ndx1=%d, ndx2=%d, action=%c, relativeProbability=%f\n", nrules, ndx1, ndx2, stepchar, log(jump_prob));
@@ -500,7 +501,6 @@ run_mcmc_single_core(int iters, int init_size, int nsamples, int nrules, rule_t 
 //            printf("############Been here! %d\n", cnt);
 //        for (int j=0; j<rs_proposal->n_rules; j++) printf("%u ", rs_proposal->rules[j].rule_id);
 //        printf("\n");
-    //    ruleset_print_4test(rs_proposal);
         
         log_post_rs_proposal = compute_log_posterior(rs_proposal, rules, nrules, labels, params, 0, length4bound, &prefix_bound);
 //        printf("%f\n", jump_prob);
@@ -512,7 +512,8 @@ run_mcmc_single_core(int iters, int init_size, int nsamples, int nrules, rule_t 
             log_post_rs = log_post_rs_proposal;
             rs_proposal = NULL;
             if (log_post_rs>max_log_posterior) {
-                ruleset_backup(rs, &rs_idarray, log_post_rs, &max_log_posterior);
+                ruleset_backup(rs, &rs_idarray);
+		max_log_posterior = log_post_rs;
                 len = rs->n_rules;
             }
         }
@@ -545,11 +546,11 @@ run_simulated_annealing_single_core(int iters, int init_size, int nsamples, int 
     /* initialize the ruleset */
     create_random_ruleset(init_size, nsamples, nrules, rules, &rs);
     log_post_rs = compute_log_posterior(rs, rules, nrules, labels, params, 0, -1, &prefix_bound);
-    ruleset_backup(rs, &rs_idarray, log_post_rs, &max_log_posterior);
+    ruleset_backup(rs, &rs_idarray);
+    max_log_posterior = log_post_rs;
     len = rs->n_rules;
     
     ruleset_assign(&rs_proposal, rs); // rs_proposel <-- rs
-    ruleset_print_4test(rs);
     
     /* pre-compute the cooling schedule*/
     double T[100000], tmp[50];
@@ -595,7 +596,8 @@ run_simulated_annealing_single_core(int iters, int init_size, int nsamples, int 
                 log_post_rs = log_post_rs_proposal;
                 rs_proposal = NULL;
                 if (log_post_rs>max_log_posterior) {
-                    ruleset_backup(rs, &rs_idarray, log_post_rs, &max_log_posterior);
+                    ruleset_backup(rs, &rs_idarray);
+		    max_log_posterior = log_post_rs;
                     len = rs->n_rules;
                 }
             }
@@ -611,17 +613,6 @@ run_simulated_annealing_single_core(int iters, int init_size, int nsamples, int 
     
     ruleset_init(len, nsamples, rs_idarray, rules, &rs);
     return rs;
-}
-
-void
-ruleset_backup(ruleset_t *rs, int **rs_idarray, double log_post_rs, double *max_log_posterior) {
-    int *ids = *rs_idarray;
-    if (ids!=NULL) free(ids);
-    ids = malloc(rs->n_rules*sizeof(int));
-    for (int i=0; i < rs->n_rules; i++)
-        ids[i] = rs->rules[i].rule_id;
-    *rs_idarray = ids;
-    *max_log_posterior = log_post_rs;
 }
 
 double compute_log_posterior(ruleset_t *rs, rule_t *rules, int nrules, rule_t *labels, params_t params, int ifPrint, int length4bound, double *prefix_bound) {

@@ -55,7 +55,7 @@ typedef v_entry *VECTOR;
 typedef struct rule {
 	char *features;			/* Representation of the rule. */
 	int support;			/* Number of 1's in truth table. */
-    int cardinality;
+	int cardinality;
 	VECTOR truthtable;		/* Truth table; one bit per sample. */
 } rule_t;
 
@@ -73,31 +73,31 @@ typedef struct ruleset {
 } ruleset_t;
 
 typedef struct params {
-    double LAMBDA;
-    double ETA;
-    double ALPHA[2];
-    double THRESHOLD;
-    int iters;
-    int init_size;
-    int nchain;
+	double LAMBDA;
+	double ETA;
+	double ALPHA[2];
+	double THRESHOLD;
+	int iters;
+	int init_size;
+	int nchain;
 } params_t;
 
 typedef struct data {
-    rule_t * rules;			/* rules in BitVector form in the data */
-    rule_t * labels;			/* labels in BitVector form in the data */
-    int nrules;
-    int nsamples;                    /* number of samples in the data. */
+	rule_t * rules;		/* rules in BitVector form in the data */
+	rule_t * labels;	/* labels in BitVector form in the data */
+	int nrules;		/* number of rules */
+	int nsamples;		/* number of samples in the data. */
 } data_t;
 
 typedef struct interval {
-    double a, b;
+	double a, b;
 } interval_t;
 
 typedef struct pred_model {
-    ruleset_t * rs;         /* best ruleset. */
-    char ** rs_str;
-    double * theta;
-    interval_t * confIntervals;
+	ruleset_t *rs;		/* best ruleset. */
+	char **rs_str;
+	double *theta;
+	interval_t *confIntervals;
 } pred_model_t;
 
 
@@ -106,10 +106,13 @@ typedef struct pred_model {
  */
 int ruleset_init(int, int, int *, rule_t *, ruleset_t **);
 int ruleset_add(rule_t *, int, ruleset_t *, int, int);
+int ruleset_backup(ruleset_t *, int **);
+int ruleset_copy(ruleset_t **, ruleset_t *);
 void ruleset_delete(rule_t *, int, ruleset_t *, int);
 int ruleset_swap(ruleset_t *, int, int, rule_t *);
 int ruleset_swap_any(ruleset_t *, int, int, rule_t *);
 
+void ruleset_destroy(ruleset_t *);
 void ruleset_print(ruleset_t *, rule_t *);
 void ruleset_entry_print(ruleset_entry_t *, int);
 void ruleset_print_4test(ruleset_t *);
@@ -121,11 +124,12 @@ void rule_print_all(rule_t *, int, int);
 void rule_vector_print(VECTOR, int);
 void rule_copy(VECTOR, VECTOR, int);
 
+int rule_isset(VECTOR, int, int);
 int rule_vinit(int, VECTOR *);
+int rule_vfree(VECTOR *);
 int make_default(VECTOR *, int);
 void rule_vand(VECTOR, VECTOR, VECTOR, int, int *);
 void rule_vandnot(VECTOR, VECTOR, VECTOR, int, int *);
 void rule_vor(VECTOR, VECTOR, VECTOR, int, int *);
 int count_ones(v_entry);
 int count_ones_vector(VECTOR, int);
-int isPositiveInTruthtable(VECTOR, int, int);
