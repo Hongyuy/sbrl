@@ -69,7 +69,7 @@ rules_init(const char *infile, int *nrules,
 	 * Leave a space for the 0th (default) rule, which we'll add at
 	 * the end.
 	 */
-	rule_cnt = (add_default_rule==1);
+	rule_cnt = add_default_rule != 0 ? 1 : 0;
 	while ((line = fgetln(fi, &len)) != NULL) {
 		if (rule_cnt >= rsize) {
 			rsize += RULE_INC;
@@ -279,7 +279,8 @@ make_default(VECTOR *ttp, int len)
 {
 #ifdef GMP
 	mpz_init2(*ttp, len);
-	mpz_com(*ttp, *ttp);
+	mpz_ui_pow_ui(*ttp, 2, (unsigned long)len);
+	mpz_sub_ui (*ttp, *ttp, 1);
 	return (0);
 #else
 	VECTOR tt;
@@ -662,12 +663,13 @@ rule_vandnot(VECTOR dest,
 #ifdef GMP
 	mpz_t tmp;
 
-	mpz_init2(tmp, nsamples);
+	rule_vinit(nsamples, &tmp);
 	mpz_com(tmp, src2);
+	mpz_clrbit(tmp, nsamples);
 	mpz_and(dest, src1, tmp);
 	*ret_cnt = 0;
 	*ret_cnt = mpz_popcount(dest);
-	mpz_clear(tmp);
+	rule_vfree(&tmp);
 #else
 	int i, count, nentries;
 
