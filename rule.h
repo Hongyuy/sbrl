@@ -124,7 +124,7 @@ void rule_print_all(rule_t *, int, int);
 void rule_vector_print(VECTOR, int);
 void rule_copy(VECTOR, VECTOR, int);
 
-int rule_isset(VECTOR, int, int);
+int rule_isset(VECTOR, int);
 int rule_vinit(int, VECTOR *);
 int rule_vfree(VECTOR *);
 int make_default(VECTOR *, int);

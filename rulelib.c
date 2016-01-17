@@ -278,9 +278,8 @@ int
 make_default(VECTOR *ttp, int len)
 {
 #ifdef GMP
-	mpz_t v;
-	mpz_init2(v, len);
-	mpz_com(*ttp, v);
+	mpz_init2(*ttp, len);
+	mpz_com(*ttp, *ttp);
 	return (0);
 #else
 	VECTOR tt;
@@ -316,7 +315,7 @@ ruleset_init(int nrules,
 	rule_t *cur_rule;
 	ruleset_t *rs;
 	ruleset_entry_t *cur_re;
-	VECTOR not_captured=NULL;
+	VECTOR not_captured;
 
 	/*
 	 * Allocate space for the ruleset structure and the ruleset entries.
@@ -504,11 +503,11 @@ void
 ruleset_delete(rule_t *rules, int nrules, ruleset_t *rs, int ndx)
 {
 	int i, nset;
-	VECTOR oldv, tmp_vec;
-	ruleset_entry_t *cur_re;
+	VECTOR tmp_vec;
+	ruleset_entry_t *old_re, *cur_re;
 
 	/* Compute new captures for all rules following the one at ndx.  */
-	oldv = rs->rules[ndx].captures;
+	old_re = rs->rules + ndx;
 
 	if (rule_vinit(rs->n_samples, &tmp_vec) != 0)
 		return;
@@ -519,15 +518,15 @@ ruleset_delete(rule_t *rules, int nrules, ruleset_t *rs, int ndx)
 		 */
 		cur_re = rs->rules + i;
 		rule_vand(tmp_vec, rules[cur_re->rule_id].truthtable,
-		    oldv, rs->n_samples, &nset);
+		    old_re->captures, rs->n_samples, &nset);
 		rule_vor(cur_re->captures, cur_re->captures,
 		    tmp_vec, rs->n_samples, &rs->rules[i].ncaptured);
 
 		/*
-		 * Now remove the ones from oldv that just got set for rule
-		 * i because they should not be captured later.
+		 * Now remove the ones from old_re->captures that just got set
+		 * for rule i because they should not be captured later.
 		 */
-		rule_vandnot(oldv, oldv,
+		rule_vandnot(old_re->captures, old_re->captures,
 		    cur_re->captures, rs->n_samples, &nset);
 	}
 
@@ -663,7 +662,7 @@ rule_vandnot(VECTOR dest,
 #ifdef GMP
 	mpz_t tmp;
 
-	mpz_init(tmp, nsamples);
+	mpz_init2(tmp, nsamples);
 	mpz_com(tmp, src2);
 	mpz_and(dest, src1, tmp);
 	*ret_cnt = 0;
@@ -687,11 +686,15 @@ rule_vandnot(VECTOR dest,
 
 int
 count_ones_vector(VECTOR v, int len) {
+#ifdef GMP
+	return mpz_popcount(v);
+#else
     int cnt = 0;
     for (int i=0; i < (len+BITS_PER_ENTRY-1)/BITS_PER_ENTRY; i++) {
         cnt += count_ones(v[i]);
     }
     return cnt;
+#endif
 }
 
 int
@@ -772,11 +775,10 @@ rule_print_all(rule_t *rules, int nrules, int nsamples)
  * Return 0 if bit e is not set in vector v; return non-0 otherwise.
  */
 int
-rule_isset(VECTOR v, int n, int e) {
+rule_isset(VECTOR v, int e) {
 #ifdef GMP
-	return mpz_tstbit(v, n, e);
+	return mpz_tstbit(v, e);
 #else
-	(void)n;
 	return ((v[e/BITS_PER_ENTRY] & (1 << (e % BITS_PER_ENTRY))) != 0);
 #endif
 }
