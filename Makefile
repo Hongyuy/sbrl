@@ -5,9 +5,8 @@
 # RLib: An R package containing the C code; prediction to be done in R.
 
 TARGET = testprog
-OBJECTS = testprog.o rulelib.o train.o
 LOBJECTS = rulelib.o train.o
-TOBJECTS = $(LOBJECTS) testprog.o predict.o
+OBJECTS = $(LOBJECTS) testprog.o predict.o
 EXTRA = makedata.pyc
 INCLUDES = -I. -I/opt/local/include 
 
