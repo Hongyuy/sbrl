@@ -366,22 +366,20 @@ err1:
 
 /*
  * Save the idarray for this ruleset incase we need to restore it.
- * We don't know how long the idarray is currently, so if it's
- * allocated, we free it and reallocate one we know to be large enough.
+ * We don't know how long the idarray currently is so always call
+ * realloc, which will do the right thing.
  */
 int
 ruleset_backup(ruleset_t *rs, int **rs_idarray)
 {
-	int *ids, i, j;
+	int *ids;
 	
-	if ((ids = *rs_idarray) != NULL)
-		free(ids);
+	ids = *rs_idarray;
 
-
-	if ((ids = malloc(rs->n_rules * sizeof(int))) == NULL)
+	if ((ids = realloc(ids, (rs->n_rules * sizeof(int)))) == NULL)
 		return (errno);
 
-	for (i = 0; i < rs->n_rules; i++)
+	for (int i = 0; i < rs->n_rules; i++)
 		ids[i] = rs->rules[i].rule_id;
 
 	*rs_idarray = ids;
@@ -389,6 +387,11 @@ ruleset_backup(ruleset_t *rs, int **rs_idarray)
 	return (0);
 }
 
+/*
+ * When we copy rulesets, we always allocate new structures; this isn't
+ * terribly efficient, but it's simpler. If the allocation and frees become
+ * too expensive, we can make this smarter.
+ */
 int
 ruleset_copy(ruleset_t **ret_dest, ruleset_t *src)
 {
@@ -396,9 +399,9 @@ ruleset_copy(ruleset_t **ret_dest, ruleset_t *src)
 	ruleset_t *dest;
 
 	if ((dest = malloc(sizeof(ruleset_t) +
-	    ((src->n_rules + 1) * sizeof(ruleset_entry_t)))) == NULL)
-	    	return (errno);
-	dest->n_alloc = src->n_rules + 1;
+	    (src->n_rules * sizeof(ruleset_entry_t)))) == NULL)
+		return (errno);
+	dest->n_alloc = src->n_rules;
 	dest->n_rules = src->n_rules;
 	dest->n_samples = src->n_samples;
     
@@ -409,10 +412,6 @@ ruleset_copy(ruleset_t **ret_dest, ruleset_t *src)
 		rule_copy(dest->rules[i].captures,
 		    src->rules[i].captures, src->n_samples);
 	}
-	/* Initialize the extra assigned space. */
-	if (rule_vinit(src->n_samples,
-	    &(dest->rules[src->n_rules].captures)) != 0)
-		return (errno);
 	*ret_dest = dest;
 
 	return (0);
@@ -432,20 +431,24 @@ ruleset_destroy(ruleset_t *rs)
  * all rules after ndx down by one).
  */
 int
-ruleset_add(rule_t *rules, int nrules, ruleset_t *rs, int newrule, int ndx)
+ruleset_add(rule_t *rules, int nrules, ruleset_t **rsp, int newrule, int ndx)
 {
 	int i, cnt;
-	rule_t *expand;
+	ruleset_t *expand, *rs;
 	ruleset_entry_t *cur_re;
 	VECTOR not_caught;
 
+	rs = *rsp;
+
 	/* Check for space. */
 	if (rs->n_alloc < rs->n_rules + 1) {
-		expand = realloc(rs->rules, 
+		expand = realloc(rs, sizeof(ruleset_t) +
 		    (rs->n_rules + 1) * sizeof(ruleset_entry_t));
 		if (expand == NULL)
 			return (errno);			
+		rs = expand;
 		rs->n_alloc = rs->n_rules + 1;
+		*rsp = rs;
 	}
 
 	/*
@@ -544,6 +547,32 @@ ruleset_delete(rule_t *rules, int nrules, ruleset_t *rs, int ndx)
 	return;
 }
 
+/*
+ * We create random rulesets for testing and for creating initial proposals
+ * in MCMC
+ */
+int
+create_random_ruleset(int size,
+    int nsamples, int nrules, rule_t *rules, ruleset_t **rs)
+{
+	int i, j, *ids, next, ret;
+
+	ids = calloc(size, sizeof(int));
+	for (i = 0; i < (size - 1); i++) {
+try_again:	next = RANDOM_RANGE(1, (nrules - 1));
+		/* Check for duplicates. */
+		for (j = 0; j < i; j++)
+			if (ids[j] == next)
+				goto try_again;
+		ids[i] = next;
+	}
+
+	/* Always put rule 0 (the default) as the last rule. */
+	ids[i] = 0;
+
+	return(ruleset_init(size, nsamples, ids, rules, rs));
+}
+
 /* dest must exist */
 void
 rule_copy(VECTOR dest, VECTOR src, int len)
@@ -596,6 +625,65 @@ ruleset_swap(ruleset_t *rs, int i, int j, rule_t *rules)
 	rs->rules[j] = re;
 
 	rule_vfree(&tmp_vec);
+	return (0);
+}
+
+int
+ruleset_swap_any(ruleset_t * rs, int i, int j, rule_t * rules)
+{
+	int temp, cnt, cnt_check, ret;
+	VECTOR caught;
+
+	if (i == j)
+		return 0;
+
+	assert(i < rs->n_rules);
+	assert(j < rs->n_rules);
+
+	/* Ensure that i < j. */
+	if (i > j) {
+		temp = i;
+		i = j;
+		j = temp;
+	}
+
+	/*
+	 * The captured arrays before i and after j need not change.
+	 * We first compute everything caught between rules i and j
+	 * (inclusive) and then compute the captures array from scratch
+	 * rules between rule i and rule j, both * inclusive.
+	 */
+	if ((ret = rule_vinit(rs->n_samples, &caught)) != 0)
+		return (ret);
+
+	for (int k = i; k <= j; k++)
+		rule_vor(caught,
+		    caught, rs->rules[k].captures, rs->n_samples, &cnt);
+
+	/* Now swap the rules in the ruleset. */
+	temp = rs->rules[i].rule_id;
+	rs->rules[i].rule_id = rs->rules[j].rule_id;
+	rs->rules[j].rule_id = temp;
+
+	cnt_check = 0;
+	for (int k = i; k <= j; k++) {
+		/*
+		 * Compute the items captured by rule k by anding the caught
+		 * vector with the truthtable of the kth rule.
+		 */
+		rule_vand(rs->rules[k].captures, caught,
+		    rules[rs->rules[k].rule_id].truthtable,
+		    rs->n_samples, &rs->rules[k].ncaptured);
+		cnt_check += rs->rules[k].ncaptured;
+
+		/* Now remove the caught items from the caught vector. */
+		rule_vandnot(caught,
+		    caught, rs->rules[k].captures, rs->n_samples, &temp);
+	}
+	assert(temp == 0);
+	assert(cnt = cnt_check);
+
+	rule_vfree(&caught);
 	return (0);
 }
 
@@ -713,7 +801,7 @@ count_ones(v_entry val)
 }
 
 void
-ruleset_print(ruleset_t *rs, rule_t *rules)
+ruleset_print(ruleset_t *rs, rule_t *rules, int detail)
 {
 	int i, j, n;
 	int total_support;
@@ -724,29 +812,31 @@ ruleset_print(ruleset_t *rs, rule_t *rules)
 
 	total_support = 0;
 	for (i = 0; i < rs->n_rules; i++) {
-		rule_print(rules, rs->rules[i].rule_id, n);
-		ruleset_entry_print(rs->rules + i, n);
+		rule_print(rules, rs->rules[i].rule_id, n, detail);
+		ruleset_entry_print(rs->rules + i, n, detail);
 		total_support += rs->rules[i].ncaptured;
 	}
 	printf("Total Captured: %d\n", total_support);
 }
 
 void
-ruleset_entry_print(ruleset_entry_t *re, int n)
+ruleset_entry_print(ruleset_entry_t *re, int n, int detail)
 {
 	printf("%d captured; \n", re->ncaptured);
-	rule_vector_print(re->captures, n);
+	if (detail)
+		rule_vector_print(re->captures, n);
 }
 
 void
-rule_print(rule_t *rules, int ndx, int n)
+rule_print(rule_t *rules, int ndx, int n, int detail)
 {
 	rule_t *r;
 
 	r = rules + ndx;
 	printf("RULE %d: ( %s ), support=%d, card=%d:",
 	    ndx, r->features, r->support, r->cardinality);
-	rule_vector_print(r->truthtable, n);
+	if (detail)
+		rule_vector_print(r->truthtable, n);
 }
 
 void
@@ -770,7 +860,7 @@ rule_print_all(rule_t *rules, int nrules, int nsamples)
 
 	n = (nsamples + BITS_PER_ENTRY - 1) / BITS_PER_ENTRY;
 	for (i = 0; i < nrules; i++)
-		rule_print(rules, i, n);
+		rule_print(rules, i, n, 1);
 }
 
 /*

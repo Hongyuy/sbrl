@@ -3,6 +3,7 @@
  * All rights reserved.
  */
 
+#include <stdlib.h>
 #ifdef GMP
 #include <gmp.h>
 #endif
@@ -45,6 +46,8 @@ typedef v_entry *VECTOR;
 #endif
 
 
+#define RANDOM_RANGE(lo, hi) \
+    (unsigned)(lo + (unsigned)((random() / (float)RAND_MAX) * (hi - lo + 1)))
 
 /*
  * We have slightly different structures to represent the original rules 
@@ -73,10 +76,10 @@ typedef struct ruleset {
 } ruleset_t;
 
 typedef struct params {
-	double LAMBDA;
-	double ETA;
-	double ALPHA[2];
-	double THRESHOLD;
+	double lambda;
+	double eta;
+	double alpha[2];
+	double threshold;
 	int iters;
 	int init_size;
 	int nchain;
@@ -105,7 +108,7 @@ typedef struct pred_model {
  * Functions in the library
  */
 int ruleset_init(int, int, int *, rule_t *, ruleset_t **);
-int ruleset_add(rule_t *, int, ruleset_t *, int, int);
+int ruleset_add(rule_t *, int, ruleset_t **, int, int);
 int ruleset_backup(ruleset_t *, int **);
 int ruleset_copy(ruleset_t **, ruleset_t *);
 void ruleset_delete(rule_t *, int, ruleset_t *, int);
@@ -113,13 +116,13 @@ int ruleset_swap(ruleset_t *, int, int, rule_t *);
 int ruleset_swap_any(ruleset_t *, int, int, rule_t *);
 
 void ruleset_destroy(ruleset_t *);
-void ruleset_print(ruleset_t *, rule_t *);
-void ruleset_entry_print(ruleset_entry_t *, int);
-void ruleset_print_4test(ruleset_t *);
+void ruleset_print(ruleset_t *, rule_t *, int);
+void ruleset_entry_print(ruleset_entry_t *, int, int);
+int create_random_ruleset(int, int, int, rule_t *, ruleset_t **);
 
 int rules_init(const char *, int *, int *, rule_t **, int);
 
-void rule_print(rule_t *, int, int);
+void rule_print(rule_t *, int, int, int);
 void rule_print_all(rule_t *, int, int);
 void rule_vector_print(VECTOR, int);
 void rule_copy(VECTOR, VECTOR, int);
@@ -133,3 +136,11 @@ void rule_vandnot(VECTOR, VECTOR, VECTOR, int, int *);
 void rule_vor(VECTOR, VECTOR, VECTOR, int, int *);
 int count_ones(v_entry);
 int count_ones_vector(VECTOR, int);
+
+/* Functions for the Scalable Baysian Rule Lists */
+double *predict(data_t *, pred_model_t *, params_t *);
+void ruleset_proposal(ruleset_t *, int, int *, int *, char *, double *);
+ruleset_t *run_mcmc(int, int, int, int, rule_t *, rule_t *, params_t *, double);
+ruleset_t *run_simulated_annealing(int,
+    int, int, int, rule_t *, rule_t *, params_t *);
+pred_model_t *train(data_t *, int, int, params_t *);
