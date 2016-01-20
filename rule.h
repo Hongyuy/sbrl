@@ -98,7 +98,6 @@ typedef struct interval {
 
 typedef struct pred_model {
 	ruleset_t *rs;		/* best ruleset. */
-	char **rs_str;
 	double *theta;
 	interval_t *confIntervals;
 } pred_model_t;
@@ -121,6 +120,7 @@ void ruleset_entry_print(ruleset_entry_t *, int, int);
 int create_random_ruleset(int, int, int, rule_t *, ruleset_t **);
 
 int rules_init(const char *, int *, int *, rule_t **, int);
+void rules_free(rule_t *, const int, int);
 
 void rule_print(rule_t *, int, int, int);
 void rule_print_all(rule_t *, int, int);

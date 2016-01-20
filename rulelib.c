@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include "rule.h"
 
+
 /* Function declarations. */
 int ascii_to_vector(char *, size_t, int *, int *, VECTOR *);
 int make_default(VECTOR *, int);
@@ -141,6 +142,24 @@ err:
 	}
 	(void)fclose(fi);
 	return (ret);
+}
+
+void
+rules_free(rule_t *rules, const int nrules, int add_default) {
+	int start;
+
+	/* Cannot free features for default rule. */
+	start = 0;
+	if (add_default) {
+		rule_vfree(&rules[0].truthtable);
+		start = 1;
+	}
+
+	for (int i = start; i < nrules; i++) {
+		rule_vfree(&rules[i].truthtable);
+		free(rules[i].features);
+	}
+	free(rules);
 }
 
 /* Malloc a vector to contain nsamples bits. */
@@ -324,7 +343,6 @@ ruleset_init(int nrules,
 	rs = malloc(sizeof(ruleset_t) + nrules * sizeof(ruleset_entry_t));
 	if (rs == NULL)
 		return (errno);
-
 	/*
 	 * Allocate the ruleset at the front of the structure and then
 	 * the ruleset_entry_t array at the end.
@@ -332,9 +350,6 @@ ruleset_init(int nrules,
 	rs->n_rules = 0;
 	rs->n_alloc = nrules;
 	rs->n_samples = nsamples;
-	if ((ret = rule_vinit(nsamples, &not_captured)) != 0)
-		goto err1;
-
 	make_default(&not_captured, nsamples);
 
 	cnt = nsamples;
@@ -541,7 +556,7 @@ ruleset_delete(rule_t *rules, int nrules, ruleset_t *rs, int ndx)
 	/* Shift up cells if necessary. */
 	if (ndx != rs->n_rules - 1)
 		memmove(rs->rules + ndx, rs->rules + ndx + 1,
-		    sizeof(ruleset_entry_t) * (rs->n_rules - ndx));
+		    sizeof(ruleset_entry_t) * (rs->n_rules - 1 - ndx));
 
 	rs->n_rules--;
 	return;
@@ -570,7 +585,9 @@ try_again:	next = RANDOM_RANGE(1, (nrules - 1));
 	/* Always put rule 0 (the default) as the last rule. */
 	ids[i] = 0;
 
-	return(ruleset_init(size, nsamples, ids, rules, rs));
+	ret = ruleset_init(size, nsamples, ids, rules, rs);
+	free(ids);
+	return (ret);
 }
 
 /* dest must exist */
@@ -681,7 +698,7 @@ ruleset_swap_any(ruleset_t * rs, int i, int j, rule_t * rules)
 		    caught, rs->rules[k].captures, rs->n_samples, &temp);
 	}
 	assert(temp == 0);
-	assert(cnt = cnt_check);
+	assert(cnt == cnt_check);
 
 	rule_vfree(&caught);
 	return (0);
