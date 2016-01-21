@@ -506,7 +506,7 @@ compute_log_posterior(ruleset_t *rs, rule_t *rules, int nrules, rule_t *labels,
 }
 
 void
-ruleset_proposal(ruleset_t * rs, int nrules_mined,
+ruleset_proposal(ruleset_t * rs, int nrules,
     int *ndx1, int *ndx2, char *stepchar, double *jumpRatio){
 	static double MOVEPROBS[15] = {
 		0.0, 1.0, 0.0,
@@ -529,9 +529,9 @@ ruleset_proposal(ruleset_t * rs, int nrules_mined,
 		offset = 0;
 	} else if (rs->n_rules == 2) {
 		offset = 3;
-	} else if (rs->n_rules == nrules_mined - 1) {
+	} else if (rs->n_rules == nrules - 1) {
 		offset = 6;
-	} else if (rs->n_rules == nrules_mined - 2) {
+	} else if (rs->n_rules == nrules - 2) {
 		offset = 9;
 	} else {
 		offset = 12;
@@ -555,19 +555,9 @@ ruleset_proposal(ruleset_t * rs, int nrules_mined,
 		*stepchar = 'S';
 	} else if (u < moveProbs[0] + moveProbs[1]) {
 		/* Add a new rule */
-		index1 = rs->n_rules + 1 + rand() % (nrules_mined - rs->n_rules);
-		int            *allrules = calloc(nrules_mined, sizeof(int));
-		for (int i = 0; i < rs->n_rules; i++)
-			allrules[rs->rules[i].rule_id] = -1;
-		int		cnt = 0;
-		for (int i = 0; i < nrules_mined; i++)
-			if (allrules[i] != -1)
-				allrules[cnt++] = i;
-		index1 = allrules[rand() % cnt];
-		free(allrules);
+		index1 = pick_random_rule(nrules, rs);
 		index2 = rand() % rs->n_rules;
-		//can add a rule at the default rule position
-			* jumpRatio = jumpRatios[1] * (nrules_mined - 1 - rs->n_rules);
+		*jumpRatio = jumpRatios[1] * (nrules - 1 - rs->n_rules);
 		*stepchar = 'A';
 	} else if (u < moveProbs[0] + moveProbs[1] + moveProbs[2]) {
 		/* delete an existing rule */
@@ -575,7 +565,7 @@ ruleset_proposal(ruleset_t * rs, int nrules_mined,
 		//cannot delete the default rule
 			index2 = 0;
 		//index2 doesn 't matter in this case
-			* jumpRatio = jumpRatios[2] * (nrules_mined - rs->n_rules);
+			* jumpRatio = jumpRatios[2] * (nrules - rs->n_rules);
 		*stepchar = 'D';
 	} else {
 		//should raise exception here.

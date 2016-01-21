@@ -590,6 +590,31 @@ try_again:	next = RANDOM_RANGE(1, (nrules - 1));
 	return (ret);
 }
 
+#define MAX_TRIES 10
+/*
+ * Given a rule set, pick a random rule (not already in the set).
+ */
+int
+pick_random_rule(int nrules, ruleset_t *rs)
+{
+	int cnt, new_rule;
+
+	cnt = 0;
+pickrule:
+	if (cnt < MAX_TRIES)
+		new_rule = RANDOM_RANGE(1, (nrules-1));
+	else
+		new_rule = 1 + (new_rule % (nrules-2));
+		
+	for (int j = 0; j < rs->n_rules; j++) {
+		if (rs->rules[j].rule_id == new_rule) {
+			cnt++;
+			goto pickrule;
+		}
+	}
+	return (new_rule);
+}
+
 /* dest must exist */
 void
 rule_copy(VECTOR dest, VECTOR src, int len)

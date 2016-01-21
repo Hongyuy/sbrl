@@ -113,6 +113,7 @@ int ruleset_copy(ruleset_t **, ruleset_t *);
 void ruleset_delete(rule_t *, int, ruleset_t *, int);
 int ruleset_swap(ruleset_t *, int, int, rule_t *);
 int ruleset_swap_any(ruleset_t *, int, int, rule_t *);
+int pick_random_rule(int, ruleset_t *);
 
 void ruleset_destroy(ruleset_t *);
 void ruleset_print(ruleset_t *, rule_t *, int);
