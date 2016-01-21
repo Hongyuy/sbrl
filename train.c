@@ -5,10 +5,10 @@
 #include <assert.h>
 #include <errno.h>
 #include <float.h>
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <math.h>
 #include "mytime.h"
 #include "rule.h"
 #include <gsl/gsl_rng.h>
@@ -21,9 +21,14 @@
 
 gsl_rng *RAND_GSL;
 
-static double  *log_lambda_pmf, *log_eta_pmf;
+/* File global variables. */
+static double *log_lambda_pmf, *log_eta_pmf;
+static double eta_norm;
 static int n_add, n_delete, n_swap;
-int debug = 0;
+static int maxcard;
+static int card_count[1 + MAX_RULE_CARDINALITY];
+
+int debug;
 
 double compute_log_posterior(ruleset_t *,
     rule_t *, int, rule_t *, params_t *, int, int, double *);
@@ -96,19 +101,19 @@ propose(ruleset_t *rs, rule_t *rules, rule_t *labels, int nrules,
 		/* Add the rule whose id is ndx1 at position ndx2 */
 		if (ruleset_add(rules, nrules, &rs_new, ndx1, ndx2) != 0)
 			return (NULL);
-		change_ndx = ndx2;
+		change_ndx = ndx2 + 1;
 		n_add++;
 		break;
 	case 'D':
 		/* Delete the rule at position ndx1. */
-		ruleset_delete(rules, nrules, rs_new, ndx1);
 		change_ndx = ndx1;
+		ruleset_delete(rules, nrules, rs_new, ndx1);
 		n_delete++;
 		break;
 	case 'S':
 		/* Swap the rules at ndx1 and ndx2. */
 		ruleset_swap_any(rs_new, ndx1, ndx2, rules);
-		change_ndx = ndx1;
+		change_ndx = 1 + (ndx1 > ndx2 ? ndx1 : ndx2);
 		n_swap++;
 		break;
 	default:
@@ -143,27 +148,87 @@ propose(ruleset_t *rs, rule_t *rules, rule_t *labels, int nrules,
 }
 
 /********** End of proposal routines *******/
+int
+compute_pmf(int nrules, params_t *params)
+{
+	log_lambda_pmf = malloc(nrules * sizeof(double));
+	if (log_lambda_pmf == NULL)
+		return (errno);
+	for (int i = 0; i < nrules; i++) {
+		log_lambda_pmf[i] =
+		    log(gsl_ran_poisson_pdf(i, params->lambda));
+		if (debug > 100)
+			printf("log_lambda_pmf[ %d ] = %6f\n",
+			    i, log_lambda_pmf[i]);
+	}
+
+	log_eta_pmf =
+	    malloc((1 + MAX_RULE_CARDINALITY) * sizeof(double));
+	if (log_eta_pmf == NULL)
+		return (errno);
+	for (int i = 0; i <= MAX_RULE_CARDINALITY; i++) {
+		log_eta_pmf[i] =
+		    log(gsl_ran_poisson_pdf(i, params->eta));
+		if (debug > 100)
+			printf("log_eta_pmf[ %d ] = %6f\n",
+			    i, log_eta_pmf[i]);
+	}
+
+	/*
+	 * For simplicity, assume that all the cardinalities
+	 * <= MAX_RULE_CARDINALITY appear in the mined rules
+	 */
+	eta_norm = gsl_cdf_poisson_P(MAX_RULE_CARDINALITY, params->eta)
+	    - gsl_ran_poisson_pdf(0, params->eta);
+
+	if (debug > 10)
+		printf("eta_norm(Beta_Z) = %6f\n", eta_norm);
+
+	return (0);
+}
+
+void
+compute_cardinality(rule_t *rules, int nrules)
+{
+	for (int i = 0; i <= MAX_RULE_CARDINALITY; i++)
+		card_count[i] = 0;
+
+	for (int i = 0; i < nrules; i++) {
+		card_count[rules[i].cardinality]++;
+		if (rules[i].cardinality > maxcard)
+			maxcard = rules[i].cardinality;
+	}
+
+	if (debug > 10)
+		for (int i = 0; i <= MAX_RULE_CARDINALITY; i++)
+			printf("There are %d rules with cardinality %d.\n",
+			    card_count[i], i);
+}
 
 pred_model_t   *
 train(data_t *train_data, int initialization, int method, params_t *params)
 {
+	int default_rule;
 	pred_model_t *pred_model;
 	ruleset_t *rs, *rs_temp;
 	double max_pos, pos_temp, null_bound;
 
-	max_pos = -1e9;
+
+	if (compute_pmf(train_data->nrules, params) != 0)
+		return NULL;
+	compute_cardinality(train_data->rules, train_data->nrules);
+
 	pred_model = calloc(1, sizeof(pred_model_t));
 	if (pred_model == NULL)
 		return (NULL);
 
-	rs = run_mcmc(params->iters, params->init_size, train_data->nsamples,
-	    train_data->nrules, train_data->rules, train_data->labels, params,
-	    max_pos);
+	default_rule = 0;
+	ruleset_init(1,
+	    train_data->nsamples, &default_rule, train_data->rules, &rs);
 
 	max_pos = compute_log_posterior(rs, train_data->rules,
 	    train_data->nrules, train_data->labels, params, 1, -1, &null_bound);
-
-	for (int chain = 1; chain < params->nchain; chain++) {
+	for (int chain = 0; chain < params->nchain; chain++) {
 		rs_temp = run_mcmc(params->iters, params->init_size,
 		    train_data->nsamples, train_data->nrules,
 		    train_data->rules, train_data->labels, params, max_pos);
@@ -239,10 +304,10 @@ run_mcmc(int iters, int init_size, int nsamples, int nrules,
 	rs_idarray = NULL;
 	log_post_rs = 0.0;
 	nsuccessful_rej = 0;
-	prefix_bound = -1e10;
+	prefix_bound = -1e10; // This really should be -MAX_DBL
 	n_add = n_delete = n_swap = 0;
 
-	/* initialize random number generator for some distrubitions */
+	/* initialize random number generator for some distributions. */
 	init_gsl_rand_gen();
 
 	/* Initialize the ruleset. */
@@ -250,11 +315,12 @@ run_mcmc(int iters, int init_size, int nsamples, int nrules,
 		printf("Prefix bound = %10f v_star = %f\n",
 		    prefix_bound, v_star);
 	while (prefix_bound < v_star) {
+		// TODO Gather some stats on how much we loop in here.
 		if (rs != NULL)
 			ruleset_destroy(rs);
 		create_random_ruleset(init_size, nsamples, nrules, rules, &rs);
 		log_post_rs = compute_log_posterior(rs, rules,
-		    nrules, labels, params, 0, 0, &prefix_bound);
+		    nrules, labels, params, 0, init_size - 1, &prefix_bound);
 		if (debug > 10) {
 			printf("Initial random ruleset\n");
 			ruleset_print(rs, rules, 1);
@@ -290,8 +356,8 @@ run_mcmc(int iters, int init_size, int nsamples, int nrules,
 
 	if (debug) {
 		printf("\n%s%d #add=%d #delete=%d #swap=%d):\n",
-		"The best rule list is (#reject=", nsuccessful_rej,
-		n_add, n_delete, n_swap);
+		    "The best rule list is (#reject=", nsuccessful_rej,
+		    n_add, n_delete, n_swap);
 
 		printf("max_log_posterior = %6f\n", max_log_posterior);
 		printf("max_log_posterior = %6f\n",
@@ -378,64 +444,20 @@ double
 compute_log_posterior(ruleset_t *rs, rule_t *rules, int nrules, rule_t *labels,
     params_t *params, int ifPrint, int length4bound, double *prefix_bound)
 {
-	static double	eta_norm = 0;
 
-	double log_prior = 0.0; 
+	double log_prior;
 	double log_likelihood = 0.0;
 	double prefix_prior = 0.0;
 	double norm_constant;
 	int li;
+	int local_cards[1 + MAX_RULE_CARDINALITY];
 
-	/* Prior pre-calculation */
-	if (log_lambda_pmf == NULL) {
-		log_lambda_pmf = malloc(nrules * sizeof(double));
-		log_eta_pmf =
-		    malloc((1 + MAX_RULE_CARDINALITY) * sizeof(double));
-		for (int i = 0; i < nrules; i++) {
-			log_lambda_pmf[i] =
-			    log(gsl_ran_poisson_pdf(i, params->lambda));
-			if (debug > 100)
-				printf("log_lambda_pmf[ %d ] = %6f\n",
-				    i, log_lambda_pmf[i]);
-		}
-		for (int i = 0; i <= MAX_RULE_CARDINALITY; i++) {
-			log_eta_pmf[i] =
-			    log(gsl_ran_poisson_pdf(i, params->eta));
-			if (debug > 100)
-				printf("log_eta_pmf[ %d ] = %6f\n",
-				    i, log_eta_pmf[i]);
-		}
-
-		/*
-		 * for simplicity, assume that all the cardinalities
-		 * <= MAX_RULE_CARDINALITY appear in the mined rules
-		 */
-		eta_norm = gsl_cdf_poisson_P(MAX_RULE_CARDINALITY, params->eta)
-		    - gsl_ran_poisson_pdf(0, params->eta);
-		if (debug > 10)
-			printf("eta_norm(Beta_Z) = %6f\n", eta_norm);
-	}
+	for (int i = 0; i < (1 + MAX_RULE_CARDINALITY); i++)
+		local_cards[i] = card_count[i];
 
 	/* Calculate log_prior. */
-	int maxcard = 0;
-	int card_count[1 + MAX_RULE_CARDINALITY];
-
-	for (int i = 0; i <= MAX_RULE_CARDINALITY; i++)
-		card_count[i] = 0;
-
-	for (int i = 0; i < nrules; i++) {
-		card_count[rules[i].cardinality]++;
-		if (rules[i].cardinality > maxcard)
-			maxcard = rules[i].cardinality;
-	}
-
-	if (debug > 10)
-		for (int i = 0; i <= MAX_RULE_CARDINALITY; i++)
-			printf("There are %d rules with cardinality %d.\n",
-			    card_count[i], i);
 	norm_constant = eta_norm;
-	log_prior += log_lambda_pmf[rs->n_rules - 1];
-
+	log_prior = log_lambda_pmf[rs->n_rules - 1];
 
 	if (rs->n_rules - 1 > params->lambda)
 		prefix_prior += log_lambda_pmf[rs->n_rules - 1];
@@ -445,24 +467,17 @@ compute_log_posterior(ruleset_t *rs, rule_t *rules, int nrules, rule_t *labels,
 	// Don't compute the last (default) rule.
 	for (int i = 0; i < rs->n_rules - 1; i++) {
 		li = rules[rs->rules[i].rule_id].cardinality;
-		if (log(norm_constant) != log(norm_constant))
-			printf("NAN log(eta_norm) at i= %d\teta_norm = %6f",
-			    i, eta_norm);
 		log_prior += log_eta_pmf[li] - log(norm_constant);
 
-		if (log_prior != log_prior)
-			printf("\n NAN here at i= %d, aa ", i);
-		log_prior += -log(card_count[li]);
-		if (log_prior != log_prior)
-			printf("\n NAN here at i= %d, bb ", i);
-		if (i <= length4bound) {
-			//added for prefix_boud
+		log_prior += -log(local_cards[li]);
+		if (i < length4bound) {
+			// added for prefix_bound
 			prefix_prior += log_eta_pmf[li] - 
-			    log(norm_constant) - log(card_count[li]);
+			    log(norm_constant) - log(local_cards[li]);
 		}
 
-		card_count[li]--;
-		if (card_count[li] == 0)
+		local_cards[li]--;
+		if (local_cards[li] == 0)
 			norm_constant -= exp(log_eta_pmf[li]);
 	}
 	/* Calculate log_likelihood */
@@ -483,11 +498,11 @@ compute_log_posterior(ruleset_t *rs, rule_t *rules, int nrules, rule_t *labels,
 		// Added for prefix_bound.
 		left0 -= n0;
 		left1 -= n1;
-		if (j <= length4bound) {
+		if (j < length4bound) {
 			prefix_log_likelihood += gsl_sf_lngamma(n0 + 1) + 
 			    gsl_sf_lngamma(n1 + 1) - 
 			    gsl_sf_lngamma(n0 + n1 + 2);
-			if (j == length4bound) {
+			if (j == (length4bound - 1)) {
 				prefix_log_likelihood += gsl_sf_lngamma(1) + 
 				    gsl_sf_lngamma(left0 + 1) - 
 				    gsl_sf_lngamma(left0 + 2) + 

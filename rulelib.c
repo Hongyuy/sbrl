@@ -795,7 +795,6 @@ rule_vandnot(VECTOR dest,
 
 	rule_vinit(nsamples, &tmp);
 	mpz_com(tmp, src2);
-	mpz_clrbit(tmp, nsamples);
 	mpz_and(dest, src1, tmp);
 	*ret_cnt = 0;
 	*ret_cnt = mpz_popcount(dest);
