@@ -10,7 +10,7 @@
 #include "mytime.h"
 #include "rule.h"
 
-int debug;
+extern int debug;
 
 double
 get_accuracy(ruleset_t *rs,
