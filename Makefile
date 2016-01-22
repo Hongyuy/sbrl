@@ -23,4 +23,4 @@ $(TARGET) : $(OBJECTS)
 	$(CC) $(CFLAGS) -c $<
 
 clean:
-	/bin/rm -rf $(TARGET) $(OBJECTS) $(EXTRA)
+	/bin/rm -rf $(TARGET) $(OBJECTS) $(EXTRA) $(TARGET).dSYM
