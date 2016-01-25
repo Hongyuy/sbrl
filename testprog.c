@@ -57,8 +57,8 @@ int
 usage(void)
 {
 	(void)fprintf(stderr, "%s %s %s\n",
-	    "Usage: testprog [-c chains] [-d debug-level] [-m model] ",
-	    "[-s ruleset-size] [-i iterations] [-t test] [-S seed]",
+	    "Usage: testprog [-c chains] [-d debug-level] [-e eta] [-l lambda] ",
+	    "[-m model] [-s ruleset-size] [-i iterations] [-t test] [-S seed] ",
 	    "train.out [train.label] [test.out] [test.label]");
 	return (-1);
 }
@@ -72,7 +72,7 @@ main (int argc, char *argv[])
 	extern char *optarg;
 	extern int optind, optopt, opterr, optreset;
 	int ret, size = DEFAULT_RULESET_SIZE;
-	int chains, iters, nrules, nsamples, nlabels, nsamples_chk, tnum;
+	int iters, nrules, nsamples, nlabels, nsamples_chk, tnum;
 	char ch, *infile, *modelfile, *testfile;
 	data_t train_data, test_data;
 	double *p;
@@ -83,22 +83,26 @@ main (int argc, char *argv[])
 
 	debug = 0;
 	iters = params.iters;
-	chains = params.nchain;
 	tnum = TEST_TEST;
 	modelfile = NULL;
 	srandom(time(0) + clock());
-	while ((ch = getopt(argc, argv, "c:d:i:m:s:S:t:")) != EOF)
+	while ((ch = getopt(argc, argv, "c:d:e:i:l:m:s:S:t:")) != EOF)
 		switch (ch) {
 		case 'c':
-			chains = atoi(optarg);
-			params.nchain = chains;
+			params.nchain = atoi(optarg);
 			break;
 		case 'd':
 			debug = atoi(optarg);
 			break;
+		case 'e':
+			params.eta = strtod(optarg, NULL);
+			break;
 		case 'i':
 			iters = atoi(optarg);
 			params.iters = iters;
+			break;
+		case 'l':
+			params.lambda = strtod(optarg, NULL);
 			break;
 		case 'm':
 			modelfile = optarg;
