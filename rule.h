@@ -1,8 +1,28 @@
 /*
- * Copyright 2015 President and Fellows of Harvard College.
- * All rights reserved.
+ * Copyright (c) 2016 Hongyu Yang, Cynthia Rudin, Margo Seltzer, and
+ * The President and Fellows of Harvard College
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sublicense, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject
+ * to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR
+ * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <stdlib.h>
 #ifdef GMP
 #include <gmp.h>
 #endif
@@ -45,6 +65,8 @@ typedef v_entry *VECTOR;
 #endif
 
 
+#define RANDOM_RANGE(lo, hi) \
+    (unsigned)(lo + (unsigned)((random() / (float)RAND_MAX) * (hi - lo + 1)))
 
 /*
  * We have slightly different structures to represent the original rules 
@@ -55,7 +77,7 @@ typedef v_entry *VECTOR;
 typedef struct rule {
 	char *features;			/* Representation of the rule. */
 	int support;			/* Number of 1's in truth table. */
-    int cardinality;
+	int cardinality;
 	VECTOR truthtable;		/* Truth table; one bit per sample. */
 } rule_t;
 
@@ -73,31 +95,29 @@ typedef struct ruleset {
 } ruleset_t;
 
 typedef struct params {
-    double LAMBDA;
-    double ETA;
-    double ALPHA[2];
-    double THRESHOLD;
-    int iters;
-    int init_size;
-    int nchain;
+	double lambda;
+	double eta;
+	double alpha[2];
+	double threshold;
+	int iters;
+	int nchain;
 } params_t;
 
 typedef struct data {
-    rule_t * rules;			/* rules in BitVector form in the data */
-    rule_t * labels;			/* labels in BitVector form in the data */
-    int nrules;
-    int nsamples;                    /* number of samples in the data. */
+	rule_t * rules;		/* rules in BitVector form in the data */
+	rule_t * labels;	/* labels in BitVector form in the data */
+	int nrules;		/* number of rules */
+	int nsamples;		/* number of samples in the data. */
 } data_t;
 
 typedef struct interval {
-    double a, b;
+	double a, b;
 } interval_t;
 
 typedef struct pred_model {
-    ruleset_t * rs;         /* best ruleset. */
-    char ** rs_str;
-    double * theta;
-    interval_t * confIntervals;
+	ruleset_t *rs;		/* best ruleset. */
+	double *theta;
+	interval_t *confIntervals;
 } pred_model_t;
 
 
@@ -105,27 +125,41 @@ typedef struct pred_model {
  * Functions in the library
  */
 int ruleset_init(int, int, int *, rule_t *, ruleset_t **);
-int ruleset_add(rule_t *, int, ruleset_t *, int, int);
+int ruleset_add(rule_t *, int, ruleset_t **, int, int);
+int ruleset_backup(ruleset_t *, int **);
+int ruleset_copy(ruleset_t **, ruleset_t *);
 void ruleset_delete(rule_t *, int, ruleset_t *, int);
 int ruleset_swap(ruleset_t *, int, int, rule_t *);
 int ruleset_swap_any(ruleset_t *, int, int, rule_t *);
+int pick_random_rule(int, ruleset_t *);
 
-void ruleset_print(ruleset_t *, rule_t *);
-void ruleset_entry_print(ruleset_entry_t *, int);
-void ruleset_print_4test(ruleset_t *);
+void ruleset_destroy(ruleset_t *);
+void ruleset_print(ruleset_t *, rule_t *, int);
+void ruleset_entry_print(ruleset_entry_t *, int, int);
+int create_random_ruleset(int, int, int, rule_t *, ruleset_t **);
 
 int rules_init(const char *, int *, int *, rule_t **, int);
+void rules_free(rule_t *, const int, int);
 
-void rule_print(rule_t *, int, int);
+void rule_print(rule_t *, int, int, int);
 void rule_print_all(rule_t *, int, int);
 void rule_vector_print(VECTOR, int);
 void rule_copy(VECTOR, VECTOR, int);
 
+int rule_isset(VECTOR, int);
 int rule_vinit(int, VECTOR *);
+int rule_vfree(VECTOR *);
 int make_default(VECTOR *, int);
 void rule_vand(VECTOR, VECTOR, VECTOR, int, int *);
 void rule_vandnot(VECTOR, VECTOR, VECTOR, int, int *);
 void rule_vor(VECTOR, VECTOR, VECTOR, int, int *);
 int count_ones(v_entry);
 int count_ones_vector(VECTOR, int);
-int isPositiveInTruthtable(VECTOR, int, int);
+
+/* Functions for the Scalable Baysian Rule Lists */
+double *predict(data_t *, pred_model_t *, params_t *);
+void ruleset_proposal(ruleset_t *, int, int *, int *, char *, double *);
+ruleset_t *run_mcmc(int, int, int, rule_t *, rule_t *, params_t *, double);
+ruleset_t *run_simulated_annealing(int,
+    int, int, int, rule_t *, rule_t *, params_t *);
+pred_model_t *train(data_t *, int, int, params_t *);
