@@ -492,7 +492,7 @@ compute_log_posterior(ruleset_t *rs, rule_t *rules, int nrules, rule_t *labels,
 		li = rules[rs->rules[i].rule_id].cardinality;
 		log_prior += log_eta_pmf[li] - log(norm_constant);
 
-		log_prior += -log(local_cards[li]);
+		log_prior -= log(local_cards[li]);
 		if (i < length4bound) {
 			// added for prefix_bound
 			prefix_prior += log_eta_pmf[li] - 
