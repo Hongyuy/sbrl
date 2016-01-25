@@ -51,6 +51,13 @@ static int n_add, n_delete, n_swap;
 static int maxcard;
 static int card_count[1 + MAX_RULE_CARDINALITY];
 
+typedef struct _permute {
+	int val;
+	int ndx;
+} permute_t;
+static permute_t *rule_permutation;
+static int permute_ndx;
+
 int debug;
 
 double compute_log_posterior(ruleset_t *,
@@ -59,7 +66,6 @@ int gen_poission(double);
 double *get_theta(ruleset_t *, rule_t *, rule_t *, params_t *);
 void gsl_ran_poisson_test();
 void init_gsl_rand_gen();
-ruleset_t *run_mcmc(int, int, int, int, rule_t *, rule_t *, params_t *, double);
 
 /****** These are the heart of both MCMC and SA ******/
 /*
@@ -228,6 +234,28 @@ compute_cardinality(rule_t *rules, int nrules)
 			    card_count[i], i);
 }
 
+int
+permute_cmp(const void *v1, const void *v2)
+{
+	return ((permute_t *)v1)->val - ((permute_t *)v2)->val;
+}
+
+int
+permute_rules(int nrules)
+{
+	rule_permutation = malloc(sizeof(permute_t) * nrules);
+	if (rule_permutation == NULL)
+		return (-1);
+	for (int i = 1; i < nrules; i++) {
+		rule_permutation[i].val = random();
+		rule_permutation[i].ndx = i;
+	}
+	qsort(rule_permutation, nrules, sizeof(permute_t), permute_cmp);
+	permute_ndx = 1;
+	return 0;
+
+}
+
 pred_model_t   *
 train(data_t *train_data, int initialization, int method, params_t *params)
 {
@@ -251,8 +279,10 @@ train(data_t *train_data, int initialization, int method, params_t *params)
 
 	max_pos = compute_log_posterior(rs, train_data->rules,
 	    train_data->nrules, train_data->labels, params, 1, -1, &null_bound);
+	permute_rules(train_data->nrules);
+
 	for (int chain = 0; chain < params->nchain; chain++) {
-		rs_temp = run_mcmc(params->iters, params->init_size,
+		rs_temp = run_mcmc(params->iters,
 		    train_data->nsamples, train_data->nrules,
 		    train_data->rules, train_data->labels, params, max_pos);
 		pos_temp = compute_log_posterior(rs_temp, train_data->rules,
@@ -275,6 +305,7 @@ train(data_t *train_data, int initialization, int method, params_t *params)
 	/* Free allocated memory. */
 	free(log_lambda_pmf);
 	free(log_eta_pmf);
+	free(rule_permutation);
 	return pred_model;
 }
 
@@ -315,12 +346,13 @@ get_theta(ruleset_t * rs, rule_t * rules, rule_t * labels, params_t *params)
 }
 
 ruleset_t *
-run_mcmc(int iters, int init_size, int nsamples, int nrules,
+run_mcmc(int iters, int nsamples, int nrules,
     rule_t *rules, rule_t *labels, params_t *params, double v_star)
 {
 	ruleset_t *rs;
 	double jump_prob, log_post_rs;
 	int *rs_idarray, len, nsuccessful_rej;
+	int rarray[2], count;
 	double max_log_posterior, prefix_bound;
 
 	rs = NULL;
@@ -337,13 +369,26 @@ run_mcmc(int iters, int init_size, int nsamples, int nrules,
 	if (debug > 10)
 		printf("Prefix bound = %10f v_star = %f\n",
 		    prefix_bound, v_star);
+	/*
+	 * Construct rulesets with exactly 2 rules -- one drawn from
+	 * the permutation and the default rule.
+	 */
+	rarray[1] = 0;
+	count = 0;
 	while (prefix_bound < v_star) {
 		// TODO Gather some stats on how much we loop in here.
-		if (rs != NULL)
+		if (rs != NULL) {
 			ruleset_destroy(rs);
-		create_random_ruleset(init_size, nsamples, nrules, rules, &rs);
+			count++;
+			if (count == (nrules - 1))
+				return (NULL);
+		}
+		rarray[0] = rule_permutation[permute_ndx++].ndx;
+		if (permute_ndx >= nrules)
+			permute_ndx = 1;
+		ruleset_init(2, nsamples, rarray, rules, &rs);
 		log_post_rs = compute_log_posterior(rs, rules,
-		    nrules, labels, params, 0, init_size - 1, &prefix_bound);
+		    nrules, labels, params, 0, 1, &prefix_bound);
 		if (debug > 10) {
 			printf("Initial random ruleset\n");
 			ruleset_print(rs, rules, 1);

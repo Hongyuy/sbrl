@@ -79,7 +79,7 @@ main (int argc, char *argv[])
 	pred_model_t *model;
 	rule_t *rules, *labels;
 	struct timeval tv_acc, tv_start, tv_end;
-	params_t params = {9.0, 3.0, {1.0, 1.0}, 0.5, 1000, 2, 11};
+	params_t params = {9.0, 3.0, {1.0, 1.0}, 0.5, 1000, 11};
 
 	debug = 0;
 	iters = params.iters;
@@ -192,7 +192,6 @@ main (int argc, char *argv[])
 			printf("Alpha[1] = %.6f\n", params.alpha[1]);
 			printf("Number of chains = %d\n", params.nchain);
 			printf("Iterations = %d\n", params.iters);
-			printf("Init_size = %d\n", params.init_size);
 
 			if (tnum == 3) {
 				/* Now test the model */
