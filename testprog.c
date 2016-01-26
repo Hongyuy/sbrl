@@ -79,7 +79,7 @@ main (int argc, char *argv[])
 	pred_model_t *model;
 	rule_t *rules, *labels;
 	struct timeval tv_acc, tv_start, tv_end;
-	params_t params = {9.0, 3.0, {1.0, 1.0}, 0.5, 1000, 11};
+	params_t params = {9.0, 3.0, 0.5, {1, 1}, 1000, 11};
 
 	debug = 0;
 	iters = params.iters;
@@ -192,8 +192,8 @@ main (int argc, char *argv[])
 
 			printf("Lambda = %.6f\n", params.lambda);
 			printf("Eta = %.6f\n", params.eta);
-			printf("Alpha[0] = %.6f\n", params.alpha[0]);
-			printf("Alpha[1] = %.6f\n", params.alpha[1]);
+			printf("Alpha[0] = %d\n", params.alpha[0]);
+			printf("Alpha[1] = %d\n", params.alpha[1]);
 			printf("Number of chains = %d\n", params.nchain);
 			printf("Iterations = %d\n", params.iters);
 

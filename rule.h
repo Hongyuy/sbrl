@@ -97,8 +97,8 @@ typedef struct ruleset {
 typedef struct params {
 	double lambda;
 	double eta;
-	double alpha[2];
 	double threshold;
+	int alpha[2];
 	int iters;
 	int nchain;
 } params_t;

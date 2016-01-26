@@ -46,10 +46,13 @@ gsl_rng *RAND_GSL;
 
 /* File global variables. */
 static double *log_lambda_pmf, *log_eta_pmf;
+static double *log_gammas;
 static double eta_norm;
 static int n_add, n_delete, n_swap;
 static int maxcard;
 static int card_count[1 + MAX_RULE_CARDINALITY];
+/* These hold the alpha parameter values to speed up log_gamma lookup. */
+static int a0, a1, a01;
 
 typedef struct _permute {
 	int val;
@@ -178,6 +181,26 @@ propose(ruleset_t *rs, rule_t *rules, rule_t *labels, int nrules,
 
 /********** End of proposal routines *******/
 int
+compute_log_gammas(int nrules, params_t *params)
+{
+	int max;
+
+	/* Pre-compute alpha sum for accessing the log_gammas. */
+	a0 = params->alpha[0];
+	a1 = params->alpha[1];
+	a01 = a0 + a1;
+
+	max = nrules + 2 * (1 + a01);
+	log_gammas = malloc(sizeof(double) * max);
+	if (log_gammas == NULL)
+		return (-1);
+
+	for (int i = 1; i < max; i++)
+		log_gammas[i] = gsl_sf_lngamma((double)i);
+	return 0;
+}
+
+int
 compute_pmf(int nrules, params_t *params)
 {
 	log_lambda_pmf = malloc(nrules * sizeof(double));
@@ -269,6 +292,7 @@ train(data_t *train_data, int initialization, int method, params_t *params)
 		return NULL;
 	compute_cardinality(train_data->rules, train_data->nrules);
 
+	compute_log_gammas(train_data->nrules, params);
 	pred_model = calloc(1, sizeof(pred_model_t));
 	if (pred_model == NULL)
 		return (NULL);
@@ -306,6 +330,7 @@ train(data_t *train_data, int initialization, int method, params_t *params)
 	free(log_lambda_pmf);
 	free(log_eta_pmf);
 	free(rule_permutation);
+	free(log_gammas);
 	return pred_model;
 }
 
@@ -555,28 +580,27 @@ compute_log_posterior(ruleset_t *rs, rule_t *rules, int nrules, rule_t *labels,
 
 	rule_vinit(rs->n_samples, &v0);
 	for (int j = 0; j < rs->n_rules; j++) {
-		int n0, n1;
+		int n0, n1;	 // Count of 0's; count of 1's
+
 		rule_vand(v0, rs->rules[j].captures,
 		    labels[0].truthtable, rs->n_samples, &n0);
 		n1 = rs->rules[j].ncaptured - n0;
-		log_likelihood += gsl_sf_lngamma(n0 + params->alpha[0]) + 
-		    gsl_sf_lngamma(n1 + params->alpha[1]) - 
-		    gsl_sf_lngamma(n0 + n1 +
-		        params->alpha[0] + params->alpha[1]);
+		log_likelihood += log_gammas[n0 + a0] +
+		    log_gammas[n1 + a1] - 
+		    log_gammas[n0 + n1 + a01];
 		// Added for prefix_bound.
 		left0 -= n0;
 		left1 -= n1;
 		if (j < length4bound) {
-			prefix_log_likelihood += gsl_sf_lngamma(n0 + 1) + 
-			    gsl_sf_lngamma(n1 + 1) - 
-			    gsl_sf_lngamma(n0 + n1 + 2);
+			prefix_log_likelihood += log_gammas[n0 + a0] +
+			    log_gammas[n1 + a1] - log_gammas[n0 + n1 + a01];
 			if (j == (length4bound - 1)) {
-				prefix_log_likelihood += gsl_sf_lngamma(1) + 
-				    gsl_sf_lngamma(left0 + 1) - 
-				    gsl_sf_lngamma(left0 + 2) + 
-				    gsl_sf_lngamma(1) + 
-				    gsl_sf_lngamma(left1 + 1) - 
-				    gsl_sf_lngamma(left1 + 2);
+				prefix_log_likelihood += log_gammas[a1] + 
+				    log_gammas[left0 + a0] - 
+				    log_gammas[left0 + a01] + 
+				    log_gammas[a0] + 
+				    log_gammas[left1 + a1] - 
+				    log_gammas[left1 + a01];
 			}
 		}
 	}
