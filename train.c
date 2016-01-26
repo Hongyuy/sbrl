@@ -181,7 +181,7 @@ propose(ruleset_t *rs, rule_t *rules, rule_t *labels, int nrules,
 
 /********** End of proposal routines *******/
 int
-compute_log_gammas(int nrules, params_t *params)
+compute_log_gammas(int nsamples, params_t *params)
 {
 	int max;
 
@@ -190,7 +190,7 @@ compute_log_gammas(int nrules, params_t *params)
 	a1 = params->alpha[1];
 	a01 = a0 + a1;
 
-	max = nrules + 2 * (1 + a01);
+	max = nsamples + 2 * (1 + a01);
 	log_gammas = malloc(sizeof(double) * max);
 	if (log_gammas == NULL)
 		return (-1);
@@ -292,7 +292,7 @@ train(data_t *train_data, int initialization, int method, params_t *params)
 		return NULL;
 	compute_cardinality(train_data->rules, train_data->nrules);
 
-	compute_log_gammas(train_data->nrules, params);
+	compute_log_gammas(train_data->nsamples, params);
 	pred_model = calloc(1, sizeof(pred_model_t));
 	if (pred_model == NULL)
 		return (NULL);
