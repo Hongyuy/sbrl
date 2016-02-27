@@ -656,7 +656,7 @@ rule_copy(VECTOR dest, VECTOR src, int len)
  *	i.captures = i.captures & ~j.captures
  * 	then swap positions i and j
  */
-int
+void
 ruleset_swap(ruleset_t *rs, int i, int j, rule_t *rules)
 {
 	int nset;
@@ -686,17 +686,16 @@ ruleset_swap(ruleset_t *rs, int i, int j, rule_t *rules)
 	rs->rules[j] = re;
 
 	rule_vfree(&tmp_vec);
-	return (0);
 }
 
-int
+void
 ruleset_swap_any(ruleset_t * rs, int i, int j, rule_t * rules)
 {
 	int temp, cnt, cnt_check, ret;
 	VECTOR caught;
 
 	if (i == j)
-		return 0;
+		return;
 
 	assert(i < rs->n_rules);
 	assert(j < rs->n_rules);
@@ -714,8 +713,7 @@ ruleset_swap_any(ruleset_t * rs, int i, int j, rule_t * rules)
 	 * (inclusive) and then compute the captures array from scratch
 	 * rules between rule i and rule j, both * inclusive.
 	 */
-	if ((ret = rule_vinit(rs->n_samples, &caught)) != 0)
-		return (ret);
+	rule_vinit(rs->n_samples, &caught);
 
 	for (int k = i; k <= j; k++)
 		rule_vor(caught,
@@ -745,7 +743,6 @@ ruleset_swap_any(ruleset_t * rs, int i, int j, rule_t * rules)
 	assert(cnt == cnt_check);
 
 	rule_vfree(&caught);
-	return (0);
 }
 
 /*

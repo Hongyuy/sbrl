@@ -44,13 +44,18 @@
 
 gsl_rng *RAND_GSL;
 
-/* File global variables. */
+/*
+ * File global variables.
+ * These make the library not thread safe. If we want to be thread safe during
+ * training, then we should reference count these global tables.
+ */
 static double *log_lambda_pmf, *log_eta_pmf;
 static double *log_gammas;
 static double eta_norm;
 static int n_add, n_delete, n_swap;
 static int maxcard;
 static int card_count[1 + MAX_RULE_CARDINALITY];
+
 /* These hold the alpha parameter values to speed up log_gamma lookup. */
 static int a0, a1, a01;
 
@@ -116,9 +121,10 @@ propose(ruleset_t *rs, rule_t *rules, rule_t *labels, int nrules,
 	double new_log_post, prefix_bound;
 	int change_ndx, ndx1, ndx2;
 	ruleset_t *rs_new, *rs_ret;
+	rs_new = NULL;
 
 	if (ruleset_copy(&rs_new, rs) != 0)
-		return (NULL);
+		goto err;
 
 	ruleset_proposal(rs_new, nrules, &ndx1, &ndx2, &stepchar, jump_prob);
 
@@ -132,7 +138,7 @@ propose(ruleset_t *rs, rule_t *rules, rule_t *labels, int nrules,
 	case 'A':
 		/* Add the rule whose id is ndx1 at position ndx2 */
 		if (ruleset_add(rules, nrules, &rs_new, ndx1, ndx2) != 0)
-			return (NULL);
+			goto err;
 		change_ndx = ndx2 + 1;
 		n_add++;
 		break;
@@ -177,6 +183,11 @@ propose(ruleset_t *rs, rule_t *rules, rule_t *labels, int nrules,
 	}
 
 	return (rs_ret);
+err:
+	if (rs_new != NULL)
+		ruleset_destroy(rs_new);
+	ruleset_destroy(rs);
+	return (NULL);
 }
 
 /********** End of proposal routines *******/
@@ -197,14 +208,13 @@ compute_log_gammas(int nsamples, params_t *params)
 
 	for (int i = 1; i < max; i++)
 		log_gammas[i] = gsl_sf_lngamma((double)i);
-	return 0;
+	return (0);
 }
 
 int
 compute_pmf(int nrules, params_t *params)
 {
-	log_lambda_pmf = malloc(nrules * sizeof(double));
-	if (log_lambda_pmf == NULL)
+	if ((log_lambda_pmf = malloc(nrules * sizeof(double))) == NULL)
 		return (errno);
 	for (int i = 0; i < nrules; i++) {
 		log_lambda_pmf[i] =
@@ -214,9 +224,8 @@ compute_pmf(int nrules, params_t *params)
 			    i, log_lambda_pmf[i]);
 	}
 
-	log_eta_pmf =
-	    malloc((1 + MAX_RULE_CARDINALITY) * sizeof(double));
-	if (log_eta_pmf == NULL)
+	if ((log_eta_pmf =
+	    malloc((1 + MAX_RULE_CARDINALITY) * sizeof(double))) == NULL)
 		return (errno);
 	for (int i = 0; i <= MAX_RULE_CARDINALITY; i++) {
 		log_eta_pmf[i] =
@@ -266,8 +275,7 @@ permute_cmp(const void *v1, const void *v2)
 int
 permute_rules(int nrules)
 {
-	rule_permutation = malloc(sizeof(permute_t) * nrules);
-	if (rule_permutation == NULL)
+	if ((rule_permutation = malloc(sizeof(permute_t) * nrules)) == NULL)
 		return (-1);
 	for (int i = 1; i < nrules; i++) {
 		rule_permutation[i].val = random();
@@ -275,7 +283,7 @@ permute_rules(int nrules)
 	}
 	qsort(rule_permutation, nrules, sizeof(permute_t), permute_cmp);
 	permute_ndx = 1;
-	return 0;
+	return (0);
 
 }
 
@@ -287,23 +295,26 @@ train(data_t *train_data, int initialization, int method, params_t *params)
 	ruleset_t *rs, *rs_temp;
 	double max_pos, pos_temp, null_bound;
 
-
+	pred_model = NULL;
 	if (compute_pmf(train_data->nrules, params) != 0)
-		return NULL;
+		goto err;
 	compute_cardinality(train_data->rules, train_data->nrules);
 
-	compute_log_gammas(train_data->nsamples, params);
-	pred_model = calloc(1, sizeof(pred_model_t));
-	if (pred_model == NULL)
-		return (NULL);
+	if (compute_log_gammas(train_data->nsamples, params) != 0)
+		goto err;
+
+	if ((pred_model = calloc(1, sizeof(pred_model_t))) == NULL)
+		goto err;
 
 	default_rule = 0;
-	ruleset_init(1,
-	    train_data->nsamples, &default_rule, train_data->rules, &rs);
+	if (ruleset_init(1,
+	    train_data->nsamples, &default_rule, train_data->rules, &rs) != 0)
+	    	goto err;
 
 	max_pos = compute_log_posterior(rs, train_data->rules,
 	    train_data->nrules, train_data->labels, params, 1, -1, &null_bound);
-	permute_rules(train_data->nrules);
+	if (permute_rules(train_data->nrules) != 0)
+		goto err;
 
 	for (int chain = 0; chain < params->nchain; chain++) {
 		rs_temp = run_mcmc(params->iters,
@@ -325,13 +336,30 @@ train(data_t *train_data, int initialization, int method, params_t *params)
 	pred_model->theta =
 	    get_theta(rs, train_data->rules, train_data->labels, params);
 	pred_model->rs = rs;
+	rs = NULL;
 
+	/*
+	 * THIS IS INTENTIONAL -- makes error handling localized.
+	 * If we branch to err, then we want to free an allocated model;
+	 * if we fall through naturally, then we don't.
+	 */
+	if (0) {
+err:
+		if (pred_model != NULL)
+			free (pred_model);
+	}
 	/* Free allocated memory. */
-	free(log_lambda_pmf);
-	free(log_eta_pmf);
-	free(rule_permutation);
-	free(log_gammas);
-	return pred_model;
+	if (log_lambda_pmf != NULL)
+		free(log_lambda_pmf);
+	if (log_eta_pmf != NULL)
+		free(log_eta_pmf);
+	if (rule_permutation != NULL)
+		free(rule_permutation);
+	if (log_gammas != NULL)
+		free(log_gammas);
+	if (rs != NULL)
+		ruleset_destroy(rs);
+	return (pred_model);
 }
 
 double *
@@ -367,7 +395,7 @@ get_theta(ruleset_t * rs, rule_t * rules, rule_t * labels, params_t *params)
 		}
 	}
 	rule_vfree(&v0);
-	return theta;
+	return (theta);
 }
 
 ruleset_t *
@@ -426,17 +454,20 @@ run_mcmc(int iters, int nsamples, int nrules,
 	 * The initial ruleset is our best ruleset so far, so keep a
 	 * list of the rules it contains.
 	 */
-	ruleset_backup(rs, &rs_idarray);
+	if (ruleset_backup(rs, &rs_idarray) != 0)
+		goto err;
 	max_log_posterior = log_post_rs;
 	len = rs->n_rules;
 
 	for (int i = 0; i < iters; i++) {
-		rs = propose(rs, rules, labels, nrules, &jump_prob,
+		if ((rs = propose(rs, rules, labels, nrules, &jump_prob,
 		    &log_post_rs, max_log_posterior, &nsuccessful_rej,
-		    &jump_prob, params, mcmc_accepts);
+		    &jump_prob, params, mcmc_accepts)) == NULL)
+		    	goto err;
 
 		if (log_post_rs > max_log_posterior) {
-			ruleset_backup(rs, &rs_idarray);
+			if (ruleset_backup(rs, &rs_idarray) != 0)
+				goto err;
 			max_log_posterior = log_post_rs;
 			len = rs->n_rules;
 		}
@@ -458,7 +489,14 @@ run_mcmc(int iters, int nsamples, int nrules,
 		    nrules, labels, params, 1, -1, &prefix_bound));
 		ruleset_print(rs, rules, (debug > 100));
 	}
-	return rs;
+	return (rs);
+
+err:
+	if (rs != NULL)
+		ruleset_destroy(rs);
+	if (rs_idarray != NULL)
+		free(rs_idarray);
+	return (NULL);
 }
 
 ruleset_t *
@@ -482,7 +520,8 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 
 	log_post_rs = compute_log_posterior(rs,
 	    rules, nrules, labels, params, 0, -1, &prefix_bound);
-	ruleset_backup(rs, &rs_idarray);
+	if (ruleset_backup(rs, &rs_idarray) != 0)
+		goto err;
 	max_log_posterior = log_post_rs;
 	len = rs->n_rules;
 
@@ -509,12 +548,14 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 	for (int k = 0; k < ntimepoints; k++) {
 		double tk = T[k];
 		for (int iter = 0; iter < iters_per_step; iter++) {
-    			rs = propose(rs, rules, labels, nrules, &jump_prob,
+    			if ((rs = propose(rs, rules, labels, nrules, &jump_prob,
 			    &log_post_rs, max_log_posterior, &dummy, &tk,
-			    params, sa_accepts);
+			    params, sa_accepts)) == NULL)
+			    	goto err;
 
 			if (log_post_rs > max_log_posterior) {
-				ruleset_backup(rs, &rs_idarray);
+				if (ruleset_backup(rs, &rs_idarray) != 0)
+					goto err;
 				max_log_posterior = log_post_rs;
 				len = rs->n_rules;
 			}
@@ -528,9 +569,16 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 	printf("max_log_posterior = %6f\n\n",
 	    compute_log_posterior(rs, rules,
 	    nrules, labels, params, 1, -1, &prefix_bound));
+	free(rs_idarray);
 	ruleset_print(rs, rules, (debug > 100));
 
-	return rs;
+	return (rs);
+err:
+	if (rs != NULL)
+		ruleset_destroy(rs);
+	if (rs_idarray != NULL)
+		free(rs_idarray);
+	return (NULL);
 }
 
 double
@@ -609,7 +657,7 @@ compute_log_posterior(ruleset_t *rs, rule_t *rules, int nrules, rule_t *labels,
 		printf("log_prior = %6f\t log_likelihood = %6f\n",
 		    log_prior, log_likelihood);
 	rule_vfree(&v0);
-	return log_prior + log_likelihood;
+	return (log_prior + log_likelihood);
 }
 
 void
@@ -693,19 +741,19 @@ init_gsl_rand_gen()
 int
 gen_poisson(double mu)
 {
-	return (int)gsl_ran_poisson(RAND_GSL, mu);
+	return ((int)gsl_ran_poisson(RAND_GSL, mu));
 }
 
 double
 gen_poission_pdf(int k, double mu)
 {
-	return gsl_ran_poisson_pdf(k, mu);
+	return (gsl_ran_poisson_pdf(k, mu));
 }
 
 double
 gen_gamma_pdf (double x, double a, double b)
 {
-	return gsl_ran_gamma_pdf(x, a, b);
+	return (gsl_ran_gamma_pdf(x, a, b));
 }
 
 void

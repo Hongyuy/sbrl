@@ -182,6 +182,11 @@ main (int argc, char *argv[])
 			END_TIME(tv_start, tv_end, tv_acc);
 			REPORT_TIME("Time to train", "", tv_end, 1);
 
+			if (model == NULL) {
+				fprintf(stderr, "Error: Train failed\n");
+				break;
+			}
+
 			printf("\nThe best rulelist for %d MCMC chains is: ",
 			    params.nchain); 
 			ruleset_print(model->rs, rules, 0);
@@ -294,8 +299,7 @@ run_experiment(int iters, int size, int nsamples, int nrules, rule_t *rules)
 					printf("\nSwapping rules %d and %d\n",
 					    rs->rules[k-1].rule_id,
 					    rs->rules[k].rule_id);
-				if (ruleset_swap(rs, k - 1, k, rules))
-					return;
+				ruleset_swap(rs, k - 1, k, rules);
 				if (debug)
 					ruleset_print(rs, rules, (debug > 100));
 			}
