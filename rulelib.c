@@ -68,17 +68,19 @@ int byte_ones[] = {
  *
  * OUTPUTS: an array of rule_t's
  */
+
 int
 rules_init(const char *infile, int *nrules,
     int *nsamples, rule_t **rules_ret, int add_default_rule)
 {
 	FILE *fi;
-	char *line, *rulestr;
+	char *features, *line, *rulestr;
 	int rule_cnt, sample_cnt, rsize;
 	int i, ones, ret;
 	rule_t *rules=NULL;
 	rule_t default_rule;
-	size_t len, rulelen;
+	size_t linelen, rulelen;
+	ssize_t len;
 
 	sample_cnt = rsize = 0;
 
@@ -90,7 +92,9 @@ rules_init(const char *infile, int *nrules,
 	 * the end.
 	 */
 	rule_cnt = add_default_rule != 0 ? 1 : 0;
-	while ((line = fgetln(fi, &len)) != NULL) {
+	line = NULL;
+	linelen = 0;
+	while ((len = getline(&line, &linelen, fi)) > 0) {
 		if (rule_cnt >= rsize) {
 			rsize += RULE_INC;
                 	rules = realloc(rules, rsize * sizeof(rule_t));
@@ -99,7 +103,8 @@ rules_init(const char *infile, int *nrules,
 		}
 
 		/* Get the rule string; line will contain the bits. */
-		if ((rulestr = strsep(&line, " ")) == NULL)
+		features = line;
+		if ((rulestr = strsep(&features, " ")) == NULL)
 			goto err;
 
 		rulelen = strlen(rulestr) + 1;
@@ -109,12 +114,16 @@ rules_init(const char *infile, int *nrules,
 			goto err;
 
 		/*
-		 * At this point "len" is a line terminated by a newline
-		 * at line[len-1]; let's make it a NUL and shorten the line
-		 * length by one.
+		 * At this point features is (probably) a line terminated by a
+		 * newline at features[len-1]; if it is newline-terminated, then
+		 * let's make it NUL-terminated and shorten the line length
+		 * by one.
 		 */
-		line[len-1] = '\0';
-		if (ascii_to_vector(line, len, &sample_cnt, &ones,
+		if (features[len-1] == '\n') {
+			features[len-1] = '\0';
+			len--;
+		}
+		if (ascii_to_vector(features, len, &sample_cnt, &ones,
 		    &rules[rule_cnt].truthtable) != 0)
 		    	goto err;
 		rules[rule_cnt].support = ones;
@@ -126,7 +135,6 @@ rules_init(const char *infile, int *nrules,
 				rules[rule_cnt].cardinality++;
 		rule_cnt++;
 	}
-	/* All done! */
 	fclose(fi);
 
 	/* Now create the 0'th (default) rule. */

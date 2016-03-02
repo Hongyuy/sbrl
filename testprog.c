@@ -82,6 +82,7 @@ main (int argc, char *argv[])
 	params_t params = {9.0, 3.0, 0.5, {1, 1}, 1000, 11};
 
 	debug = 0;
+	rules = labels = NULL;
 	iters = params.iters;
 	tnum = TEST_TEST;
 	modelfile = NULL;
