@@ -80,6 +80,7 @@ main (int argc, char *argv[])
 	rule_t *rules, *labels;
 	struct timeval tv_acc, tv_start, tv_end;
 	params_t params = {9.0, 3.0, 0.5, {1, 1}, 1000, 11};
+	FILE *moutfile;
 
 	debug = 0;
 	rules = labels = NULL;
@@ -227,8 +228,19 @@ main (int argc, char *argv[])
 			}
 
 			if (modelfile != NULL) {
-				// Output model for later use
-				// TODO
+				moutfile = fopen(modelfile, "w");
+				if (moutfile == NULL) {
+					fprintf(stderr, "%s %s: %s\n",
+					    "Unable to write model file",
+					    modelfile, strerror(errno));
+				} else {
+					for (int i = 0;
+					    i < model->rs->n_rules; i++)
+						fprintf(moutfile, "%d,%.8f\n",
+						model->rs->rules[i].rule_id,
+						model->theta[i]);
+					fclose(moutfile);
+				}
 			}
 
 			ruleset_destroy(model->rs);
