@@ -49,7 +49,10 @@
 #define DEFAULT_RULE_CARDINALITY 3
 #define NLABELS 2
 
+pred_model_t *read_model(const char *, int, rule_t *);
 void run_experiment(int, int, int, int, rule_t *);
+double *test_model(pred_model_t *, params_t *, const char *, const char *);
+int write_model(const char *, pred_model_t *);
 
 int debug;
 
@@ -80,7 +83,6 @@ main (int argc, char *argv[])
 	rule_t *rules, *labels;
 	struct timeval tv_acc, tv_start, tv_end;
 	params_t params = {9.0, 3.0, 0.5, {1, 1}, 1000, 11};
-	FILE *moutfile;
 
 	debug = 0;
 	rules = labels = NULL;
@@ -210,38 +212,12 @@ main (int argc, char *argv[])
 					usage();
 					break;
 				}
-				// Read in test data
-				if ((ret = rules_init(argv[2], 
-				    &test_data.nrules, &test_data.nsamples,
-				    &test_data.rules, 1)) != 0)
-				    	return (ret);
-
-				// Read in test labels
-				if ((ret = rules_init(argv[3], 
-				    &nlabels, &nsamples_chk,
-				    &test_data.labels, 0)) != 0)
-				    	return (ret);
-				assert(nsamples_chk == test_data.nsamples);
-				p = predict(&test_data,model, &params);
-				if (p == NULL)
-					return (errno);
+				p = test_model(model,
+				    &params, argv[2], argv[3]);
 			}
 
-			if (modelfile != NULL) {
-				moutfile = fopen(modelfile, "w");
-				if (moutfile == NULL) {
-					fprintf(stderr, "%s %s: %s\n",
-					    "Unable to write model file",
-					    modelfile, strerror(errno));
-				} else {
-					for (int i = 0;
-					    i < model->rs->n_rules; i++)
-						fprintf(moutfile, "%d,%.8f\n",
-						model->rs->rules[i].rule_id,
-						model->theta[i]);
-					fclose(moutfile);
-				}
-			}
+			if (modelfile != NULL)
+				(void)write_model(modelfile, model);
 
 			ruleset_destroy(model->rs);
 			free(model->theta);
@@ -251,11 +227,12 @@ main (int argc, char *argv[])
 			 * Test model from previous run; requires model
 			 * file as well as testdata.
 			 */
-			if (modelfile == NULL || argc < 4) {
+			if (modelfile == NULL || argc < 2) {
 				usage();
 				break;
 			}
-			// TODO
+			// Read Modelfile
+			p = test_model(model, &params, argv[0], argv[1]);
 			break;
 		default:
 			usage();
@@ -342,3 +319,117 @@ run_experiment(int iters, int size, int nsamples, int nrules, rule_t *rules)
 
 }
 
+
+double *
+test_model(pred_model_t *model, params_t *params,
+    const char *data_file, const char *label_file)
+{
+	data_t test_data;
+	double *dret;
+	int nlabels, nsamples_chk;
+
+	test_data.rules = NULL;
+	test_data.labels = NULL;
+	dret = NULL;
+
+	// Read in test data
+	if (rules_init(data_file,
+	    &test_data.nrules, &test_data.nsamples,
+	    &test_data.rules, 1) != 0)
+		goto out;
+
+	// Read in test labels
+	if (rules_init(label_file,
+	    &nlabels, &nsamples_chk,
+	    &test_data.labels, 0) != 0) {
+		goto out;
+	}
+
+	assert(nsamples_chk == test_data.nsamples);
+	dret = predict(&test_data, model, params);
+out:
+	if (test_data.rules != NULL)
+		free(test_data.rules);
+	if (test_data.labels != NULL)
+		free(test_data.labels);
+	return (dret);
+}
+
+int
+write_model(const char *file, pred_model_t *model)
+{
+	FILE *fi;
+
+	if ((fi = fopen(file, "w")) == NULL) {
+		fprintf(stderr, "%s %s: %s\n",
+		    "Unable to write model file", file, strerror(errno));
+		return (-1);
+	} 
+	for (int i = 0; i < model->rs->n_rules; i++)
+		fprintf(fi, "%d,%.8f\n",
+		    model->rs->rules[i].rule_id, model->theta[i]);
+	fclose(fi);
+	return (0);
+}
+
+pred_model_t *
+read_model(const char *file, int nrules, rule_t *rules)
+{
+	double theta, *theta_array;
+	FILE *fi;
+	int i, id, *idarray, nslots;
+	pred_model_t *model;
+	ruleset_t *rs;
+
+	i = nslots = 0;
+	model = NULL;
+	rs = NULL;
+	idarray = NULL;
+	theta_array = NULL;
+
+	if ((fi = fopen(file, "r")) == NULL) {
+		fprintf(stderr, "%s %s: %s\n",
+		    "Unable to read model file", file, strerror(errno));
+		return (NULL);
+	} 
+
+	while (fscanf(fi, "%d,%8lf\n", &id, &theta) == 2) {
+		if (i >= nslots) {
+			nslots += 50;
+			idarray = realloc(idarray, nslots * sizeof(int));
+			theta_array =
+			    realloc(theta_array, nslots * sizeof(double));
+			if (idarray == NULL || theta_array == NULL) {
+				fprintf(stderr,
+				    "Unable to malloc space: %s\n",
+				        strerror(ENOMEM));
+				goto err;
+			}
+		}
+
+		idarray[i++] = id;
+		theta_array[i++] = theta;
+	}
+
+	/* Create the ruleset. */
+	if (ruleset_init(nrules, 0, idarray, rules, &rs) != 0)
+		goto err;
+	/* Create the model. */
+	if ((model = malloc(sizeof(pred_model_t))) == NULL)
+		goto err;
+	model->rs = rs;
+	model->theta = theta_array;
+	model->confIntervals = 0;
+	
+	if (0) {
+err:
+		if (rs != NULL)
+			ruleset_destroy(rs);
+	}
+	if (idarray != NULL)
+		free(idarray);
+	if (theta_array != NULL)
+		free(theta_array);
+	fclose(fi);
+	return (model);
+}
