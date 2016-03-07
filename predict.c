@@ -63,12 +63,12 @@ get_accuracy(ruleset_t *rs,
 			rule_vand(v0, rs_test->rules[j].captures,
 			    test_labels[1].truthtable, rs_test->n_samples,
 			    &n1_correct);
-			nwrong += abs(n1_correct - rs_test->rules[j].ncaptured);
+			nwrong += rs_test->rules[j].ncaptured - n1_correct;
 		} else {
 			rule_vand(v0, rs_test->rules[j].captures,
 			    test_labels[0].truthtable, rs_test->n_samples,
 			    &n0_correct);
-			nwrong += abs(n0_correct - rs_test->rules[j].ncaptured);
+			nwrong += rs_test->rules[j].ncaptured - n0_correct;
 		}
 		if (debug > 10)
 			printf("rules[%d] captures %d%s %d, n1=%d,%s %.6f\n",

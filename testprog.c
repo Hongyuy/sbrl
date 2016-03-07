@@ -49,7 +49,7 @@
 #define DEFAULT_RULE_CARDINALITY 3
 #define NLABELS 2
 
-pred_model_t *read_model(const char *, int, rule_t *);
+pred_model_t *read_model(const char *, int, rule_t *, int);
 void run_experiment(int, int, int, int, rule_t *);
 double *test_model(pred_model_t *, params_t *, const char *, const char *);
 int write_model(const char *, pred_model_t *);
@@ -232,6 +232,7 @@ main (int argc, char *argv[])
 				break;
 			}
 			// Read Modelfile
+			model = read_model(modelfile, nrules, rules, nsamples);
 			p = test_model(model, &params, argv[0], argv[1]);
 			break;
 		default:
@@ -373,11 +374,11 @@ write_model(const char *file, pred_model_t *model)
 }
 
 pred_model_t *
-read_model(const char *file, int nrules, rule_t *rules)
+read_model(const char *file, int nrules, rule_t *rules, int nsamples)
 {
 	double theta, *theta_array;
 	FILE *fi;
-	int i, id, *idarray, nslots;
+	int i, id, *idarray, nslots, tmp;
 	pred_model_t *model;
 	ruleset_t *rs;
 
@@ -393,7 +394,9 @@ read_model(const char *file, int nrules, rule_t *rules)
 		return (NULL);
 	} 
 
-	while (fscanf(fi, "%d,%8lf\n", &id, &theta) == 2) {
+	while ((tmp = fscanf(fi, "%d,%lf\n", &id, &theta)) == 2) {
+		if (debug > 10)
+			printf("tmp = %d id = %d theta = %f\n", tmp, id, theta);
 		if (i >= nslots) {
 			nslots += 50;
 			idarray = realloc(idarray, nslots * sizeof(int));
@@ -407,12 +410,12 @@ read_model(const char *file, int nrules, rule_t *rules)
 			}
 		}
 
-		idarray[i++] = id;
+		idarray[i] = id;
 		theta_array[i++] = theta;
 	}
 
 	/* Create the ruleset. */
-	if (ruleset_init(nrules, 0, idarray, rules, &rs) != 0)
+	if (ruleset_init(i, nsamples, idarray, rules, &rs) != 0)
 		goto err;
 	/* Create the model. */
 	if ((model = malloc(sizeof(pred_model_t))) == NULL)
