@@ -49,9 +49,10 @@
 #define DEFAULT_RULE_CARDINALITY 3
 #define NLABELS 2
 
+int load_data(const char *, const char *, int *, int *, rule_t **, rule_t **);
 pred_model_t *read_model(const char *, int, rule_t *, int);
 void run_experiment(int, int, int, int, rule_t *);
-double *test_model(pred_model_t *, params_t *, const char *, const char *);
+double *test_model(const char *, const char *, pred_model_t *, params_t *);
 int write_model(const char *, pred_model_t *);
 
 int debug;
@@ -76,7 +77,7 @@ main (int argc, char *argv[])
 	extern int optind, optopt, opterr, optreset;
 	int ret, size = DEFAULT_RULESET_SIZE;
 	int iters, nrules, nsamples, nlabels, nsamples_chk, tnum;
-	char ch, *infile, *modelfile, *testfile;
+	char ch, *modelfile, *testfile;
 	data_t train_data, test_data;
 	double *p;
 	pred_model_t *model;
@@ -132,13 +133,15 @@ main (int argc, char *argv[])
 	if (argc < 2)
 		return (usage());
 
-	/* read in the data-rule relations */
-	infile = argv[0];
-
+	/*
+	 * We treat the label file as a separate ruleset, since it has
+	 * a similar format.
+	 */
 	INIT_TIME(tv_acc);
 	START_TIME(tv_start);
-	if ((ret = rules_init(infile, &nrules, &nsamples, &rules, 1)) != 0)
-		return (ret);
+	if ((ret = load_data(argv[0],
+	    argv[1], &nsamples, &nrules, &rules, &labels)) != 0)
+	    	return (ret);
 	END_TIME(tv_start, tv_end, tv_acc);
 	REPORT_TIME("Initialize time", "per rule", tv_end, nrules);
     
@@ -147,17 +150,6 @@ main (int argc, char *argv[])
 
 	if (debug > 100)
 		rule_print_all(rules, nrules, nsamples);
-
-	/*
-	 * We treat the label file as a separate ruleset, since it has
-	 * a similar format.
-	 */
-	infile = argv[1];
-	if ((ret = 
-	    rules_init(infile, &nlabels, &nsamples_chk, &labels, 0)) != 0)
-		return (ret);
-    	assert(nlabels == 2);
-	assert(nsamples_chk == nsamples);
     
 	if (debug > 100) {
 		printf("Labels (%d) for %d samples\n\n", nlabels, nsamples);
@@ -196,8 +188,8 @@ main (int argc, char *argv[])
 			ruleset_print(model->rs, rules, 0);
 			for (int i = 0; i < model->rs->n_rules; i++)
 				printf("%d, %.8f\n",
-				model->rs->rules[i].rule_id,
-				model->theta[i]);
+				    model->rs->rules[i].rule_id,
+				    model->theta[i]);
 
 			printf("Lambda = %.6f\n", params.lambda);
 			printf("Eta = %.6f\n", params.eta);
@@ -212,8 +204,8 @@ main (int argc, char *argv[])
 					usage();
 					break;
 				}
-				p = test_model(model,
-				    &params, argv[2], argv[3]);
+				p = test_model(argv[2],
+				    argv[3], model, &params);
 			}
 
 			if (modelfile != NULL)
@@ -233,7 +225,7 @@ main (int argc, char *argv[])
 			}
 			// Read Modelfile
 			model = read_model(modelfile, nrules, rules, nsamples);
-			p = test_model(model, &params, argv[0], argv[1]);
+			p = predict(model, labels, &params);
 			break;
 		default:
 			usage();
@@ -320,40 +312,67 @@ run_experiment(int iters, int size, int nsamples, int nrules, rule_t *rules)
 
 }
 
-
-double *
-test_model(pred_model_t *model, params_t *params,
-    const char *data_file, const char *label_file)
+int
+load_data(const char *data_file, const char *label_file,
+    int *ret_samples, int *ret_nrules, rule_t **rules, rule_t **labels)
 {
-	data_t test_data;
-	double *dret;
-	int nlabels, nsamples_chk;
+	int nlabels, ret, samples_chk;
 
-	test_data.rules = NULL;
-	test_data.labels = NULL;
-	dret = NULL;
+	/* Load data. */
+	if ((ret = rules_init(data_file, ret_nrules, ret_samples, rules, 1)) != 0)
+		return (ret);
 
-	// Read in test data
-	if (rules_init(data_file,
-	    &test_data.nrules, &test_data.nsamples,
-	    &test_data.rules, 1) != 0)
-		goto out;
-
-	// Read in test labels
-	if (rules_init(label_file,
-	    &nlabels, &nsamples_chk,
-	    &test_data.labels, 0) != 0) {
-		goto out;
+	/* Load labels. */
+	if ((ret = 
+	    rules_init(label_file, &nlabels, &samples_chk, labels, 0)) != 0) {
+		free (*rules);
+		return (ret);
 	}
 
-	assert(nsamples_chk == test_data.nsamples);
-	dret = predict(&test_data, model, params);
-out:
-	if (test_data.rules != NULL)
-		free(test_data.rules);
-	if (test_data.labels != NULL)
-		free(test_data.labels);
-	return (dret);
+    	assert(nlabels == 2);
+	assert(samples_chk == *ret_samples);
+	return (0);
+}
+
+double *
+test_model(const char *data_file,
+    const char *label_file, pred_model_t *model, params_t *params)
+{
+	double *p;
+	int *idarray, nsamples, nrules;
+	rule_t *rules, *labels;
+	ruleset_t *test_rs, *tmp_rs;
+
+	idarray = NULL;
+	test_rs = NULL;
+	p = NULL;
+
+	/* Make an array of the rules comprising this model. */
+	if ((ruleset_backup(model->rs, &idarray)) != 0)
+		goto err;
+
+	/* Load test data. */
+	if (load_data(data_file,
+	    label_file, &nsamples, &nrules, &rules, &labels) != 0)
+		goto err;
+
+	/* Create new ruleset with test data. */
+	if (ruleset_init(model->rs->n_rules,
+	    nsamples, idarray, rules, &test_rs) != 0)
+		goto err;
+
+	tmp_rs = model->rs;
+	model->rs = test_rs;
+	p = predict(model, labels, params);
+	model->rs = tmp_rs;
+
+err:
+	if (idarray != NULL)
+		free (idarray);
+	if (test_rs != NULL)
+		ruleset_destroy(test_rs);
+
+	return (p);
 }
 
 int

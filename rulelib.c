@@ -355,7 +355,7 @@ make_default(VECTOR *ttp, int len)
 
 /* Create a ruleset. */
 int
-ruleset_init(int nrules,
+ruleset_init(int nrs_rules,
     int nsamples, int *idarray, rule_t *rules, ruleset_t **retruleset)
 {
 	int cnt, i, ret, tmp;
@@ -367,7 +367,7 @@ ruleset_init(int nrules,
 	/*
 	 * Allocate space for the ruleset structure and the ruleset entries.
 	 */
-	rs = malloc(sizeof(ruleset_t) + nrules * sizeof(ruleset_entry_t));
+	rs = malloc(sizeof(ruleset_t) + nrs_rules * sizeof(ruleset_entry_t));
 	if (rs == NULL)
 		return (errno);
 	/*
@@ -375,12 +375,12 @@ ruleset_init(int nrules,
 	 * the ruleset_entry_t array at the end.
 	 */
 	rs->n_rules = 0;
-	rs->n_alloc = nrules;
+	rs->n_alloc = nrs_rules;
 	rs->n_samples = nsamples;
 	make_default(&not_captured, nsamples);
 
 	cnt = nsamples;
-	for (i = 0; i < nrules; i++) {
+	for (i = 0; i < nrs_rules; i++) {
 		cur_rule = rules + idarray[i];
 		cur_re = rs->rules + i;
 		cur_re->rule_id = idarray[i];
@@ -844,11 +844,11 @@ count_ones_vector(VECTOR v, int len) {
 #ifdef GMP
 	return mpz_popcount(v);
 #else
-    int cnt = 0;
-    for (int i=0; i < (len+BITS_PER_ENTRY-1)/BITS_PER_ENTRY; i++) {
-        cnt += count_ones(v[i]);
-    }
-    return cnt;
+	int cnt = 0;
+	for (int i=0; i < (len+BITS_PER_ENTRY-1)/BITS_PER_ENTRY; i++) {
+		cnt += count_ones(v[i]);
+	}
+	return cnt;
 #endif
 }
 
@@ -863,6 +863,24 @@ count_ones(v_entry val)
 		val >>= 8;
 	}
 	return (count);
+}
+
+/*
+ * Find first set bit starting at position start_pos.
+ */
+int
+rule_ff1(VECTOR v, int start_pos, int len)
+{
+#ifdef GMP
+	(void)len;
+	return mpz_scan1(v, start_pos);
+#else
+	for (int i = start_pos; i < len; i++) {
+		if (rule_isset(v, i))
+			return i;
+	}
+	return -1;
+#endif
 }
 
 void

@@ -146,6 +146,7 @@ void rule_print_all(rule_t *, int, int);
 void rule_vector_print(VECTOR, int);
 void rule_copy(VECTOR, VECTOR, int);
 
+int rule_ff1(VECTOR, int, int);
 int rule_isset(VECTOR, int);
 int rule_vinit(int, VECTOR *);
 int rule_vfree(VECTOR *);
@@ -157,7 +158,7 @@ int count_ones(v_entry);
 int count_ones_vector(VECTOR, int);
 
 /* Functions for the Scalable Baysian Rule Lists */
-double *predict(data_t *, pred_model_t *, params_t *);
+double *predict(pred_model_t *, rule_t *labels, params_t *);
 void ruleset_proposal(ruleset_t *, int, int *, int *, char *, double *);
 ruleset_t *run_mcmc(int, int, int, rule_t *, rule_t *, params_t *, double);
 ruleset_t *run_simulated_annealing(int,

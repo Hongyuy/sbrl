@@ -37,94 +37,90 @@ extern int debug;
 
 double
 get_accuracy(ruleset_t *rs,
-    double *theta, rule_t *test_rules, rule_t *test_labels, params_t *params)
+    double *theta, rule_t *test_labels, params_t *params)
 {
-	int *idarray = NULL;
 	int nwrong = 0;
-	ruleset_t *rs_test;
 	VECTOR v0;
 
-	rule_vinit(rs->n_samples, &v0);
-	ruleset_backup(rs, &idarray);
-	ruleset_init(rs->n_rules,
-	    test_rules[0].support, idarray, test_rules, &rs_test);
-	ruleset_print(rs_test, test_rules, 0);
-
 	if (debug > 10) {
-		for (int j = 0; j < rs_test->n_rules; j++)
+		for (int j = 0; j < rs->n_rules; j++)
 			printf("theta[%d] = %f\n", j, theta[j]);
 	}
 
 	rule_vinit(rs->n_samples, &v0);
-	for (int j = 0; j < rs_test->n_rules; j++) {
+	for (int j = 0; j < rs->n_rules; j++) {
 		int n1_correct = 0, n0_correct = 0;
 
 		if (theta[j] >= params->threshold) {
-			rule_vand(v0, rs_test->rules[j].captures,
-			    test_labels[1].truthtable, rs_test->n_samples,
+			rule_vand(v0, rs->rules[j].captures,
+			    test_labels[1].truthtable, rs->n_samples,
 			    &n1_correct);
-			nwrong += rs_test->rules[j].ncaptured - n1_correct;
+			nwrong += rs->rules[j].ncaptured - n1_correct;
 		} else {
-			rule_vand(v0, rs_test->rules[j].captures,
-			    test_labels[0].truthtable, rs_test->n_samples,
+			rule_vand(v0, rs->rules[j].captures,
+			    test_labels[0].truthtable, rs->n_samples,
 			    &n0_correct);
-			nwrong += rs_test->rules[j].ncaptured - n0_correct;
+			nwrong += rs->rules[j].ncaptured - n0_correct;
 		}
 		if (debug > 10)
 			printf("rules[%d] captures %d%s %d, n1=%d,%s %.6f\n",
-			    j, rs_test->rules[j].ncaptured,
+			    j, rs->rules[j].ncaptured,
 			    "samples, correct n0=", n0_correct, n1_correct,
 			    "test Probability=", (n0_correct + n1_correct) * 1.0
-			    / rs_test->rules[j].ncaptured);
+			    / rs->rules[j].ncaptured);
 	}
 	if (debug > 10) {
 		printf("ntotal = %d,  n0 = %d,  n1 = %d\n",
-		    rs_test->n_samples, test_labels[0].support,
+		    rs->n_samples, test_labels[0].support,
 		    test_labels[1].support);
 		printf("#wrong predictions = %d,  #total predictions = %d\n",
-		    nwrong, rs_test->n_samples);
+		    nwrong, rs->n_samples);
 	}
 
-	free(idarray);
-	ruleset_destroy(rs_test);
-	return 1.0 - ((float)nwrong / rs_test->n_samples);
+	return 1.0 - ((float)nwrong / rs->n_samples);
 }
 
 double *
-predict(data_t *data, pred_model_t *pred_model, params_t *params)
+predict(pred_model_t *pred_model, rule_t *labels, params_t *params)
 {
 	double *prob;
-	int cnt, rule_id;
+	int cnt, rule_id, sample;
+	ruleset_t *rs;
     
-	prob = calloc(data->nsamples, sizeof(double));
+	prob = calloc(pred_model->rs->n_samples, sizeof(double));
 	if (prob == NULL)
 		return NULL;
 
-	for (int i = 0; i < data->nsamples; i++)
+	for (int i = 0; i < pred_model->rs->n_samples; i++)
 		prob[i] = 0.0;
 
-	for (int j=0; j < pred_model->rs->n_rules; j++) {
-		cnt = 0;
-		rule_id = pred_model->rs->rules[j].rule_id;
-		for (int i = 0; i < data->nsamples; i++) {
-			if (prob[i] < 1e-5 &&
-			    rule_isset(data->rules[rule_id].truthtable, i)) {
-				prob[i] = pred_model->theta[j];
-				cnt++;
-			}
+	rs = pred_model->rs;
+	for (int j=0; j < rs->n_rules; j++) {
+		sample = 0;
+		rule_id = rs->rules[j].rule_id;
+		/*
+		 * Iterate over the captured vector finding each sample
+		 * captured by this rule; assign it the probability associated
+		 * with the rule.
+		 */
+		for (int i = 0; i < rs->rules[j].ncaptured; i++) {
+			sample = rule_ff1(rs->rules[j].captures,
+			    sample, rs->n_rules);
+			prob[sample] = pred_model->theta[j];
+			sample++;
 		}
 		printf("Rule %d captures %d of %d samples\n",
-		    rule_id, cnt, data->nsamples);
+		    rule_id, rs->rules[j].ncaptured, pred_model->rs->n_samples);
 	}
 
 	if (debug > 10)
-		for (int i = 0; i < data->nsamples; i++)
+		for (int i = 0; i < pred_model->rs->n_samples; i++)
 		    printf("%.6f\n", prob[i]);
 
 	if (debug)
 		printf("test accuracy = %.6f \n",
 		    get_accuracy(pred_model->rs, pred_model->theta,
-			data->rules, data->labels, params));
+			labels, params));
 
 	return prob;
 }
