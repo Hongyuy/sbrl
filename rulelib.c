@@ -78,7 +78,6 @@ rules_init(const char *infile, int *nrules,
 	int rule_cnt, sample_cnt, rsize;
 	int i, ones, ret;
 	rule_t *rules=NULL;
-	rule_t default_rule;
 	size_t linelen, rulelen;
 	ssize_t len;
 
@@ -358,7 +357,7 @@ int
 ruleset_init(int nrs_rules,
     int nsamples, int *idarray, rule_t *rules, ruleset_t **retruleset)
 {
-	int cnt, i, ret, tmp;
+	int cnt, i;
 	rule_t *cur_rule;
 	ruleset_t *rs;
 	ruleset_entry_t *cur_re;
@@ -699,7 +698,7 @@ ruleset_swap(ruleset_t *rs, int i, int j, rule_t *rules)
 void
 ruleset_swap_any(ruleset_t * rs, int i, int j, rule_t * rules)
 {
-	int temp, cnt, cnt_check, ret;
+	int temp, cnt, cnt_check;
 	VECTOR caught;
 
 	if (i == j)
@@ -886,9 +885,8 @@ rule_ff1(VECTOR v, int start_pos, int len)
 void
 ruleset_print(ruleset_t *rs, rule_t *rules, int detail)
 {
-	int i, j, n;
+	int i, n;
 	int total_support;
-	rule_t *r;
 
 	printf("%d rules %d samples\n", rs->n_rules, rs->n_samples);
 	n = (rs->n_samples + BITS_PER_ENTRY - 1) / BITS_PER_ENTRY;

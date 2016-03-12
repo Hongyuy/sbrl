@@ -126,7 +126,9 @@ propose(ruleset_t *rs, rule_t *rules, rule_t *labels, int nrules,
 	if (ruleset_copy(&rs_new, rs) != 0)
 		goto err;
 
-	ruleset_proposal(rs_new, nrules, &ndx1, &ndx2, &stepchar, jump_prob);
+	if (ruleset_proposal(rs_new,
+	    nrules, &ndx1, &ndx2, &stepchar, jump_prob) != 0)
+	    	goto err;
 
 	if (debug > 10) {
 		printf("Given ruleset: \n");
@@ -155,6 +157,7 @@ propose(ruleset_t *rs, rule_t *rules, rule_t *labels, int nrules,
 		n_swap++;
 		break;
 	default:
+		goto err;
 		break;
 	}
 
@@ -296,6 +299,7 @@ train(data_t *train_data, int initialization, int method, params_t *params)
 	double max_pos, pos_temp, null_bound;
 
 	pred_model = NULL;
+	rs = NULL;
 	if (compute_pmf(train_data->nrules, params) != 0)
 		goto err;
 	compute_cardinality(train_data->rules, train_data->nrules);
@@ -660,7 +664,7 @@ compute_log_posterior(ruleset_t *rs, rule_t *rules, int nrules, rule_t *labels,
 	return (log_prior + log_likelihood);
 }
 
-void
+int
 ruleset_proposal(ruleset_t * rs, int nrules,
     int *ndx1, int *ndx2, char *stepchar, double *jumpRatio){
 	static double MOVEPROBS[15] = {
@@ -724,9 +728,11 @@ ruleset_proposal(ruleset_t * rs, int nrules,
 		*stepchar = 'D';
 	} else {
 		//should raise exception here.
+		return -1;
 	}
 	*ndx1 = index1;
 	*ndx2 = index2;
+	return (0);
 }
 
 void

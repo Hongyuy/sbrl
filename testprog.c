@@ -76,9 +76,9 @@ main (int argc, char *argv[])
 	extern char *optarg;
 	extern int optind, optopt, opterr, optreset;
 	int ret, size = DEFAULT_RULESET_SIZE;
-	int iters, nrules, nsamples, nlabels, nsamples_chk, tnum;
-	char ch, *modelfile, *testfile;
-	data_t train_data, test_data;
+	int iters, nrules, nsamples, tnum;
+	char ch, *modelfile;
+	data_t train_data;
 	double *p;
 	pred_model_t *model;
 	rule_t *rules, *labels;
@@ -152,8 +152,8 @@ main (int argc, char *argv[])
 		rule_print_all(rules, nrules, nsamples);
     
 	if (debug > 100) {
-		printf("Labels (%d) for %d samples\n\n", nlabels, nsamples);
-		rule_print_all(labels, nlabels, nsamples);
+		printf("Labels for %d samples\n\n", nsamples);
+		rule_print_all(labels, nsamples, nsamples);
    	} 
 	/*
 	 * Testing:
@@ -233,7 +233,7 @@ main (int argc, char *argv[])
 	}
 
 	rules_free(rules, nrules, 1);
-	rules_free(labels, nlabels, 0);
+	rules_free(labels, 2, 0);
 }
 
 /* ========= Simple test utility routines ======= */

@@ -13,7 +13,7 @@ INCLUDES = -I. -I/opt/local/include
 # Put this here so we can specify something like -DGMP to switch between
 # representations.
 CC = cc
-CFLAGS = -g $(INCLUDES) -DGMP --std=gnu99
+CFLAGS = -g $(INCLUDES) -DGMP --std=gnu99 -Wall
 LIBS = -L/opt/local/lib  -lc -lgsl -lgmp
 
 $(TARGET) : $(OBJECTS)

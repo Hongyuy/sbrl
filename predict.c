@@ -84,7 +84,7 @@ double *
 predict(pred_model_t *pred_model, rule_t *labels, params_t *params)
 {
 	double *prob;
-	int cnt, rule_id, sample;
+	int rule_id, sample;
 	ruleset_t *rs;
     
 	prob = calloc(pred_model->rs->n_samples, sizeof(double));
