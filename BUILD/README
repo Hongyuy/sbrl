@@ -1,4 +1,10 @@
 This directory is here simply to build the distribution.
+The distribution builds:
+
+	* Both static and dynamic libraries
+	* A statically linked executable testprog_static
+	* A dynamically linked executable testprog
+	* The tic-tac-toe testing and training data.
 
 How to build a distribution:
 

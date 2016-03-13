@@ -5,8 +5,11 @@ AC_PREREQ([2.69])
 AC_INIT([sbrlmod], [VERSION], [BUG-REPORT-ADDRESS])
 AC_CONFIG_SRCDIR([mytime.h])
 # AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_MACRO_DIRS([m4])
 
 AM_INIT_AUTOMAKE([-Wportability])
+
+LT_INIT()
 
 # Checks for programs.
 AC_PROG_CC
