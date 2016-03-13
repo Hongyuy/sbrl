@@ -4,12 +4,12 @@ How to build a distribution:
 
 1. Create links to the files from the source code that we need:
 
-% ln -s ../*.[ch] .
-% ln -s ../ttt_test.* .
-% ln -s ../ttt_train.* .
+ln -s ../*.[ch] .
+ln -s ../ttt_test.* .
+ln -s ../ttt_train.* .
 
 2. Now, build the distribution:
-% sh rr
-% make dist
+sh rr
+make dist
 
 This will create sbrlmod-VERSION.tar.gz
