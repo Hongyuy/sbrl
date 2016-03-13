@@ -13,3 +13,6 @@ sh rr
 make dist
 
 This will create sbrlmod-VERSION.tar.gz
+
+3. After you've created a distribution and moved it somewhere, the cleanup
+script will remove all the build process files leaving you a clean directory.
