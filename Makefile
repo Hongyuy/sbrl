@@ -4,16 +4,16 @@
 # Lib: a library containing the training and prediction code for use in C programs
 # RLib: An R package containing the C code; prediction to be done in R.
 
-TARGET = testprog
-LOBJECTS = rulelib.o train.o
-OBJECTS = $(LOBJECTS) testprog.o predict.o
+TARGET = sbrlmod
+LOBJECTS = rulelib.o train.o predict.o
+OBJECTS = $(LOBJECTS) sbrlmod.o
 EXTRA = makedata.pyc
 INCLUDES = -I. -I/opt/local/include 
 
 # Put this here so we can specify something like -DGMP to switch between
 # representations.
 CC = cc
-CFLAGS = -g $(INCLUDES) -DGMP --std=gnu99 -Wall
+CFLAGS = -g $(INCLUDES) -DGMP -Wall
 LIBS = -L/opt/local/lib  -lc -lgsl -lgmp
 
 $(TARGET) : $(OBJECTS)

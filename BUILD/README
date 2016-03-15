@@ -1,24 +1,11 @@
-This directory is here simply to build the distribution.
-The distribution builds:
+Scalable Bayesian Rule List library.
 
-	* Both static and dynamic libraries
-	* A statically linked executable testprog_static
-	* A dynamically linked executable testprog
-	* The tic-tac-toe testing and training data.
+This distribution contains the source code distribution to build a library and
+test executable for the construction of scalable bayesian rule lists. The
+library contains functions to train a model (train) and make predictions
+using the model (predict). It also contains a rule list library for manipulating
+rule lists.
 
-How to build a distribution:
+The executable, sbrlmod, is a test program that exercises the rule library
+as well as the training and prediction.
 
-1. Create links to the files from the source code that we need:
-
-ln -s ../*.[ch] .
-ln -s ../ttt_test.* .
-ln -s ../ttt_train.* .
-
-2. Now, build the distribution:
-sh rr
-make dist
-
-This will create sbrlmod-VERSION.tar.gz
-
-3. After you've created a distribution and moved it somewhere, the cleanup
-script will remove all the build process files leaving you a clean directory.

@@ -61,7 +61,7 @@ int
 usage(void)
 {
 	(void)fprintf(stderr, "%s %s %s\n",
-	    "Usage: testprog [-c chains] [-d debug-level] [-e eta] [-l lambda] ",
+	    "Usage: sbrlmod [-c chains] [-d debug-level] [-e eta] [-l lambda] ",
 	    "[-m model] [-s ruleset-size] [-i iterations] [-t test] [-S seed] ",
 	    "train.out [train.label] [test.out] [test.label]");
 	return (-1);
