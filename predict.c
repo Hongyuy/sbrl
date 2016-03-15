@@ -39,16 +39,16 @@ double
 get_accuracy(ruleset_t *rs,
     double *theta, rule_t *test_labels, params_t *params)
 {
-	int nwrong = 0;
+	int j, nwrong = 0;
 	VECTOR v0;
 
 	if (debug > 10) {
-		for (int j = 0; j < rs->n_rules; j++)
+		for (j = 0; j < rs->n_rules; j++)
 			printf("theta[%d] = %f\n", j, theta[j]);
 	}
 
 	rule_vinit(rs->n_samples, &v0);
-	for (int j = 0; j < rs->n_rules; j++) {
+	for (j = 0; j < rs->n_rules; j++) {
 		int n1_correct = 0, n0_correct = 0;
 
 		if (theta[j] >= params->threshold) {
@@ -84,18 +84,18 @@ double *
 predict(pred_model_t *pred_model, rule_t *labels, params_t *params)
 {
 	double *prob;
-	int rule_id, sample;
+	int i, j, rule_id, sample;
 	ruleset_t *rs;
     
 	prob = calloc(pred_model->rs->n_samples, sizeof(double));
 	if (prob == NULL)
 		return NULL;
 
-	for (int i = 0; i < pred_model->rs->n_samples; i++)
+	for (i = 0; i < pred_model->rs->n_samples; i++)
 		prob[i] = 0.0;
 
 	rs = pred_model->rs;
-	for (int j=0; j < rs->n_rules; j++) {
+	for (j = 0; j < rs->n_rules; j++) {
 		sample = 0;
 		rule_id = rs->rules[j].rule_id;
 		/*
@@ -103,7 +103,7 @@ predict(pred_model_t *pred_model, rule_t *labels, params_t *params)
 		 * captured by this rule; assign it the probability associated
 		 * with the rule.
 		 */
-		for (int i = 0; i < rs->rules[j].ncaptured; i++) {
+		for (i = 0; i < rs->rules[j].ncaptured; i++) {
 			sample = rule_ff1(rs->rules[j].captures,
 			    sample, rs->n_rules);
 			prob[sample] = pred_model->theta[j];
@@ -114,7 +114,7 @@ predict(pred_model_t *pred_model, rule_t *labels, params_t *params)
 	}
 
 	if (debug > 10)
-		for (int i = 0; i < pred_model->rs->n_samples; i++)
+		for (i = 0; i < pred_model->rs->n_samples; i++)
 		    printf("%.6f\n", prob[i]);
 
 	if (debug)

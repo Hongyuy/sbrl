@@ -76,7 +76,7 @@ main (int argc, char *argv[])
 	extern char *optarg;
 	extern int optind, optopt, opterr, optreset;
 	int ret, size = DEFAULT_RULESET_SIZE;
-	int iters, nrules, nsamples, tnum;
+	int i, iters, nrules, nsamples, tnum;
 	char ch, *modelfile;
 	data_t train_data;
 	double *p;
@@ -186,7 +186,7 @@ main (int argc, char *argv[])
 			printf("\nThe best rulelist for %d MCMC chains is: ",
 			    params.nchain); 
 			ruleset_print(model->rs, rules, 0);
-			for (int i = 0; i < model->rs->n_rules; i++)
+			for (i = 0; i < model->rs->n_rules; i++)
 				printf("%d, %.8f\n",
 				    model->rs->rules[i].rule_id,
 				    model->theta[i]);
@@ -379,13 +379,14 @@ int
 write_model(const char *file, pred_model_t *model)
 {
 	FILE *fi;
+	int i;
 
 	if ((fi = fopen(file, "w")) == NULL) {
 		fprintf(stderr, "%s %s: %s\n",
 		    "Unable to write model file", file, strerror(errno));
 		return (-1);
 	} 
-	for (int i = 0; i < model->rs->n_rules; i++)
+	for (i = 0; i < model->rs->n_rules; i++)
 		fprintf(fi, "%d,%.8f\n",
 		    model->rs->rules[i].rule_id, model->theta[i]);
 	fclose(fi);

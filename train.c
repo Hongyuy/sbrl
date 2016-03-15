@@ -197,7 +197,7 @@ err:
 int
 compute_log_gammas(int nsamples, params_t *params)
 {
-	int max;
+	int i, max;
 
 	/* Pre-compute alpha sum for accessing the log_gammas. */
 	a0 = params->alpha[0];
@@ -209,7 +209,7 @@ compute_log_gammas(int nsamples, params_t *params)
 	if (log_gammas == NULL)
 		return (-1);
 
-	for (int i = 1; i < max; i++)
+	for (i = 1; i < max; i++)
 		log_gammas[i] = gsl_sf_lngamma((double)i);
 	return (0);
 }
@@ -217,9 +217,10 @@ compute_log_gammas(int nsamples, params_t *params)
 int
 compute_pmf(int nrules, params_t *params)
 {
+	int i;
 	if ((log_lambda_pmf = malloc(nrules * sizeof(double))) == NULL)
 		return (errno);
-	for (int i = 0; i < nrules; i++) {
+	for (i = 0; i < nrules; i++) {
 		log_lambda_pmf[i] =
 		    log(gsl_ran_poisson_pdf(i, params->lambda));
 		if (debug > 100)
@@ -230,7 +231,7 @@ compute_pmf(int nrules, params_t *params)
 	if ((log_eta_pmf =
 	    malloc((1 + MAX_RULE_CARDINALITY) * sizeof(double))) == NULL)
 		return (errno);
-	for (int i = 0; i <= MAX_RULE_CARDINALITY; i++) {
+	for (i = 0; i <= MAX_RULE_CARDINALITY; i++) {
 		log_eta_pmf[i] =
 		    log(gsl_ran_poisson_pdf(i, params->eta));
 		if (debug > 100)
@@ -254,17 +255,18 @@ compute_pmf(int nrules, params_t *params)
 void
 compute_cardinality(rule_t *rules, int nrules)
 {
-	for (int i = 0; i <= MAX_RULE_CARDINALITY; i++)
+	int i;
+	for (i = 0; i <= MAX_RULE_CARDINALITY; i++)
 		card_count[i] = 0;
 
-	for (int i = 0; i < nrules; i++) {
+	for (i = 0; i < nrules; i++) {
 		card_count[rules[i].cardinality]++;
 		if (rules[i].cardinality > maxcard)
 			maxcard = rules[i].cardinality;
 	}
 
 	if (debug > 10)
-		for (int i = 0; i <= MAX_RULE_CARDINALITY; i++)
+		for (i = 0; i <= MAX_RULE_CARDINALITY; i++)
 			printf("There are %d rules with cardinality %d.\n",
 			    card_count[i], i);
 }
@@ -278,9 +280,10 @@ permute_cmp(const void *v1, const void *v2)
 int
 permute_rules(int nrules)
 {
+	int i;
 	if ((rule_permutation = malloc(sizeof(permute_t) * nrules)) == NULL)
 		return (-1);
-	for (int i = 1; i < nrules; i++) {
+	for (i = 1; i < nrules; i++) {
 		rule_permutation[i].val = random();
 		rule_permutation[i].ndx = i;
 	}
@@ -293,7 +296,7 @@ permute_rules(int nrules)
 pred_model_t   *
 train(data_t *train_data, int initialization, int method, params_t *params)
 {
-	int default_rule;
+	int chain, default_rule;
 	pred_model_t *pred_model;
 	ruleset_t *rs, *rs_temp;
 	double max_pos, pos_temp, null_bound;
@@ -320,7 +323,7 @@ train(data_t *train_data, int initialization, int method, params_t *params)
 	if (permute_rules(train_data->nrules) != 0)
 		goto err;
 
-	for (int chain = 0; chain < params->nchain; chain++) {
+	for (chain = 0; chain < params->nchain; chain++) {
 		rs_temp = run_mcmc(params->iters,
 		    train_data->nsamples, train_data->nrules,
 		    train_data->rules, train_data->labels, params, max_pos);
@@ -372,13 +375,14 @@ get_theta(ruleset_t * rs, rule_t * rules, rule_t * labels, params_t *params)
 	/* calculate captured 0's and 1's */
 	VECTOR v0;
 	double *theta;
+	int j;
 
 	rule_vinit(rs->n_samples, &v0);
 	theta = malloc(rs->n_rules * sizeof(double));
 	if (theta == NULL)
 		return (NULL);
 
-	for (int j = 0; j < rs->n_rules; j++) {
+	for (j = 0; j < rs->n_rules; j++) {
 		int n0, n1;
 
 		rule_vand(v0, rs->rules[j].captures,
@@ -409,7 +413,7 @@ run_mcmc(int iters, int nsamples, int nrules,
 	ruleset_t *rs;
 	double jump_prob, log_post_rs;
 	int *rs_idarray, len, nsuccessful_rej;
-	int rarray[2], count;
+	int i, rarray[2], count;
 	double max_log_posterior, prefix_bound;
 
 	rs = NULL;
@@ -463,7 +467,7 @@ run_mcmc(int iters, int nsamples, int nrules,
 	max_log_posterior = log_post_rs;
 	len = rs->n_rules;
 
-	for (int i = 0; i < iters; i++) {
+	for (i = 0; i < iters; i++) {
 		if ((rs = propose(rs, rules, labels, nrules, &jump_prob,
 		    &log_post_rs, max_log_posterior, &nsuccessful_rej,
 		    &jump_prob, params, mcmc_accepts)) == NULL)
@@ -509,7 +513,7 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 {
 	ruleset_t *rs;
 	double jump_prob;
-	int dummy, iters_per_step, *rs_idarray = NULL, len;
+	int dummy, i, j, k, iter, iters_per_step, *rs_idarray = NULL, len;
 	double log_post_rs, max_log_posterior = -1e9, prefix_bound = 0.0;
 
 	log_post_rs = 0.0;
@@ -539,9 +543,9 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 	int ntimepoints = 0;
 
 	tmp[0] = 1;
-	for (int i = 1; i < 28; i++) {
+	for (i = 1; i < 28; i++) {
 		tmp[i] = tmp[i - 1] + exp(0.25 * (i + 1));
-		for (int j = (int)tmp[i - 1]; j < (int)tmp[i]; j++)
+		for (j = (int)tmp[i - 1]; j < (int)tmp[i]; j++)
 			T[ntimepoints++] = 1.0 / (i + 1);
 	}
 
@@ -549,9 +553,9 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 		printf("iters_per_step = %d, #timepoints = %d\n",
 		    iters_per_step, ntimepoints);
 
-	for (int k = 0; k < ntimepoints; k++) {
+	for (k = 0; k < ntimepoints; k++) {
 		double tk = T[k];
-		for (int iter = 0; iter < iters_per_step; iter++) {
+		for (iter = 0; iter < iters_per_step; iter++) {
     			if ((rs = propose(rs, rules, labels, nrules, &jump_prob,
 			    &log_post_rs, max_log_posterior, &dummy, &tk,
 			    params, sa_accepts)) == NULL)
@@ -594,10 +598,10 @@ compute_log_posterior(ruleset_t *rs, rule_t *rules, int nrules, rule_t *labels,
 	double log_likelihood = 0.0;
 	double prefix_prior = 0.0;
 	double norm_constant;
-	int li;
+	int i, j, li;
 	int local_cards[1 + MAX_RULE_CARDINALITY];
 
-	for (int i = 0; i < (1 + MAX_RULE_CARDINALITY); i++)
+	for (i = 0; i < (1 + MAX_RULE_CARDINALITY); i++)
 		local_cards[i] = card_count[i];
 
 	/* Calculate log_prior. */
@@ -610,7 +614,7 @@ compute_log_posterior(ruleset_t *rs, rule_t *rules, int nrules, rule_t *labels,
 		prefix_prior += log_lambda_pmf[(int)params->lambda];
 
 	// Don't compute the last (default) rule.
-	for (int i = 0; i < rs->n_rules - 1; i++) {
+	for (i = 0; i < rs->n_rules - 1; i++) {
 		li = rules[rs->rules[i].rule_id].cardinality;
 		log_prior += log_eta_pmf[li] - log(norm_constant);
 
@@ -631,7 +635,7 @@ compute_log_posterior(ruleset_t *rs, rule_t *rules, int nrules, rule_t *labels,
 	int left0 = labels[0].support, left1 = labels[1].support;
 
 	rule_vinit(rs->n_samples, &v0);
-	for (int j = 0; j < rs->n_rules; j++) {
+	for (j = 0; j < rs->n_rules; j++) {
 		int n0, n1;	 // Count of 0's; count of 1's
 
 		rule_vand(v0, rs->rules[j].captures,
@@ -765,6 +769,7 @@ gen_gamma_pdf (double x, double a, double b)
 void
 gsl_ran_poisson_test()
 {
+	int i, j;
 	unsigned int k1 = gsl_ran_poisson(RAND_GSL, 5);
 	unsigned int k2 = gsl_ran_poisson(RAND_GSL, 5);
 
@@ -777,7 +782,7 @@ gsl_ran_poisson_test()
 	const int nstars = 100;
 
 	int p[10] = {};
-	for (int i = 0; i < nrolls; ++i) {
+	for (i = 0; i < nrolls; ++i) {
 		unsigned int number = gsl_ran_poisson(RAND_GSL, 4.1);
 
 		if (number < 10)
@@ -786,9 +791,9 @@ gsl_ran_poisson_test()
 
 	printf("poisson_distribution (mean=4.1):\n");
 
-	for (int i = 0; i < 10; ++i) {
+	for (i = 0; i < 10; ++i) {
 		printf("%d, : ", i);
-		for (int j = 0; j < p[i] * nstars / nrolls; j++)
+		for (j = 0; j < p[i] * nstars / nrolls; j++)
 			printf("*");
 		printf("\n");
 	}

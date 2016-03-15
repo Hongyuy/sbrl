@@ -172,7 +172,7 @@ err:
 
 void
 rules_free(rule_t *rules, const int nrules, int add_default) {
-	int start;
+	int i, start;
 
 	/* Cannot free features for default rule. */
 	start = 0;
@@ -181,7 +181,7 @@ rules_free(rule_t *rules, const int nrules, int add_default) {
 		start = 1;
 	}
 
-	for (int i = start; i < nrules; i++) {
+	for (i = start; i < nrules; i++) {
 		rule_vfree(&rules[i].truthtable);
 		free(rules[i].features);
 	}
@@ -413,14 +413,14 @@ err1:
 int
 ruleset_backup(ruleset_t *rs, int **rs_idarray)
 {
-	int *ids;
+	int i, *ids;
 	
 	ids = *rs_idarray;
 
 	if ((ids = realloc(ids, (rs->n_rules * sizeof(int)))) == NULL)
 		return (errno);
 
-	for (int i = 0; i < rs->n_rules; i++)
+	for (i = 0; i < rs->n_rules; i++)
 		ids[i] = rs->rules[i].rule_id;
 
 	*rs_idarray = ids;
@@ -462,7 +462,8 @@ ruleset_copy(ruleset_t **ret_dest, ruleset_t *src)
 void
 ruleset_destroy(ruleset_t *rs)
 {
-	for (int j = 0; j < rs->n_rules; j++)
+	int j;
+	for (j = 0; j < rs->n_rules; j++)
 		rule_vfree(&rs->rules[j].captures);
 	free(rs);
 }
@@ -623,7 +624,7 @@ try_again:	next = RANDOM_RANGE(1, (nrules - 1));
 int
 pick_random_rule(int nrules, ruleset_t *rs)
 {
-	int cnt, new_rule;
+	int cnt, j, new_rule;
 
 	cnt = 0;
 pickrule:
@@ -632,7 +633,7 @@ pickrule:
 	else
 		new_rule = 1 + (new_rule % (nrules-2));
 		
-	for (int j = 0; j < rs->n_rules; j++) {
+	for (j = 0; j < rs->n_rules; j++) {
 		if (rs->rules[j].rule_id == new_rule) {
 			cnt++;
 			goto pickrule;
@@ -698,7 +699,7 @@ ruleset_swap(ruleset_t *rs, int i, int j, rule_t *rules)
 void
 ruleset_swap_any(ruleset_t * rs, int i, int j, rule_t * rules)
 {
-	int temp, cnt, cnt_check;
+	int cnt, cnt_check, k, temp;
 	VECTOR caught;
 
 	if (i == j)
@@ -722,7 +723,7 @@ ruleset_swap_any(ruleset_t * rs, int i, int j, rule_t * rules)
 	 */
 	rule_vinit(rs->n_samples, &caught);
 
-	for (int k = i; k <= j; k++)
+	for (k = i; k <= j; k++)
 		rule_vor(caught,
 		    caught, rs->rules[k].captures, rs->n_samples, &cnt);
 
@@ -732,7 +733,7 @@ ruleset_swap_any(ruleset_t * rs, int i, int j, rule_t * rules)
 	rs->rules[j].rule_id = temp;
 
 	cnt_check = 0;
-	for (int k = i; k <= j; k++) {
+	for (k = i; k <= j; k++) {
 		/*
 		 * Compute the items captured by rule k by anding the caught
 		 * vector with the truthtable of the kth rule.
@@ -843,8 +844,8 @@ count_ones_vector(VECTOR v, int len) {
 #ifdef GMP
 	return mpz_popcount(v);
 #else
-	int cnt = 0;
-	for (int i=0; i < (len+BITS_PER_ENTRY-1)/BITS_PER_ENTRY; i++) {
+	int cnt = 0, i;
+	for (i = 0; i < (len+BITS_PER_ENTRY-1)/BITS_PER_ENTRY; i++) {
 		cnt += count_ones(v[i]);
 	}
 	return cnt;
@@ -874,7 +875,8 @@ rule_ff1(VECTOR v, int start_pos, int len)
 	(void)len;
 	return mpz_scan1(v, start_pos);
 #else
-	for (int i = start_pos; i < len; i++) {
+	int i;
+	for (i = start_pos; i < len; i++) {
 		if (rule_isset(v, i))
 			return i;
 	}
@@ -927,7 +929,8 @@ rule_vector_print(VECTOR v, int n)
 	mpz_out_str(stdout, 16, v);
 	printf("\n");
 #else
-	for (int i = 0; i < n; i++)
+	int i;
+	for (i = 0; i < n; i++)
 		printf("0x%lx ", v[i]);
 	printf("\n");
 #endif
