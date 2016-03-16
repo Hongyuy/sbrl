@@ -129,7 +129,7 @@ rules_init(const char *infile, int *nrules,
 
 		/* Now compute the number of clauses in the rule. */
 		rules[rule_cnt].cardinality = 1;
-		for (*cp = rulestr; *cp != '\0'; cp++)
+		for (cp = rulestr; *cp != '\0'; cp++)
 			if (*cp == ',')
 				rules[rule_cnt].cardinality++;
 		rule_cnt++;
