@@ -74,7 +74,7 @@ int
 main (int argc, char *argv[])
 {
 	extern char *optarg;
-	extern int optind, optopt, opterr, optreset;
+	extern int optind, optopt, opterr;
 	int ret, size = DEFAULT_RULESET_SIZE;
 	int i, iters, nrules, nsamples, tnum;
 	char ch, *modelfile;
@@ -86,6 +86,7 @@ main (int argc, char *argv[])
 	params_t params = {9.0, 3.0, 0.5, {1, 1}, 1000, 11};
 
 	debug = 0;
+	p = NULL;
 	rules = labels = NULL;
 	iters = params.iters;
 	tnum = TEST_TEST;
@@ -234,6 +235,9 @@ main (int argc, char *argv[])
 
 	rules_free(rules, nrules, 1);
 	rules_free(labels, 2, 0);
+	if (p != NULL)
+		free(p);
+	return (0);
 }
 
 /* ========= Simple test utility routines ======= */
@@ -250,7 +254,7 @@ add_random_rule(rule_t *rules, int nrules, ruleset_t *rs, int ndx)
 	if (debug > 100)
 		printf("Selected %d for new rule\n", r);
 
-	return ruleset_add(rules, nrules, &rs, r, ndx);
+	return (ruleset_add(rules, nrules, &rs, r, ndx));
 }
 
 /*
