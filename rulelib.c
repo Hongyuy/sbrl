@@ -74,7 +74,7 @@ rules_init(const char *infile, int *nrules,
     int *nsamples, rule_t **rules_ret, int add_default_rule)
 {
 	FILE *fi;
-	char *features, *line, *rulestr;
+	char *cp, *features, *line, *rulestr;
 	int rule_cnt, sample_cnt, rsize;
 	int i, ones, ret;
 	rule_t *rules=NULL;
@@ -129,7 +129,7 @@ rules_init(const char *infile, int *nrules,
 
 		/* Now compute the number of clauses in the rule. */
 		rules[rule_cnt].cardinality = 1;
-		for (char *cp = rulestr; *cp != '\0'; cp++)
+		for (*cp = rulestr; *cp != '\0'; cp++)
 			if (*cp == ',')
 				rules[rule_cnt].cardinality++;
 		rule_cnt++;
