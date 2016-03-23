@@ -199,7 +199,15 @@ main (int argc, char *argv[])
 			printf("Number of chains = %d\n", params.nchain);
 			printf("Iterations = %d\n", params.iters);
 
-			if (tnum == 3) {
+            if (tnum == 2) {
+                /* Now we print the rule_id's and probabilities to a file specified by argv[2] */
+                FILE *outfile;
+                outfile = fopen (argv[2], "w");
+                for (int i=0; i < model->rs->n_rules; i++)
+                fprintf(outfile, "%d,%.8f\n", model->rs->rules[i].rule_id, model->theta[i]);
+                fclose(outfile);
+            }
+            else if (tnum == 3) {
 				/* Now test the model */
 				if (argc < 4) {
 					usage();
