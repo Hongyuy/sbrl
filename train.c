@@ -728,7 +728,7 @@ ruleset_proposal(ruleset_t * rs, int nrules,
 		//cannot delete the default rule
 			index2 = 0;
 		//index2 doesn 't matter in this case
-			* jumpRatio = jumpRatios[2] * (nrules - rs->n_rules);
+			* jumpRatio = jumpRatios[2] / (nrules - rs->n_rules);
 		*stepchar = 'D';
 	} else {
 		//should raise exception here.
