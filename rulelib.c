@@ -76,7 +76,7 @@ rules_init(const char *infile, int *nrules,
 	FILE *fi;
 	char *cp, *features, *line, *rulestr;
 	int rule_cnt, sample_cnt, rsize;
-	int i, ones, ret;
+	int ones, ret;
 	rule_t *rules=NULL;
 	size_t linelen, rulelen;
 	ssize_t len;
@@ -149,23 +149,17 @@ rules_init(const char *infile, int *nrules,
 	*nrules = rule_cnt;
 	*rules_ret = rules;
 
+	if (line != NULL)
+		free(line);
 	return (0);
 
 err:
 	ret = errno;
 
 	/* Reclaim space. */
-	if (rules != NULL) {
-		for (i = 1; i < rule_cnt; i++) {
-			free(rules[i].features);
-#ifdef GMP
-			mpz_clear(rules[i].truthtable);
-#else
-			free(rules[i].truthtable);
-#endif
-		}	
-		free(rules);
-	}
+	rules_free(rules, rule_cnt, add_default_rule);
+	if (line != NULL)
+		free(line);
 	(void)fclose(fi);
 	return (ret);
 }
@@ -174,6 +168,8 @@ void
 rules_free(rule_t *rules, const int nrules, int add_default) {
 	int i, start;
 
+	if (rules == NULL)
+		return;
 	/* Cannot free features for default rule. */
 	start = 0;
 	if (add_default) {

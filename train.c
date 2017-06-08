@@ -277,6 +277,9 @@ permute_cmp(const void *v1, const void *v2)
 	return ((permute_t *)v1)->val - ((permute_t *)v2)->val;
 }
 
+/*
+ * Randomly permute all rules, except rule 0
+ */
 int
 permute_rules(int nrules)
 {
@@ -287,7 +290,7 @@ permute_rules(int nrules)
 		rule_permutation[i].val = random();
 		rule_permutation[i].ndx = i;
 	}
-	qsort(rule_permutation, nrules, sizeof(permute_t), permute_cmp);
+	qsort(rule_permutation + 1, nrules - 1, sizeof(permute_t), permute_cmp);
 	permute_ndx = 1;
 	return (0);
 
