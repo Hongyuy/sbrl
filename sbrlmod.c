@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2016 Hongyu Yang, Cynthia Rudin, Margo Seltzer, and
  * The President and Fellows of Harvard College
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -9,10 +9,10 @@
  * distribute, sublicense, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject
  * to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
@@ -23,7 +23,7 @@
  */
 /*
  * Scalable ruleset test program.
- * 
+ *
  * This consists of two types of tests:
  * 1. Low level tests to make sure the basic rule library is working
  * 2. A run of MCMC on known data to make sure the library pieces are all working.
@@ -42,18 +42,7 @@
 #include <unistd.h>
 #include <math.h>
 #include "mytime.h"
-#include "rule.h"
-
-/* Convenient macros. */
-#define DEFAULT_RULESET_SIZE  4
-#define DEFAULT_RULE_CARDINALITY 3
-#define NLABELS 2
-
-int load_data(const char *, const char *, int *, int *, rule_t **, rule_t **);
-pred_model_t *read_model(const char *, int, rule_t *, int);
-void run_experiment(int, int, int, int, rule_t *);
-double *test_model(const char *, const char *, pred_model_t *, params_t *);
-int write_model(const char *, pred_model_t *);
+#include "sbrlmod.h"
 
 int debug;
 
@@ -67,7 +56,6 @@ usage(void)
 	return (-1);
 }
 
-#define	TEST_TEST	1
 #define	TEST_MCMC	2
 
 int
@@ -145,17 +133,17 @@ main (int argc, char *argv[])
 	    	return (ret);
 	END_TIME(tv_start, tv_end, tv_acc);
 	REPORT_TIME("Initialize time", "per rule", tv_end, nrules);
-    
+
 	if (debug)
 		printf("%d rules %d samples\n\n", nrules, nsamples);
 
 	if (debug > 100)
 		rule_print_all(rules, nrules, nsamples);
-    
+
 	if (debug > 100) {
 		printf("Labels for %d samples\n\n", nsamples);
 		rule_print_all(labels, nsamples, nsamples);
-   	} 
+   	}
 	/*
 	 * Testing:
 	 * 1. Test basic rule manipulation.
@@ -185,7 +173,7 @@ main (int argc, char *argv[])
 			}
 
 			printf("\nThe best rulelist for %d MCMC chains is: ",
-			    params.nchain); 
+			    params.nchain);
 			ruleset_print(model->rs, rules, 0);
 			for (i = 0; i < model->rs->n_rules; i++)
 				printf("%d, %.8f\n",
@@ -238,225 +226,4 @@ main (int argc, char *argv[])
 	if (p != NULL)
 		free(p);
 	return (0);
-}
-
-/* ========= Simple test utility routines ======= */
-
-/*
- * Given a rule set, pick a random rule (not already in the set) and
- * add it at the ndx-th position.
- */
-int
-add_random_rule(rule_t *rules, int nrules, ruleset_t *rs, int ndx)
-{
-	int r;
-	r = pick_random_rule(nrules, rs);
-	if (debug > 100)
-		printf("Selected %d for new rule\n", r);
-
-	return (ruleset_add(rules, nrules, &rs, r, ndx));
-}
-
-/*
- * Generate a random ruleset and then do some number of adds, removes,
- * swaps, etc.
- */
-void
-run_experiment(int iters, int size, int nsamples, int nrules, rule_t *rules)
-{
-	int i, j, k, ret;
-	ruleset_t *rs;
-	struct timeval tv_acc, tv_start, tv_end;
-
-	for (i = 0; i < iters; i++) {
-		ret = create_random_ruleset(size, nsamples, nrules, rules, &rs);
-		if (ret != 0)
-			return;
-		if (debug) {
-			printf("Initial ruleset\n");
-			ruleset_print(rs, rules, (debug > 10));
-		}
-
-		/* Now perform-(size-2) squared swaps */
-		INIT_TIME(tv_acc);
-		START_TIME(tv_start);
-		for (j = 0; j < size; j++)
-			for (k = 1; k < (size-1); k++) {
-				if (debug)
-					printf("\nSwapping rules %d and %d\n",
-					    rs->rules[k-1].rule_id,
-					    rs->rules[k].rule_id);
-				ruleset_swap(rs, k - 1, k, rules);
-				if (debug)
-					ruleset_print(rs, rules, (debug > 100));
-			}
-		END_TIME(tv_start, tv_end, tv_acc);
-		REPORT_TIME("analyze", "per swap", tv_end, ((size-1) * (size-1)));
-
-		/*
-		 * Now remove a rule from each position, replacing it
-		 * with a random rule at the end.
-		 */
-		INIT_TIME(tv_acc);
-		START_TIME(tv_start);
-		for (j = 0; j < (size - 1); j++) {
-			if (debug)
-				printf("\nDeleting rule %d\n", j);
-			ruleset_delete(rules, nrules, rs, j);
-			if (debug) 
-				ruleset_print(rs, rules, (debug > 100));
-			add_random_rule(rules, nrules, rs, j);
-			if (debug)
-				ruleset_print(rs, rules, (debug > 100));
-		}
-		END_TIME(tv_start, tv_end, tv_acc);
-		REPORT_TIME("analyze", "per add/del", tv_end, ((size-1) * 2));
-		ruleset_destroy(rs);
-	}
-
-}
-
-int
-load_data(const char *data_file, const char *label_file,
-    int *ret_samples, int *ret_nrules, rule_t **rules, rule_t **labels)
-{
-	int nlabels, ret, samples_chk;
-
-	/* Load data. */
-	if ((ret = rules_init(data_file, ret_nrules, ret_samples, rules, 1)) != 0)
-		return (ret);
-
-	/* Load labels. */
-	if ((ret = 
-	    rules_init(label_file, &nlabels, &samples_chk, labels, 0)) != 0) {
-		free (*rules);
-		return (ret);
-	}
-
-    	assert(nlabels == 2);
-	assert(samples_chk == *ret_samples);
-	return (0);
-}
-
-double *
-test_model(const char *data_file,
-    const char *label_file, pred_model_t *model, params_t *params)
-{
-	double *p;
-	int *idarray, nsamples, nrules;
-	rule_t *rules, *labels;
-	ruleset_t *test_rs, *tmp_rs;
-
-	idarray = NULL;
-	test_rs = NULL;
-	p = NULL;
-
-	/* Make an array of the rules comprising this model. */
-	if ((ruleset_backup(model->rs, &idarray)) != 0)
-		goto err;
-
-	/* Load test data. */
-	if (load_data(data_file,
-	    label_file, &nsamples, &nrules, &rules, &labels) != 0)
-		goto err;
-
-	/* Create new ruleset with test data. */
-	if (ruleset_init(model->rs->n_rules,
-	    nsamples, idarray, rules, &test_rs) != 0)
-		goto err;
-
-	tmp_rs = model->rs;
-	model->rs = test_rs;
-	p = predict(model, labels, params);
-	model->rs = tmp_rs;
-
-err:
-	if (idarray != NULL)
-		free (idarray);
-	if (test_rs != NULL)
-		ruleset_destroy(test_rs);
-
-	return (p);
-}
-
-int
-write_model(const char *file, pred_model_t *model)
-{
-	FILE *fi;
-	int i;
-
-	if ((fi = fopen(file, "w")) == NULL) {
-		fprintf(stderr, "%s %s: %s\n",
-		    "Unable to write model file", file, strerror(errno));
-		return (-1);
-	} 
-	for (i = 0; i < model->rs->n_rules; i++)
-		fprintf(fi, "%d,%.8f\n",
-		    model->rs->rules[i].rule_id, model->theta[i]);
-	fclose(fi);
-	return (0);
-}
-
-pred_model_t *
-read_model(const char *file, int nrules, rule_t *rules, int nsamples)
-{
-	double theta, *theta_array;
-	FILE *fi;
-	int i, id, *idarray, nslots, tmp;
-	pred_model_t *model;
-	ruleset_t *rs;
-
-	i = nslots = 0;
-	model = NULL;
-	rs = NULL;
-	idarray = NULL;
-	theta_array = NULL;
-
-	if ((fi = fopen(file, "r")) == NULL) {
-		fprintf(stderr, "%s %s: %s\n",
-		    "Unable to read model file", file, strerror(errno));
-		return (NULL);
-	} 
-
-	while ((tmp = fscanf(fi, "%d,%lf\n", &id, &theta)) == 2) {
-		if (debug > 10)
-			printf("tmp = %d id = %d theta = %f\n", tmp, id, theta);
-		if (i >= nslots) {
-			nslots += 50;
-			idarray = realloc(idarray, nslots * sizeof(int));
-			theta_array =
-			    realloc(theta_array, nslots * sizeof(double));
-			if (idarray == NULL || theta_array == NULL) {
-				fprintf(stderr,
-				    "Unable to malloc space: %s\n",
-				        strerror(ENOMEM));
-				goto err;
-			}
-		}
-
-		idarray[i] = id;
-		theta_array[i++] = theta;
-	}
-
-	/* Create the ruleset. */
-	if (ruleset_init(i, nsamples, idarray, rules, &rs) != 0)
-		goto err;
-	/* Create the model. */
-	if ((model = malloc(sizeof(pred_model_t))) == NULL)
-		goto err;
-	model->rs = rs;
-	model->theta = theta_array;
-	model->confIntervals = 0;
-	
-	if (0) {
-err:
-		if (rs != NULL)
-			ruleset_destroy(rs);
-	}
-	if (idarray != NULL)
-		free(idarray);
-	if (theta_array != NULL)
-		free(theta_array);
-	fclose(fi);
-	return (model);
 }
