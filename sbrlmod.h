@@ -1,5 +1,6 @@
 #pragma once
 
+#include "mytime.h"
 #include "rule.h"
 
 /* Convenient macros. */
@@ -9,6 +10,7 @@
 
 #define	TEST_TEST	1
 
+int debug;
 
 /* ========= Simple test utility routines ======= */
 

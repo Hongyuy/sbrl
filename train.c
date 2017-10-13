@@ -72,8 +72,8 @@ double compute_log_posterior(ruleset_t *,
     rule_t *, int, rule_t *, params_t *, int, int, double *);
 int gen_poission(double);
 double *get_theta(ruleset_t *, rule_t *, rule_t *, params_t *);
-void gsl_ran_poisson_test();
-void init_gsl_rand_gen();
+void gsl_ran_poisson_test(void);
+void init_gsl_rand_gen(void);
 
 /****** These are the heart of both MCMC and SA ******/
 /*

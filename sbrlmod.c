@@ -41,7 +41,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <math.h>
-#include "mytime.h"
 #include "sbrlmod.h"
 
 int debug;

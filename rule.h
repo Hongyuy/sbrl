@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2016 Hongyu Yang, Cynthia Rudin, Margo Seltzer, and
  * The President and Fellows of Harvard College
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -9,10 +9,10 @@
  * distribute, sublicense, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject
  * to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
@@ -22,10 +22,17 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <stdlib.h>
+#pragma once
+
 #ifdef GMP
 #include <gmp.h>
 #endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
+#include <stdlib.h>
 
 /*
  * This library implements rule set management for Bayesian rule lists.
@@ -64,12 +71,13 @@ typedef v_entry *VECTOR;
 #define VECTOR_ASSIGN(dest, src) dest = src
 #endif
 
+#define BITS_PER_ENTRY (sizeof(v_entry) * 8)
 
 #define RANDOM_RANGE(lo, hi) \
     (unsigned)(lo + (unsigned)((random() / (float)RAND_MAX) * (hi - lo + 1)))
 
 /*
- * We have slightly different structures to represent the original rules 
+ * We have slightly different structures to represent the original rules
  * and rulesets. The original structure contains the ascii representation
  * of the rule; the ruleset structure refers to rules by ID and contains
  * captures which is something computed off of the rule's truth table.
@@ -129,8 +137,8 @@ int ruleset_add(rule_t *, int, ruleset_t **, int, int);
 int ruleset_backup(ruleset_t *, int **);
 int ruleset_copy(ruleset_t **, ruleset_t *);
 void ruleset_delete(rule_t *, int, ruleset_t *, int);
-void ruleset_swap(ruleset_t *, int, int, rule_t *);
-void ruleset_swap_any(ruleset_t *, int, int, rule_t *);
+int ruleset_swap(ruleset_t *, int, int, rule_t *);
+int ruleset_swap_any(ruleset_t *, int, int, rule_t *);
 int pick_random_rule(int, ruleset_t *);
 
 void ruleset_destroy(ruleset_t *);
@@ -151,11 +159,19 @@ int rule_isset(VECTOR, int);
 int rule_vinit(int, VECTOR *);
 int rule_vfree(VECTOR *);
 int make_default(VECTOR *, int);
+void rule_vclear(int, VECTOR);
 void rule_vand(VECTOR, VECTOR, VECTOR, int, int *);
 void rule_vandnot(VECTOR, VECTOR, VECTOR, int, int *);
 void rule_vor(VECTOR, VECTOR, VECTOR, int, int *);
+void rule_not(VECTOR, VECTOR, int, int *);
 int count_ones(v_entry);
 int count_ones_vector(VECTOR, int);
+int rule_vector_equal(const VECTOR, const VECTOR, short, short);
+size_t rule_vector_hash(const VECTOR, short);
+
+/* Helper functions */
+int ascii_to_vector(char *, size_t, int *, int *, VECTOR *);
+int make_default(VECTOR *, int);
 
 /* Functions for the Scalable Baysian Rule Lists */
 double *predict(pred_model_t *, rule_t *labels, params_t *);
@@ -164,3 +180,6 @@ ruleset_t *run_mcmc(int, int, int, rule_t *, rule_t *, params_t *, double);
 ruleset_t *run_simulated_annealing(int,
     int, int, int, rule_t *, rule_t *, params_t *);
 pred_model_t *train(data_t *, int, int, params_t *);
+#if defined(__cplusplus)
+}
+#endif
