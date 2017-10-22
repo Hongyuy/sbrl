@@ -24,15 +24,11 @@
 
 #pragma once
 
+#include <stdlib.h>
+
 #ifdef GMP
 #include <gmp.h>
 #endif
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
-#include <stdlib.h>
 
 /*
  * This library implements rule set management for Bayesian rule lists.
@@ -171,7 +167,6 @@ size_t rule_vector_hash(const VECTOR, short);
 
 /* Helper functions */
 int ascii_to_vector(char *, size_t, int *, int *, VECTOR *);
-int make_default(VECTOR *, int);
 
 /* Functions for the Scalable Baysian Rule Lists */
 double *predict(pred_model_t *, rule_t *labels, params_t *);
@@ -180,6 +175,3 @@ ruleset_t *run_mcmc(int, int, int, rule_t *, rule_t *, params_t *, double);
 ruleset_t *run_simulated_annealing(int,
     int, int, int, rule_t *, rule_t *, params_t *);
 pred_model_t *train(data_t *, int, int, params_t *);
-#if defined(__cplusplus)
-}
-#endif
