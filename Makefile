@@ -14,7 +14,7 @@ INCLUDES = -I. -I/opt/local/include
 # representations.
 CC = cc
 CFLAGS = -g $(INCLUDES) -DGMP -Wall
-LIBS = -L/opt/local/lib  -lgmp -lgsl -lc -lgslcblas
+LIBS = -L/opt/local/lib  -lgmp -lgsl -lm -lc -lgslcblas
 
 $(TARGET) : $(OBJECTS)
 	$(CC) -o $(TARGET) $(OBJECTS) $(LIBS)

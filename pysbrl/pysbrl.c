@@ -144,46 +144,48 @@ PyObject *pysbrl_run(PyObject *self, PyObject *args, PyObject *keywds)
 
     PyObject *final_ret = Py_None;
 
-	int i, train_nrules, train_nlabels, train_nsamples, train_nsamples_chk,
-               test_nrules, test_nlabels, test_nsamples, test_nsamples_chk;
-	data_t train_data;
-	double *p;
-	pred_model_t *model;
-	rule_t *train_rules = NULL, *train_labels = NULL, *test_rules = NULL, *test_labels = NULL;
-	struct timeval tv_acc, tv_start, tv_end;
+    int i, train_nrules, train_nlabels, train_nsamples, train_nsamples_chk,
+           test_nrules, test_nlabels, test_nsamples, test_nsamples_chk;
+    data_t train_data;
+    double *p;
+    pred_model_t *model;
+    rule_t *train_rules = NULL, *train_labels = NULL, *test_rules = NULL, *test_labels = NULL;
+    struct timeval tv_acc, tv_start, tv_end;
 
     params.iters = iters;
 
-    int size_idx = 9;
+    if(keywds) {
+        int size_idx = 9;
 
-    PyObject *size_key = PyUnicode_FromString(kwlist[size_idx]);
-    if(!size_key) {
-        PyErr_SetString(PyExc_Exception, "Could not create ruleset-size key object");
-        return NULL;
+        PyObject *size_key = PyUnicode_FromString(kwlist[size_idx]);
+        if(!size_key) {
+            PyErr_SetString(PyExc_Exception, "Could not create ruleset-size key object");
+            return NULL;
+        }
+
+        int c = PyDict_Contains(keywds, size_key);
+        if(c == -1) {
+            PyErr_SetString(PyExc_Exception, "Could not check if keywords contain ruleset-size");
+            Py_XDECREF(size_key);
+            return NULL;
+        }
+
+        if(c || size != DEFAULT_RULESET_SIZE)
+            params.iters = size;
+
+        Py_DECREF(size_key);
     }
 
-    int c = PyDict_Contains(keywds, size_key);
-    if(c == -1) {
-        PyErr_SetString(PyExc_Exception, "Could not check if keywords contain ruleset-size");
-        Py_XDECREF(size_key);
-        return NULL;
-    }
-
-    if(c || size != DEFAULT_RULESET_SIZE)
-        params.iters = size;
-
-    Py_DECREF(size_key);
-
-	p = NULL;
+    p = NULL;
 
     srandom((unsigned)seed);
 
-	/*
-	 * We treat the label file as a separate ruleset, since it has
-	 * a similar format.
-	 */
-	INIT_TIME(tv_acc);
-	START_TIME(tv_start);
+    /*
+     * We treat the label file as a separate ruleset, since it has
+     * a similar format.
+     */
+    INIT_TIME(tv_acc);
+    START_TIME(tv_start);
 
     char **fnames[] = {&out_train_fname, &label_train_fname, &out_test_fname, &label_test_fname};
     int *num_rules[] = {&train_nrules, &train_nlabels, &test_nrules, &test_nlabels};
@@ -191,6 +193,8 @@ PyObject *pysbrl_run(PyObject *self, PyObject *args, PyObject *keywds)
     rule_t **rule_lists[] = {&train_rules, &train_labels, &test_rules, &test_labels};
     int inc_defaults[] = {1, 0, 1, 0};
     PyObject *rule_data[] = {out_train_data, label_train_data, out_test_data, label_test_data};
+
+    printf("Got to before loop\n");
 
     for(int i = 0; i < 4; i++)
     {
@@ -260,28 +264,30 @@ PyObject *pysbrl_run(PyObject *self, PyObject *args, PyObject *keywds)
         PyErr_SetString(PyExc_ValueError, "Number of samples in out and label files must match");
     }
 
-	END_TIME(tv_start, tv_end, tv_acc);
-	REPORT_TIME("Initialize time", "per rule", tv_end, train_nrules);
+    END_TIME(tv_start, tv_end, tv_acc);
+    REPORT_TIME("Initialize time", "per rule", tv_end, train_nrules);
 
-	if (debug)
-		printf("%d rules %d samples\n\n", train_nrules, train_nsamples);
+    if (debug)
+        printf("\n%d rules %d samples\n", train_nrules, train_nsamples);
 
-	if (debug > 100)
-		rule_print_all(train_rules, train_nrules, train_nsamples);
+    if (debug > 100) {
+       printf("\nRules for %d samples:\n", train_nsamples);
+       rule_print_all(train_rules, train_nrules, train_nsamples);
+    }
 
-	if (debug > 100) {
-		printf("Labels for %d samples\n\n", train_nsamples);
-		rule_print_all(train_labels, train_nsamples, train_nsamples);
-   	}
+    if (debug > 100) {
+       printf("\nLabels for %d samples:\n", train_nsamples);
+       rule_print_all(train_labels, 2, train_nsamples);
+    }
 
-	/*
-	 * Testing:
-	 * 1. Test basic rule manipulation.
-	 * 2. Test training.
-	 * 3. Train model and then run test.
-	 * 4. Read in previous model and test on it.
-	 */
-	switch(tnum) {
+    /*
+     * Testing:
+     * 1. Test basic rule manipulation.
+     * 2. Test training.
+     * 3. Train model and then run test.
+     * 4. Read in previous model and test on it.
+     */
+     switch(tnum) {
 		case 1:
 			printf("size: %d  nrules: %d\n", size, train_nrules);
 			run_experiment(iters, size, train_nsamples, train_nrules, train_rules);

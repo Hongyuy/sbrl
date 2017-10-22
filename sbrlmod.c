@@ -141,7 +141,7 @@ main (int argc, char *argv[])
 
 	if (debug > 100) {
 		printf("Labels for %d samples\n\n", nsamples);
-		rule_print_all(labels, nsamples, nsamples);
+		rule_print_all(labels, 2, nsamples);
    	}
 	/*
 	 * Testing:
