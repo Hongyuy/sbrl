@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2016 Hongyu Yang, Cynthia Rudin, Margo Seltzer, and
  * The President and Fellows of Harvard College
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -9,10 +9,10 @@
  * distribute, sublicense, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject
  * to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
@@ -30,11 +30,7 @@
 #include "rule.h"
 
 
-/* Function declarations. */
-int ascii_to_vector(char *, size_t, int *, int *, VECTOR *);
-int make_default(VECTOR *, int);
 #define RULE_INC 100
-#define BITS_PER_ENTRY (sizeof(v_entry) * 8)
 
 /* One-counting tools */
 int bit_ones[] = {0, 1, 3, 7, 15, 31, 63, 127};
@@ -43,9 +39,9 @@ int byte_ones[] = {
 /*   0 */ 0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4,
 /*  16 */ 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
 /*  32 */ 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
-/*  48 */ 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 
-/*  64 */ 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,	
-/*  80 */ 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 
+/*  48 */ 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
+/*  64 */ 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
+/*  80 */ 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
 /*  96 */ 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
 /* 112 */ 3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7,
 /* 128 */ 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
@@ -68,18 +64,18 @@ int byte_ones[] = {
  *
  * OUTPUTS: an array of rule_t's
  */
-
 int
 rules_init(const char *infile, int *nrules,
     int *nsamples, rule_t **rules_ret, int add_default_rule)
 {
 	FILE *fi;
-	char *cp, *features, *line, *rulestr;
+	char *line = NULL;
+    char *rulestr;
 	int rule_cnt, sample_cnt, rsize;
 	int i, ones, ret;
 	rule_t *rules=NULL;
-	size_t linelen, rulelen;
-	ssize_t len;
+	size_t len = 0;
+    size_t rulelen;
 
 	sample_cnt = rsize = 0;
 
@@ -91,9 +87,8 @@ rules_init(const char *infile, int *nrules,
 	 * the end.
 	 */
 	rule_cnt = add_default_rule != 0 ? 1 : 0;
-	line = NULL;
-	linelen = 0;
-	while ((len = getline(&line, &linelen, fi)) > 0) {
+	while (getline(&line, &len, fi) != -1) {
+        char* line_cpy = line;
 		if (rule_cnt >= rsize) {
 			rsize += RULE_INC;
                 	rules = realloc(rules, rsize * sizeof(rule_t));
@@ -102,8 +97,7 @@ rules_init(const char *infile, int *nrules,
 		}
 
 		/* Get the rule string; line will contain the bits. */
-		features = line;
-		if ((rulestr = strsep(&features, " ")) == NULL)
+		if ((rulestr = strsep(&line_cpy, " ")) == NULL)
 			goto err;
 
 		rulelen = strlen(rulestr) + 1;
@@ -113,27 +107,26 @@ rules_init(const char *infile, int *nrules,
 			goto err;
 
 		/*
-		 * At this point features is (probably) a line terminated by a
-		 * newline at features[len-1]; if it is newline-terminated, then
-		 * let's make it NUL-terminated and shorten the line length
-		 * by one.
+		 * At this point "len" is a line terminated by a newline
+		 * at line[len-1]; let's make it a NUL and shorten the line
+		 * length by one.
 		 */
-		if (features[len-1] == '\n') {
-			features[len-1] = '\0';
-			len--;
-		}
-		if (ascii_to_vector(features, len, &sample_cnt, &ones,
+		line_cpy[len-1] = '\0';
+		if (ascii_to_vector(line_cpy, len, &sample_cnt, &ones,
 		    &rules[rule_cnt].truthtable) != 0)
 		    	goto err;
 		rules[rule_cnt].support = ones;
 
 		/* Now compute the number of clauses in the rule. */
 		rules[rule_cnt].cardinality = 1;
-		for (cp = rulestr; *cp != '\0'; cp++)
+		for (char *cp = rulestr; *cp != '\0'; cp++)
 			if (*cp == ',')
 				rules[rule_cnt].cardinality++;
 		rule_cnt++;
+        free(line);
+        line = NULL;
 	}
+	/* All done! */
 	fclose(fi);
 
 	/* Now create the 0'th (default) rule. */
@@ -163,7 +156,7 @@ err:
 #else
 			free(rules[i].truthtable);
 #endif
-		}	
+		}
 		free(rules);
 	}
 	(void)fclose(fi);
@@ -172,7 +165,7 @@ err:
 
 void
 rules_free(rule_t *rules, const int nrules, int add_default) {
-	int i, start;
+	int start;
 
 	/* Cannot free features for default rule. */
 	start = 0;
@@ -181,7 +174,7 @@ rules_free(rule_t *rules, const int nrules, int add_default) {
 		start = 1;
 	}
 
-	for (i = start; i < nrules; i++) {
+	for (int i = start; i < nrules; i++) {
 		rule_vfree(&rules[i].truthtable);
 		free(rules[i].features);
 	}
@@ -202,6 +195,17 @@ rule_vinit(int len, VECTOR *ret)
 		return(errno);
 #endif
 	return (0);
+}
+
+/* Clear vector -- set to all 0's */
+void
+rule_vclear(int len, VECTOR v) {
+#ifdef GMP
+    mpz_set_ui(v, 0);
+#else
+    int nentries = (len + BITS_PER_ENTRY - 1)/BITS_PER_ENTRY;
+    memset(v, 0, nentries * sizeof(v_entry));
+#endif
 }
 
 /* Deallocate a vector. */
@@ -241,7 +245,7 @@ ascii_to_vector(char *line, size_t len, int *nsamples, int *nones, VECTOR *ret)
 	}
 	if ((s = mpz_sizeinbase (*ret, 2)) > (size_t) *nsamples)
 		*nsamples = (int) s;
-		
+
 	*nones = mpz_popcount(*ret);
 	return (0);
 #else
@@ -266,7 +270,7 @@ ascii_to_vector(char *line, size_t len, int *nsamples, int *nones, VECTOR *ret)
 		bufsize = (*nsamples + BITS_PER_ENTRY - 1) / BITS_PER_ENTRY;
 	if ((buf = malloc(bufsize * sizeof(v_entry))) == NULL)
 		return(errno);
-	
+
 	bufp = buf;
 	val = 0;
 	i = 0;
@@ -347,14 +351,14 @@ make_default(VECTOR *ttp, int len)
 	m = len % BITS_PER_ENTRY;
 	if (m != 0)
 		tt[nventry - 1] = tt[nventry - 1] >> (BITS_PER_ENTRY - m);
-    
+
 	return (0);
 #endif
 }
 
 /* Create a ruleset. */
 int
-ruleset_init(int nrs_rules,
+ruleset_init(int nrules,
     int nsamples, int *idarray, rule_t *rules, ruleset_t **retruleset)
 {
 	int cnt, i;
@@ -366,7 +370,7 @@ ruleset_init(int nrs_rules,
 	/*
 	 * Allocate space for the ruleset structure and the ruleset entries.
 	 */
-	rs = malloc(sizeof(ruleset_t) + nrs_rules * sizeof(ruleset_entry_t));
+	rs = malloc(sizeof(ruleset_t) + nrules * sizeof(ruleset_entry_t));
 	if (rs == NULL)
 		return (errno);
 	/*
@@ -374,12 +378,12 @@ ruleset_init(int nrs_rules,
 	 * the ruleset_entry_t array at the end.
 	 */
 	rs->n_rules = 0;
-	rs->n_alloc = nrs_rules;
+	rs->n_alloc = nrules;
 	rs->n_samples = nsamples;
 	make_default(&not_captured, nsamples);
 
 	cnt = nsamples;
-	for (i = 0; i < nrs_rules; i++) {
+	for (i = 0; i < nrules; i++) {
 		cur_rule = rules + idarray[i];
 		cur_re = rs->rules + i;
 		cur_re->rule_id = idarray[i];
@@ -413,14 +417,14 @@ err1:
 int
 ruleset_backup(ruleset_t *rs, int **rs_idarray)
 {
-	int i, *ids;
-	
+	int *ids;
+
 	ids = *rs_idarray;
 
 	if ((ids = realloc(ids, (rs->n_rules * sizeof(int)))) == NULL)
 		return (errno);
 
-	for (i = 0; i < rs->n_rules; i++)
+	for (int i = 0; i < rs->n_rules; i++)
 		ids[i] = rs->rules[i].rule_id;
 
 	*rs_idarray = ids;
@@ -445,7 +449,7 @@ ruleset_copy(ruleset_t **ret_dest, ruleset_t *src)
 	dest->n_alloc = src->n_rules;
 	dest->n_rules = src->n_rules;
 	dest->n_samples = src->n_samples;
-    
+
 	for (i = 0; i < src->n_rules; i++) {
 		dest->rules[i].rule_id = src->rules[i].rule_id;
 		dest->rules[i].ncaptured = src->rules[i].ncaptured;
@@ -462,8 +466,7 @@ ruleset_copy(ruleset_t **ret_dest, ruleset_t *src)
 void
 ruleset_destroy(ruleset_t *rs)
 {
-	int j;
-	for (j = 0; j < rs->n_rules; j++)
+	for (int j = 0; j < rs->n_rules; j++)
 		rule_vfree(&rs->rules[j].captures);
 	free(rs);
 }
@@ -487,7 +490,7 @@ ruleset_add(rule_t *rules, int nrules, ruleset_t **rsp, int newrule, int ndx)
 		expand = realloc(rs, sizeof(ruleset_t) +
 		    (rs->n_rules + 1) * sizeof(ruleset_entry_t));
 		if (expand == NULL)
-			return (errno);			
+			return (errno);
 		rs = expand;
 		rs->n_alloc = rs->n_rules + 1;
 		*rsp = rs;
@@ -522,7 +525,7 @@ ruleset_add(rule_t *rules, int nrules, ruleset_t **rsp, int newrule, int ndx)
 	 * Now, recompute all the captures entries for the new rule and
 	 * all rules following it.
 	 */
-    
+
 	for (i = ndx; i < rs->n_rules; i++) {
 		cur_re = rs->rules + i;
 		/*
@@ -624,16 +627,16 @@ try_again:	next = RANDOM_RANGE(1, (nrules - 1));
 int
 pick_random_rule(int nrules, ruleset_t *rs)
 {
-	int cnt, j, new_rule;
+	unsigned new_rule;
 
-	cnt = 0;
+	int cnt = 0;
 pickrule:
 	if (cnt < MAX_TRIES)
 		new_rule = RANDOM_RANGE(1, (nrules-1));
 	else
 		new_rule = 1 + (new_rule % (nrules-2));
-		
-	for (j = 0; j < rs->n_rules; j++) {
+
+	for (int j = 0; j < rs->n_rules; j++) {
 		if (rs->rules[j].rule_id == new_rule) {
 			cnt++;
 			goto pickrule;
@@ -664,7 +667,7 @@ rule_copy(VECTOR dest, VECTOR src, int len)
  *	i.captures = i.captures & ~j.captures
  * 	then swap positions i and j
  */
-void
+int
 ruleset_swap(ruleset_t *rs, int i, int j, rule_t *rules)
 {
 	int nset;
@@ -694,16 +697,17 @@ ruleset_swap(ruleset_t *rs, int i, int j, rule_t *rules)
 	rs->rules[j] = re;
 
 	rule_vfree(&tmp_vec);
+	return (0);
 }
 
-void
+int
 ruleset_swap_any(ruleset_t * rs, int i, int j, rule_t * rules)
 {
-	int cnt, cnt_check, k, temp;
+	int temp, cnt, cnt_check, ret;
 	VECTOR caught;
 
 	if (i == j)
-		return;
+		return 0;
 
 	assert(i < rs->n_rules);
 	assert(j < rs->n_rules);
@@ -721,9 +725,10 @@ ruleset_swap_any(ruleset_t * rs, int i, int j, rule_t * rules)
 	 * (inclusive) and then compute the captures array from scratch
 	 * rules between rule i and rule j, both * inclusive.
 	 */
-	rule_vinit(rs->n_samples, &caught);
+	if ((ret = rule_vinit(rs->n_samples, &caught)) != 0)
+		return (ret);
 
-	for (k = i; k <= j; k++)
+	for (int k = i; k <= j; k++)
 		rule_vor(caught,
 		    caught, rs->rules[k].captures, rs->n_samples, &cnt);
 
@@ -733,7 +738,7 @@ ruleset_swap_any(ruleset_t * rs, int i, int j, rule_t * rules)
 	rs->rules[j].rule_id = temp;
 
 	cnt_check = 0;
-	for (k = i; k <= j; k++) {
+	for (int k = i; k <= j; k++) {
 		/*
 		 * Compute the items captured by rule k by anding the caught
 		 * vector with the truthtable of the kth rule.
@@ -751,6 +756,7 @@ ruleset_swap_any(ruleset_t * rs, int i, int j, rule_t * rules)
 	assert(cnt == cnt_check);
 
 	rule_vfree(&caught);
+	return (0);
 }
 
 /*
@@ -784,7 +790,6 @@ rule_vor(VECTOR dest, VECTOR src1, VECTOR src2, int nsamples, int *cnt)
 {
 #ifdef GMP
 	mpz_ior(dest, src1, src2);
-	*cnt = 0;
 	*cnt = mpz_popcount(dest);
 #else
 	int i, count, nentries;
@@ -839,26 +844,51 @@ rule_vandnot(VECTOR dest,
 #endif
 }
 
+/*
+ * Doesn't handle two's complement
+ */
+void
+rule_not(VECTOR dest, VECTOR src, int nsamples, int *ret_cnt)
+{
+#ifdef GMP
+    mpz_com(dest, src);
+    *ret_cnt = 0;
+    *ret_cnt = mpz_popcount(dest);
+#else
+	int i, count, nentries;
+
+	nentries = (nsamples + BITS_PER_ENTRY - 1)/BITS_PER_ENTRY;
+	count = 0;
+	assert(dest != NULL);
+	for (i = 0; i < nentries; i++) {
+		dest[i] = ~src[i];
+		count += count_ones(dest[i]);
+	}
+	*ret_cnt = count;
+    return;
+#endif
+}
+
 int
 count_ones_vector(VECTOR v, int len) {
 #ifdef GMP
 	return mpz_popcount(v);
 #else
-	int cnt = 0, i;
-	for (i = 0; i < (len+BITS_PER_ENTRY-1)/BITS_PER_ENTRY; i++) {
-		cnt += count_ones(v[i]);
-	}
-	return cnt;
+    int cnt = 0;
+    for (int i=0; i < (len+BITS_PER_ENTRY-1)/BITS_PER_ENTRY; i++) {
+        cnt += count_ones(v[i]);
+    }
+    return cnt;
 #endif
 }
 
 int
 count_ones(v_entry val)
 {
-	int count, i;
+	int count;
 
 	count = 0;
-	for (i = 0; i < sizeof(v_entry); i++) {
+	for (size_t i = 0; i < sizeof(v_entry); i++) {
 		count += byte_ones[val & BYTE_MASK];
 		val >>= 8;
 	}
@@ -920,6 +950,8 @@ rule_print(rule_t *rules, int ndx, int n, int detail)
 	    ndx, r->features, r->support, r->cardinality);
 	if (detail)
 		rule_vector_print(r->truthtable, n);
+    else
+        printf("\n");
 }
 
 void
@@ -929,8 +961,7 @@ rule_vector_print(VECTOR v, int n)
 	mpz_out_str(stdout, 16, v);
 	printf("\n");
 #else
-	int i;
-	for (i = 0; i < n; i++)
+	for (int i = 0; i < n; i++)
 		printf("0x%lx ", v[i]);
 	printf("\n");
 #endif
@@ -957,4 +988,35 @@ rule_isset(VECTOR v, int e) {
 #else
 	return ((v[e/BITS_PER_ENTRY] & (1 << (e % BITS_PER_ENTRY))) != 0);
 #endif
+}
+
+int
+rule_vector_equal(const VECTOR v1, const VECTOR v2, short len1, short len2) {
+#ifdef GMP
+    return !mpz_cmp(v1, v2);
+#else
+    if (len1 != len2)
+        return 0;
+    size_t nentries = (len1 + BITS_PER_ENTRY - 1)/BITS_PER_ENTRY;
+    for (size_t i = 0; i < nentries; i++) {
+        if (v1[i] != v2[i])
+            return 0;
+    }
+    return 1;
+#endif
+}
+
+size_t
+rule_vector_hash(const VECTOR v, short len) {
+        unsigned long hash = 0;
+		size_t i;
+#ifdef GMP
+        for(i = 0; i < mpz_size(v); ++i)
+            hash = mpz_getlimbn(v, i) + (hash << 6) + (hash << 16) - hash;
+#else
+   		size_t nentries = (len + BITS_PER_ENTRY - 1)/BITS_PER_ENTRY;
+		for(i = 0; i < nentries; ++i)
+            hash = v[i] + (hash << 6) + (hash << 16) - hash;
+#endif
+        return hash;
 }
