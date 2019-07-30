@@ -349,6 +349,9 @@ test_model(const char *data_file,
 
 	idarray = NULL;
 	test_rs = NULL;
+	rules = NULL;
+	labels = NULL;
+	nrules = 0;
 	p = NULL;
 
 	/* Make an array of the rules comprising this model. */
@@ -375,6 +378,9 @@ err:
 		free (idarray);
 	if (test_rs != NULL)
 		ruleset_destroy(test_rs);
+
+	rules_free(rules, nrules, 1);
+	rules_free(labels, 2, 0);
 
 	return (p);
 }
