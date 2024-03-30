@@ -1,0 +1,32 @@
+Package: sbrl
+Type: Package
+Title: Scalable Bayesian Rule Lists Model
+Version: 1.3
+Date: 2024-03-21
+Authors@R: c(person("Hongyu", "Yang", role = c("aut", "cre"),
+		     email = "edwardyhy1@gmail.com"),
+	      person("Morris", "Chen", role = "ctb",
+		     email = "Morris_CM_Chen@wistron.com"),
+	      person("Cynthia", "Rudin", role = c("aut", "ctb"),
+		     email = "rudin@cs.duke.edu"),
+	      person("Margo", "Seltzer", role = c("aut", "ctb"),
+		     email = "mseltzer@cs.ubc.ca"),
+	      person("The President and Fellows of Harvard College",
+                     role = c("cph")))
+Author: Hongyu Yang [aut, cre],
+  Morris Chen [ctb],
+  Cynthia Rudin [aut, ctb],
+  Margo Seltzer [aut, ctb],
+  The President and Fellows of Harvard College [cph]
+Maintainer: Hongyu Yang <edwardyhy1@gmail.com>
+Description: An efficient implementation of Scalable Bayesian Rule Lists Algorithm, a competitor algorithm for decision tree algorithms; see Hongyu Yang, Cynthia Rudin, Margo Seltzer (2017) <https://proceedings.mlr.press/v70/yang17h.html>. It builds from pre-mined association rules and have a logical structure identical to a decision list or one-sided decision tree. Fully optimized over rule lists, this algorithm strikes practical balance between accuracy, interpretability, and computational speed.
+License: GPL (>= 2)
+Imports: Rcpp (>= 0.12.4), arules, methods
+RcppModules: sbrl
+LinkingTo: Rcpp
+NeedsCompilation: yes
+LazyData: yes
+SystemRequirements: gmp (>= 4.2.0), gsl
+Packaged: 2024-03-26 06:42:39 UTC; hongyuy
+Repository: CRAN
+Date/Publication: 2024-03-26 16:50:02 UTC
