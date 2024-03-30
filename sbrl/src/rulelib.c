@@ -201,7 +201,7 @@ rule_vinit(int len, VECTOR *ret)
 	int nentries;
 
 	nentries = (len + BITS_PER_ENTRY - 1)/BITS_PER_ENTRY;
-	if ((*ret = calloc(nentries, sizeof(v_entry))) == NULL)
+	if ((*ret = (v_entry*)calloc(nentries, sizeof(v_entry))) == NULL)
 		return(errno);
 #endif
 	return (0);
@@ -267,7 +267,7 @@ ascii_to_vector(char *line, size_t len, int *nsamples, int *nones, VECTOR *ret)
 		bufsize = (len + BITS_PER_ENTRY - 1) / BITS_PER_ENTRY;
 	else
 		bufsize = (*nsamples + BITS_PER_ENTRY - 1) / BITS_PER_ENTRY;
-	if ((buf = malloc(bufsize * sizeof(v_entry))) == NULL)
+	if ((buf = (v_entry*)malloc(bufsize * sizeof(v_entry))) == NULL)
 		return(errno);
 	
 	bufp = buf;
@@ -339,7 +339,7 @@ make_default(VECTOR *ttp, int len)
 	nventry = (len + BITS_PER_ENTRY - 1) / BITS_PER_ENTRY;
 	nbytes = nventry * sizeof(v_entry);
 
-	if ((c = malloc(nbytes)) == NULL)
+	if ((c = (unsigned char *)malloc(nbytes)) == NULL)
 		return (errno);
 
 	/* Set all full bytes */
