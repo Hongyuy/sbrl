@@ -21,7 +21,9 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#define _GNU_SOURCE
+#ifndef _GNU_SOURCE
+	#define _GNU_SOURCE
+#endif
 #include <assert.h>
 #include <errno.h>
 #include <stdio.h>
@@ -97,7 +99,7 @@ rules_init(const char *infile, int *nrules,
 	while ((len = getline_portable(&line, &linelen, fi)) > 0) {
 		if (rule_cnt >= rsize) {
 			rsize += RULE_INC;
-                	rules = realloc(rules, rsize * sizeof(rule_t));
+			rules = (rule_t *)realloc(rules, rsize * sizeof(rule_t));
 			if (rules == NULL)
 				goto err;
 		}
@@ -140,7 +142,7 @@ rules_init(const char *infile, int *nrules,
 	/* Now create the 0'th (default) rule. */
 	if (add_default_rule) {
 		rules[0].support = sample_cnt;
-		rules[0].features = "default";
+		rules[0].features = (char*)"default";
 		rules[0].cardinality = 0;
 		if (make_default(&rules[0].truthtable, sample_cnt) != 0)
 		    goto err;
@@ -367,11 +369,11 @@ ruleset_init(int nrs_rules,
 	/*
 	 * Allocate space for the ruleset structure and the ruleset entries.
 	 */
-	rs = malloc(sizeof(ruleset_t));
+	rs = (ruleset_t*)malloc(sizeof(ruleset_t));
 	if (rs == NULL)
 		return (errno);
     else {
-        rs->rules = malloc(nrs_rules * sizeof(ruleset_entry_t));
+        rs->rules = (ruleset_entry_t*)malloc(nrs_rules * sizeof(ruleset_entry_t));
         if (rs->rules == NULL)
             return (errno);
     }
@@ -423,7 +425,7 @@ ruleset_backup(ruleset_t *rs, int **rs_idarray)
 	
 	ids = *rs_idarray;
 
-	if ((ids = realloc(ids, (rs->n_rules * sizeof(int)))) == NULL)
+	if ((ids = (int*)realloc(ids, (rs->n_rules * sizeof(int)))) == NULL)
 		return (errno);
 
 	for (i = 0; i < rs->n_rules; i++)
@@ -445,9 +447,9 @@ ruleset_copy(ruleset_t **ret_dest, ruleset_t *src)
 	int i;
 	ruleset_t *dest;
 
-	if ((dest = malloc(sizeof(ruleset_t))) == NULL)
+	if ((dest = (ruleset_t*)malloc(sizeof(ruleset_t))) == NULL)
 		return (errno);
-    else if ((dest->rules = malloc(src->n_rules * sizeof(ruleset_entry_t)))==NULL)
+    else if ((dest->rules = (ruleset_entry_t*)malloc(src->n_rules * sizeof(ruleset_entry_t)))==NULL)
         return (errno);
 	dest->n_alloc = src->n_rules;
 	dest->n_rules = src->n_rules;
@@ -490,7 +492,7 @@ ruleset_add(rule_t *rules, int nrules, ruleset_t **rsp, int newrule, int ndx)
 	rs = *rsp;
 	/* Check for space. */
 	if (rs->n_alloc < rs->n_rules + 1) {
-		expand = realloc(rs->rules, (rs->n_rules + 1) * sizeof(ruleset_entry_t));
+		expand = (ruleset_entry_t*)realloc(rs->rules, (rs->n_rules + 1) * sizeof(ruleset_entry_t));
 		if (expand == NULL)
 			return (errno);
 		rs->rules = expand;
@@ -604,7 +606,7 @@ create_random_ruleset(int size,
 {
 	int i, j, *ids, next, ret;
 
-	ids = calloc(size, sizeof(int));
+	ids = (int*)calloc(size, sizeof(int));
 	for (i = 0; i < (size - 1); i++) {
 try_again:	next = RANDOM_RANGE(1, (nrules - 1));
 		/* Check for duplicates. */
@@ -987,7 +989,7 @@ size_t getline_portable(char **lineptr, size_t *n, FILE *stream) {
     	return -1;
     }
     if (bufptr == NULL) {
-    	bufptr = malloc(128);
+		bufptr = (char*)malloc(128);
     	if (bufptr == NULL) {
     		return -1;
     	}
@@ -998,7 +1000,7 @@ size_t getline_portable(char **lineptr, size_t *n, FILE *stream) {
 		offset = p - bufptr;
     	if ((p - bufptr + 1) > size) {
     		size = size + 128;
-    		bufptr = realloc(bufptr, size);
+			bufptr = (char*)realloc(bufptr, size);
     		if (bufptr == NULL) {
     			return -1;
     		}
