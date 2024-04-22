@@ -570,7 +570,7 @@ try_again:	next = RANDOM_RANGE(1, (nrules - 1), RAND_GSL);
  * Given a rule set, pick a random rule (not already in the set).
  */
 int
-pick_random_rule(int nrules, Ruleset *rs, gsl_rng *RAND_GSL)
+Ruleset::pick_random_rule(int nrules, gsl_rng *RAND_GSL)
 {
 	int cnt, j, new_rule;
 
@@ -581,8 +581,8 @@ pickrule:
 	else
 		new_rule = 1 + (new_rule % (nrules-2));
 		
-	for (j = 0; j < rs->n_rules; j++) {
-		if (rs->entries[j].rule_id == new_rule) {
+	for (j = 0; j < this->n_rules; j++) {
+		if (this->entries[j].rule_id == new_rule) {
 			cnt++;
 			goto pickrule;
 		}

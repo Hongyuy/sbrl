@@ -678,7 +678,7 @@ ruleset_proposal(Ruleset * rs, int nrules,
 		stepchar = Step::Swap;
 	} else if (u < moveProbs[0] + moveProbs[1]) {
 		/* Add a new rule */
-		index1 = pick_random_rule(nrules, rs, RAND_GSL);
+		index1 = rs->pick_random_rule(nrules, RAND_GSL);
 		index2 = my_rng(RAND_GSL) % rs->n_rules;
 		jumpRatio = jumpRatios[1] * (nrules - 1 - rs->n_rules);
 		stepchar = Step::Add;

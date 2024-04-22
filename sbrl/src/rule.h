@@ -121,6 +121,7 @@ struct Ruleset {
 	Ruleset(int n=0): entries(n) {}
 	Ruleset(int n0, int n1, int n2): n_rules{n0}, n_alloc{n1}, n_samples{n2} {}
 	std::vector<int> backup();
+	int pick_random_rule(int, gsl_rng *);
 };
 
 struct Params {
@@ -168,7 +169,6 @@ int ruleset_copy(Ruleset **, Ruleset *);
 void ruleset_delete(std::vector<Rule> &, int, Ruleset *, int);
 void ruleset_swap(Ruleset *, int, int, std::vector<Rule> &);
 void ruleset_swap_any(Ruleset *, int, int, std::vector<Rule> &);
-int pick_random_rule(int, Ruleset *, gsl_rng *);
 
 void ruleset_destroy(Ruleset *);
 //void ruleset_print(Ruleset *, Rule *, int);
