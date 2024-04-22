@@ -188,7 +188,7 @@ BitVec::set_vector_from_ascii(const char *line, size_t len, int &nsamples, int &
 	int retval;
 	size_t s;
 
-	if (mpz_init_set_str(this->vec, line, 2) != 0) {
+	if (mpz_set_str(this->vec, line, 2) != 0) {
 		retval = errno;
 		mpz_clear(this->vec);
 		return (retval);
