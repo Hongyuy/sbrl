@@ -545,7 +545,7 @@ create_random_ruleset(int size,
 	std::vector<int> ids(size, 0);
 
 	for (i = 0; i < (size - 1); i++) {
-try_again:	next = RANDOM_RANGE(1, (nrules - 1));
+try_again:	next = RANDOM_RANGE(1, (nrules - 1), RAND_GSL);
 		/* Check for duplicates. */
 		for (j = 0; j < i; j++)
 			if (ids[j] == next)
@@ -572,7 +572,7 @@ pick_random_rule(int nrules, Ruleset *rs, gsl_rng *RAND_GSL)
 	cnt = 0;
 pickrule:
 	if (cnt < MAX_TRIES)
-		new_rule = RANDOM_RANGE(1, (nrules-1));
+		new_rule = RANDOM_RANGE(1, (nrules-1), RAND_GSL);
 	else
 		new_rule = 1 + (new_rule % (nrules-2));
 		

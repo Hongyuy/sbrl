@@ -737,6 +737,7 @@ init_gsl_rand_gen(gsl_rng **p_RAND_GSL)
 //	return ((int)gsl_ran_poisson(RAND_GSL, mu));
 //}
 
+/*
 double
 gen_poission_pdf(int k, double mu)
 {
@@ -748,4 +749,6 @@ gen_gamma_pdf (double x, double a, double b)
 {
 	return (gsl_ran_gamma_pdf(x, a, b));
 }
+*/
 
+unsigned RANDOM_RANGE(int lo, int hi, gsl_rng *RAND_GSL) { return (unsigned)(lo + (unsigned)((my_rng(RAND_GSL) / (float)RAND_MAX) * (hi - lo + 1))); }

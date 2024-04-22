@@ -21,7 +21,7 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-
+#pragma once
 #include <stdlib.h>
 #include "gsl/gsl_rng.h"
 #include "gsl/gsl_randist.h"
@@ -71,8 +71,7 @@ typedef v_entry *VECTOR;
 #endif
 
 int my_rng(gsl_rng *);
-#define RANDOM_RANGE(lo, hi) \
-(unsigned)(lo + (unsigned)((my_rng(RAND_GSL) / (float)RAND_MAX) * (hi - lo + 1)))
+unsigned RANDOM_RANGE(int lo, int hi, gsl_rng *RAND_GSL);
 
 /*
  * We have slightly different structures to represent the original rules 

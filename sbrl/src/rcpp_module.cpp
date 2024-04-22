@@ -17,8 +17,6 @@
 gsl_rng *RAND_GSL;
 
 /* Convenient macros. */
-#define RANDOM_RANGE(lo, hi) \
-    (unsigned)(lo + (unsigned)((random() / (float)RAND_MAX) * (hi - lo + 1)))
 #define DEFAULT_RULESET_SIZE  3
 #define DEFAULT_RULE_CARDINALITY 3
 #define MAX_RULE_CARDINALITY 3
