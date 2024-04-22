@@ -404,7 +404,7 @@ Ruleset::ruleset_add(std::vector<Rule> &rules, int nrules, int newrule, int ndx)
 		// if (expand == NULL)
 		// 	return (errno);
 		// rs->entries = expand;
-		this->entries.push_back({});
+		this->entries.emplace_back();
 		this->n_alloc = this->n_rules + 1;
 	}
 

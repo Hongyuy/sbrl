@@ -101,7 +101,7 @@ struct Permutations {
 
 struct BitVec {
 	VECTOR vec;
-	BitVec() {};
+	BitVec() = default;
 	int rule_ff1(int, int);
 	int rule_isset(int);
 	int rule_vinit(int);
