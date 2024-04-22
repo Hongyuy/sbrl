@@ -163,7 +163,7 @@ BitVec::rule_vfree()
 #ifdef GMP
 	mpz_clear(this->vec);
 	/* Clobber the memory. */
-	memset(&this->vec, 0, sizeof(this->vec));
+	// memset(&this->vec, 0, sizeof(this->vec));
 
 #else
 	if (this->vec != NULL) {

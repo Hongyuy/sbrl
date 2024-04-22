@@ -123,7 +123,7 @@ struct BitVec {
 		this->vec->_mp_d = other.vec->_mp_d;
 		other.vec->_mp_d = nullptr;
 	}
-	~BitVec() { rule_vfree(); }
+	~BitVec() { if (vec->_mp_d) rule_vfree(); }
 private:
 	int rule_vinit(int);
 	int rule_vfree();
