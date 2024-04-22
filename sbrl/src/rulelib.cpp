@@ -490,48 +490,48 @@ Ruleset::ruleset_add(std::vector<Rule> &rules, int nrules, int newrule, int ndx)
  * Delete the rule in the ndx-th position in the given ruleset.
  */
 void
-ruleset_delete(std::vector<Rule> &rules, int nrules, Ruleset *rs, int ndx)
+Ruleset::ruleset_delete(std::vector<Rule> &rules, int nrules, int ndx)
 {
 	int i, nset;
 	BitVec tmp_vec;
 	// RulesetEntry *old_re, *cur_re;
 
 	/* Compute new captures for all rules following the one at ndx.  */
-	auto old_re = &rs->entries[ndx];
+	auto old_re = &this->entries[ndx];
 
-	if (tmp_vec.rule_vinit(rs->n_samples) != 0)
+	if (tmp_vec.rule_vinit(this->n_samples) != 0)
 		return;
-	for (i = ndx + 1; i < rs->n_rules; i++) {
+	for (i = ndx + 1; i < this->n_rules; i++) {
 		/*
 		 * My new captures is my old captures or'd with anything that
 		 * was captured by ndx and is captured by my rule.
 		 */
-		auto cur_re = &rs->entries[i];
+		auto cur_re = &this->entries[i];
 		rule_vand(tmp_vec, rules[cur_re->rule_id].truthtable,
-		    old_re->captures, rs->n_samples, nset);
+		    old_re->captures, this->n_samples, nset);
 		rule_vor(cur_re->captures, cur_re->captures,
-		    tmp_vec, rs->n_samples, rs->entries[i].ncaptured);
+		    tmp_vec, this->n_samples, this->entries[i].ncaptured);
 
 		/*
 		 * Now remove the ones from old_re->captures that just got set
 		 * for rule i because they should not be captured later.
 		 */
 		rule_vandnot(old_re->captures, old_re->captures,
-		    cur_re->captures, rs->n_samples, nset);
+		    cur_re->captures, this->n_samples, nset);
 	}
 
 	/* Now remove alloc'd data for rule at ndx and for tmp_vec. */
 	tmp_vec.rule_vfree();
-	rs->entries[ndx].captures.rule_vfree();
+	this->entries[ndx].captures.rule_vfree();
 
 	/* Shift up cells if necessary. */
-	if (ndx != rs->n_rules - 1)
+	if (ndx != this->n_rules - 1)
 		// memmove(rs->entries + ndx, rs->entries + ndx + 1,
 		//     sizeof(RulesetEntry) * (rs->n_rules - 1 - ndx));
-		for (int i = ndx; i < rs->n_rules; ++i)
-			rs->entries[i] = rs->entries[i+1];
+		for (int i = ndx; i < this->n_rules; ++i)
+			this->entries[i] = this->entries[i+1];
 
-	rs->n_rules--;
+	this->n_rules--;
 	return;
 }
 

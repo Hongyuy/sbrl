@@ -155,7 +155,7 @@ propose(Ruleset *rs, std::vector<Rule> &rules, std::vector<Rule> &labels, int nr
 	case Step::Delete:
 		/* Delete the rule at position ndx1. */
 		change_ndx = ndx1;
-		ruleset_delete(rules, nrules, rs_new, ndx1);
+		rs_new->ruleset_delete(rules, nrules, ndx1);
 		n_delete++;
 		break;
 	case Step::Swap:
