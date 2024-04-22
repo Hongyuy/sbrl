@@ -142,8 +142,8 @@ struct PredModel
 /*
  * Functions in the library
  */
-size_t getline_portable(char **, size_t *, FILE *);
-char* strsep_portable(char **, const char *);
+// size_t getline_portable(char **, size_t *, FILE *);
+// char* strsep_portable(char **, const char *);
 int ruleset_init(int, int, int *, std::vector<Rule> &, Ruleset **);
 int ruleset_add(std::vector<Rule> &, int, Ruleset **, int, int);
 int ruleset_backup(Ruleset *, int **);

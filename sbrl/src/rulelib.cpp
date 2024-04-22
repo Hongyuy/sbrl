@@ -922,7 +922,7 @@ rule_isset(VECTOR v, int e) {
 	return ((v[e/BITS_PER_ENTRY] & (1 << (e % BITS_PER_ENTRY))) != 0);
 #endif
 }
-
+/*
 size_t getline_portable(char **lineptr, size_t *n, FILE *stream) {
     char *bufptr = NULL;
     char *p = bufptr;
@@ -996,3 +996,4 @@ char* strsep_portable(char** stringp, const char* delim)
 
   return start;
 }
+*/
