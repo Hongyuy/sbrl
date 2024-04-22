@@ -80,6 +80,11 @@ int my_rng(gsl_rng *);
  * of the rule; the ruleset structure refers to rules by ID and contains
  * captures which is something computed off of the rule's truth table.
  */
+enum class Step
+{
+	Add, Delete, Swap
+};
+
 struct Rule {
 	char *features;			/* Representation of the rule. */
 	int support;			/* Number of 1's in truth table. */
@@ -174,7 +179,7 @@ int count_ones_vector(VECTOR, int);
 
 /* Functions for the Scalable Baysian Rule Lists */
 double *predict(PredModel&, std::vector<Rule> &labels, const Params &);
-int ruleset_proposal(Ruleset *, int, int *, int *, char *, double *, gsl_rng *);
+int ruleset_proposal(Ruleset *, int, int *, int *, Step &, double *, gsl_rng *);
 Ruleset *run_mcmc(int, int, int, std::vector<Rule> &, std::vector<Rule> &, const Params &, double, gsl_rng *);
 Ruleset *run_simulated_annealing(int,
     int, int, int, std::vector<Rule> &, std::vector<Rule> &, const Params &, gsl_rng *);
