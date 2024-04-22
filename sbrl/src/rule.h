@@ -171,20 +171,20 @@ void rules_free(std::vector<Rule> &, const int, int);
 
 //void rule_print(Rule *, int, int, int);
 //void rule_print_all(Rule *, int, int);
-//void rule_vector_print(VECTOR, int);
-void rule_copy(VECTOR, VECTOR, int);
+//void rule_vector_print(VECTOR &, int);
+void rule_copy(VECTOR &, VECTOR &, int);
 
-int rule_ff1(VECTOR, int, int);
-int rule_isset(VECTOR, int);
+int rule_ff1(VECTOR &, int, int);
+int rule_isset(VECTOR &, int);
 int rule_vinit(int, VECTOR &);
 int rule_vfree(VECTOR &);
 int make_default(VECTOR &, int);
 int ascii_to_vector(const char *, size_t, int &, int &, VECTOR &);
-void rule_vand(VECTOR, VECTOR, VECTOR, int, int &);
-void rule_vandnot(VECTOR, VECTOR, VECTOR, int, int &);
-void rule_vor(VECTOR, VECTOR, VECTOR, int, int &);
+void rule_vand(VECTOR &, VECTOR &, VECTOR &, int, int &);
+void rule_vandnot(VECTOR &, VECTOR &, VECTOR &, int, int &);
+void rule_vor(VECTOR &, VECTOR &, VECTOR &, int, int &);
 int count_ones(v_entry);
-int count_ones_vector(VECTOR, int);
+int count_ones_vector(VECTOR &, int);
 
 /* Functions for the Scalable Baysian Rule Lists */
 // double *predict(PredModel&, std::vector<Rule> &labels, const Params &);

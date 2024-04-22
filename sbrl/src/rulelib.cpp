@@ -587,7 +587,7 @@ pickrule:
 
 /* dest must exist */
 void
-rule_copy(VECTOR dest, VECTOR src, int len)
+rule_copy(VECTOR &dest, VECTOR &src, int len)
 {
 #ifdef GMP
 	mpz_set(dest, src);
@@ -700,7 +700,7 @@ ruleset_swap_any(Ruleset * rs, int i, int j, std::vector<Rule> & rules)
  * Dest must have been created.
  */
 void
-rule_vand(VECTOR dest, VECTOR src1, VECTOR src2, int nsamples, int &cnt)
+rule_vand(VECTOR &dest, VECTOR &src1, VECTOR &src2, int nsamples, int &cnt)
 {
 #ifdef GMP
 	mpz_and(dest, src1, src2);
@@ -723,7 +723,7 @@ rule_vand(VECTOR dest, VECTOR src1, VECTOR src2, int nsamples, int &cnt)
 
 /* Dest must have been created. */
 void
-rule_vor(VECTOR dest, VECTOR src1, VECTOR src2, int nsamples, int &cnt)
+rule_vor(VECTOR &dest, VECTOR &src1, VECTOR &src2, int nsamples, int &cnt)
 {
 #ifdef GMP
 	mpz_ior(dest, src1, src2);
@@ -754,8 +754,7 @@ rule_vor(VECTOR dest, VECTOR src1, VECTOR src2, int nsamples, int &cnt)
  * the temporary is significantly faster (for large vectors).
  */
 void
-rule_vandnot(VECTOR dest,
-    VECTOR src1, VECTOR src2, int nsamples, int &ret_cnt)
+rule_vandnot(VECTOR &dest, VECTOR &src1, VECTOR &src2, int nsamples, int &ret_cnt)
 {
 #ifdef GMP
 	mpz_t tmp;
@@ -783,7 +782,7 @@ rule_vandnot(VECTOR dest,
 }
 
 int
-count_ones_vector(VECTOR v, int len) {
+count_ones_vector(VECTOR &v, int len) {
 #ifdef GMP
 	return mpz_popcount(v);
 #else
@@ -812,7 +811,7 @@ count_ones(v_entry val)
  * Find first set bit starting at position start_pos.
  */
 int
-rule_ff1(VECTOR v, int start_pos, int len)
+rule_ff1(VECTOR &v, int start_pos, int len)
 {
 #ifdef GMP
 	(void)len;
@@ -894,7 +893,7 @@ rule_ff1(VECTOR v, int start_pos, int len)
  * Return 0 if bit e is not set in vector v; return non-0 otherwise.
  */
 int
-rule_isset(VECTOR v, int e) {
+rule_isset(VECTOR &v, int e) {
 #ifdef GMP
 	return mpz_tstbit(v, e);
 #else
