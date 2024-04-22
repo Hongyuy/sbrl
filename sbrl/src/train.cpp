@@ -44,8 +44,9 @@
  * These make the library not thread safe. If we want to be thread safe during
  * training, then we should reference count these global tables.
  */
-static double *log_lambda_pmf, *log_eta_pmf;
-static double *log_gammas;
+static std::vector<double> log_lambda_pmf;
+static std::vector<double> log_eta_pmf;
+static std::vector<double> log_gammas;
 static double eta_norm;
 static int n_add, n_delete, n_swap;
 static int maxcard;
@@ -205,10 +206,10 @@ compute_log_gammas(int nsamples, const Params &params)
 	a01 = a0 + a1;
 
 	max = nsamples + 2 * (1 + a01);
-	log_gammas = (double*)malloc(sizeof(double) * max);
-	if (log_gammas == NULL)
-		return (-1);
-
+	// log_gammas = (double*)malloc(sizeof(double) * max);
+	// if (log_gammas == NULL)
+	// 	return (-1);
+	log_gammas = std::vector<double>(max);
 	for (i = 1; i < max; i++)
 		log_gammas[i] = gsl_sf_lngamma((double)i);
 	return (0);
@@ -218,8 +219,7 @@ int
 compute_pmf(int nrules, const Params &params)
 {
 	int i;
-	if ((log_lambda_pmf = (double*)malloc(nrules * sizeof(double))) == NULL)
-		return (errno);
+	log_lambda_pmf = std::vector<double>(nrules);
 	for (i = 0; i < nrules; i++) {
 		log_lambda_pmf[i] =
 		    log(gsl_ran_poisson_pdf(i, params.lambda));
@@ -228,9 +228,7 @@ compute_pmf(int nrules, const Params &params)
 //			    i, log_lambda_pmf[i]);
 	}
 
-	if ((log_eta_pmf =
-	    (double*)malloc((1 + MAX_RULE_CARDINALITY) * sizeof(double))) == NULL)
-		return (errno);
+	log_eta_pmf = std::vector<double>(1 + MAX_RULE_CARDINALITY);
 	for (i = 0; i <= MAX_RULE_CARDINALITY; i++) {
 		log_eta_pmf[i] =
 		    log(gsl_ran_poisson_pdf(i, params.eta));
@@ -354,14 +352,8 @@ train(Data &train_data, int initialization, int method, const Params &params)
 	 */
 err:
 	/* Free allocated memory. */
-	if (log_lambda_pmf != NULL)
-		free(log_lambda_pmf);
-	if (log_eta_pmf != NULL)
-		free(log_eta_pmf);
 	if (rule_permutation != NULL)
 		free(rule_permutation);
-	if (log_gammas != NULL)
-		free(log_gammas);
 	if (rs != NULL)
 		ruleset_destroy(rs);
     
