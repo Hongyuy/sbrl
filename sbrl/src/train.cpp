@@ -55,20 +55,6 @@ static int card_count[1 + MAX_RULE_CARDINALITY];
 /* These hold the alpha parameter values to speed up log_gamma lookup. */
 static int a0, a1, a01;
 
-typedef struct _permute {
-	int val;
-	int ndx;
-} permute_t;
-
-struct Permutations {
-	permute_t * ptr;
-	~Permutations() { if (ptr) free(ptr); }
-	permute_t & operator [](int i) {return ptr[i];}
-	void permute_rules(int nrules, gsl_rng *RAND_GSL);
-};
-static Permutations rule_permutation;
-static int permute_ndx;
-
 int debug;
 
 // void _quicksort (void *const, size_t, size_t, int (const void *, const void *));
@@ -278,12 +264,14 @@ train(Data &train_data, int initialization, int method, const Params &params)
 
 	max_pos = compute_log_posterior(rs, train_data.rules,
 	    train_data.nrules, train_data.labels, params, 1, -1, null_bound);
+
+	Permutations rule_permutation;
 	rule_permutation.permute_rules(train_data.nrules, RAND_GSL);
 
 	for (chain = 0; chain < params.nchain; chain++) {
 		auto rs_temp = run_mcmc(params.iters,
 		    train_data.nsamples, train_data.nrules,
-		    train_data.rules, train_data.labels, params, max_pos, RAND_GSL);
+		    train_data.rules, train_data.labels, params, rule_permutation, max_pos, RAND_GSL);
 		pos_temp = compute_log_posterior(rs_temp, train_data.rules,
 		    train_data.nrules, train_data.labels, params, 1, -1,
 		    null_bound);
@@ -350,7 +338,7 @@ get_theta(Ruleset &rs, std::vector<Rule> & rules, std::vector<Rule> & labels, co
 
 Ruleset
 run_mcmc(int iters, int nsamples, int nrules,
-    std::vector<Rule> &rules, std::vector<Rule> &labels, const Params &params, double v_star, gsl_rng *RAND_GSL)
+    std::vector<Rule> &rules, std::vector<Rule> &labels, const Params &params, Permutations &rule_permutation, double v_star, gsl_rng *RAND_GSL)
 {
 	Ruleset rs;
 	double jump_prob, log_post_rs;
@@ -384,9 +372,9 @@ run_mcmc(int iters, int nsamples, int nrules,
 			if (count == (nrules - 1))
 				throw std::runtime_error("exausted rules");
 		}
-		rarray[0] = rule_permutation[permute_ndx++].ndx;
-		if (permute_ndx >= nrules)
-			permute_ndx = 1;
+		rarray[0] = rule_permutation[rule_permutation.permute_ndx++].ndx;
+		if (rule_permutation.permute_ndx >= nrules)
+			rule_permutation.permute_ndx = 1;
 		rs = Ruleset::ruleset_init(2, nsamples, rarray, rules);
 		log_post_rs = compute_log_posterior(rs, rules,
 		    nrules, labels, params, 0, 1, prefix_bound);

@@ -86,6 +86,20 @@ enum class Step
 	Add, Delete, Swap
 };
 
+typedef struct _permute {
+	int val;
+	int ndx;
+} permute_t;
+
+struct Permutations {
+	permute_t * ptr;
+	int permute_ndx;
+	Permutations(): ptr{nullptr}, permute_ndx{0} {}
+	~Permutations() { if (ptr) free(ptr); }
+	permute_t & operator [](int i) {return ptr[i];}
+	void permute_rules(int nrules, gsl_rng *RAND_GSL);
+};
+
 struct BitVec {
 	VECTOR vec;
 	BitVec() {};
@@ -193,7 +207,7 @@ int count_ones(v_entry);
 
 /* Functions for the Scalable Baysian Rule Lists */
 // double *predict(PredModel&, std::vector<Rule> &labels, const Params &);
-Ruleset run_mcmc(int, int, int, std::vector<Rule> &, std::vector<Rule> &, const Params &, double, gsl_rng *);
+Ruleset run_mcmc(int, int, int, std::vector<Rule> &, std::vector<Rule> &, const Params &, Permutations &, double, gsl_rng *);
 Ruleset run_simulated_annealing(int,
     int, int, int, std::vector<Rule> &, std::vector<Rule> &, const Params &, gsl_rng *);
 PredModel train(Data &, int, int, const Params &);
