@@ -642,7 +642,7 @@ ruleset_swap(Ruleset *rs, int i, int j, std::vector<Rule> &rules)
 }
 
 void
-ruleset_swap_any(Ruleset * rs, int i, int j, std::vector<Rule> & rules)
+Ruleset::ruleset_swap_any(int i, int j, std::vector<Rule> & rules)
 {
 	int cnt, cnt_check, k, temp;
 	BitVec caught;
@@ -650,8 +650,8 @@ ruleset_swap_any(Ruleset * rs, int i, int j, std::vector<Rule> & rules)
 	if (i == j)
 		return;
 
-	assert(i < rs->n_rules);
-	assert(j < rs->n_rules);
+	assert(i < this->n_rules);
+	assert(j < this->n_rules);
 
 	/* Ensure that i < j. */
 	if (i > j) {
@@ -666,16 +666,16 @@ ruleset_swap_any(Ruleset * rs, int i, int j, std::vector<Rule> & rules)
 	 * (inclusive) and then compute the captures array from scratch
 	 * rules between rule i and rule j, both * inclusive.
 	 */
-	caught.rule_vinit(rs->n_samples);
+	caught.rule_vinit(this->n_samples);
 
 	for (k = i; k <= j; k++)
 		rule_vor(caught,
-		    caught, rs->entries[k].captures, rs->n_samples, cnt);
+		    caught, this->entries[k].captures, this->n_samples, cnt);
 
 	/* Now swap the rules in the ruleset. */
-	temp = rs->entries[i].rule_id;
-	rs->entries[i].rule_id = rs->entries[j].rule_id;
-	rs->entries[j].rule_id = temp;
+	temp = this->entries[i].rule_id;
+	this->entries[i].rule_id = this->entries[j].rule_id;
+	this->entries[j].rule_id = temp;
 
 	cnt_check = 0;
 	for (k = i; k <= j; k++) {
@@ -683,14 +683,14 @@ ruleset_swap_any(Ruleset * rs, int i, int j, std::vector<Rule> & rules)
 		 * Compute the items captured by rule k by anding the caught
 		 * vector with the truthtable of the kth rule.
 		 */
-		rule_vand(rs->entries[k].captures, caught,
-		    rules[rs->entries[k].rule_id].truthtable,
-		    rs->n_samples, rs->entries[k].ncaptured);
-		cnt_check += rs->entries[k].ncaptured;
+		rule_vand(this->entries[k].captures, caught,
+		    rules[this->entries[k].rule_id].truthtable,
+		    this->n_samples, this->entries[k].ncaptured);
+		cnt_check += this->entries[k].ncaptured;
 
 		/* Now remove the caught items from the caught vector. */
 		rule_vandnot(caught,
-		    caught, rs->entries[k].captures, rs->n_samples, temp);
+		    caught, this->entries[k].captures, this->n_samples, temp);
 	}
 	assert(temp == 0);
 	assert(cnt == cnt_check);

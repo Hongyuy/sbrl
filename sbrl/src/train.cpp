@@ -160,7 +160,7 @@ propose(Ruleset *rs, std::vector<Rule> &rules, std::vector<Rule> &labels, int nr
 		break;
 	case Step::Swap:
 		/* Swap the rules at ndx1 and ndx2. */
-		ruleset_swap_any(rs_new, ndx1, ndx2, rules);
+		rs_new->ruleset_swap_any(ndx1, ndx2, rules);
 		change_ndx = 1 + (ndx1 > ndx2 ? ndx1 : ndx2);
 		n_swap++;
 		break;
