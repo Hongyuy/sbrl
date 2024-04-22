@@ -147,7 +147,7 @@ propose(Ruleset *rs, std::vector<Rule> &rules, std::vector<Rule> &labels, int nr
 	switch (stepchar) {
 	case Step::Add:
 		/* Add the rule whose id is ndx1 at position ndx2 */
-		if (ruleset_add(rules, nrules, &rs_new, ndx1, ndx2) != 0)
+		if (rs_new->ruleset_add(rules, nrules, ndx1, ndx2) != 0)
 			goto err;
 		change_ndx = ndx2 + 1;
 		n_add++;

@@ -419,23 +419,20 @@ ruleset_destroy(Ruleset *rs)
  * all rules after ndx down by one).
  */
 int
-ruleset_add(std::vector<Rule> &rules, int nrules, Ruleset **rsp, int newrule, int ndx)
+Ruleset::ruleset_add(std::vector<Rule> &rules, int nrules, int newrule, int ndx)
 {
 	int i, cnt;
-	Ruleset *rs;
 	// RulesetEntry *expand, *cur_re;
 	BitVec not_caught;
 
-	rs = *rsp;
 	/* Check for space. */
-	if (rs->n_alloc < rs->n_rules + 1) {
+	if (this->n_alloc < this->n_rules + 1) {
 		// expand = (RulesetEntry*)realloc(rs->entries, (rs->n_rules + 1) * sizeof(RulesetEntry));
 		// if (expand == NULL)
 		// 	return (errno);
 		// rs->entries = expand;
-		rs->entries.push_back({});
-		rs->n_alloc = rs->n_rules + 1;
-		*rsp = rs;
+		this->entries.push_back({});
+		this->n_alloc = this->n_rules + 1;
 	}
 
 	/*
@@ -443,45 +440,45 @@ ruleset_add(std::vector<Rule> &rules, int nrules, Ruleset **rsp, int newrule, in
 	 * rule we are inserting. Then we'll recompute all the captures
 	 * from the new rule to the end.
 	 */
-	not_caught.rule_vinit(rs->n_samples);
-	for (i = ndx; i < rs->n_rules; i++)
+	not_caught.rule_vinit(this->n_samples);
+	for (i = ndx; i < this->n_rules; i++)
 	    rule_vor(not_caught,
-	        not_caught, rs->entries[i].captures, rs->n_samples, cnt);
+	        not_caught, this->entries[i].captures, this->n_samples, cnt);
 
 
 	/*
 	 * Shift later rules down by 1 if necessary. For GMP, what we're
 	 * doing may be a little sketchy -- we're copying the mpz_t's around.
 	 */
-	if (ndx != rs->n_rules) {
+	if (ndx != this->n_rules) {
 		// memmove(rs->entries + (ndx + 1), rs->entries + ndx,
 		//     sizeof(RulesetEntry) * (rs->n_rules - ndx));
-		for (int i = rs->n_rules; i > ndx; --i)
-			rs->entries[i] = rs->entries[i-1];
+		for (int i = this->n_rules; i > ndx; --i)
+			this->entries[i] = this->entries[i-1];
 	}
 
 	/* Insert and initialize the new rule. */
-	rs->n_rules++;
-	rs->entries[ndx].rule_id = newrule;
-	rs->entries[ndx].captures.rule_vinit(rs->n_samples);
+	this->n_rules++;
+	this->entries[ndx].rule_id = newrule;
+	this->entries[ndx].captures.rule_vinit(this->n_samples);
 
 	/*
 	 * Now, recompute all the captures entries for the new rule and
 	 * all rules following it.
 	 */
     
-	for (i = ndx; i < rs->n_rules; i++) {
-		auto cur_re = &rs->entries[i];
+	for (i = ndx; i < this->n_rules; i++) {
+		auto cur_re = &this->entries[i];
 		/*
 		 * Captures for this rule gets anything in not_caught
 		 * that is also in the rule's truthtable.
 		 */
 		rule_vand(cur_re->captures,
 		    not_caught, rules[cur_re->rule_id].truthtable,
-		    rs->n_samples, cur_re->ncaptured);
+		    this->n_samples, cur_re->ncaptured);
 
 		rule_vandnot(not_caught,
-		    not_caught, cur_re->captures, rs->n_samples, cnt);
+		    not_caught, cur_re->captures, this->n_samples, cnt);
 	}
 	assert(cnt == 0);
 	not_caught.rule_vfree();

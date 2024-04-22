@@ -122,6 +122,7 @@ struct Ruleset {
 	Ruleset(int n0, int n1, int n2): n_rules{n0}, n_alloc{n1}, n_samples{n2} {}
 	std::vector<int> backup();
 	int pick_random_rule(int, gsl_rng *) const;
+	int ruleset_add(std::vector<Rule> &, int, int, int);
 };
 
 struct Params {
@@ -164,7 +165,6 @@ struct PredModel
 // size_t getline_portable(char **, size_t *, FILE *);
 // char* strsep_portable(char **, const char *);
 int ruleset_init(int, int, const std::vector<int> &, std::vector<Rule> &, Ruleset **);
-int ruleset_add(std::vector<Rule> &, int, Ruleset **, int, int);
 int ruleset_copy(Ruleset **, Ruleset *);
 void ruleset_delete(std::vector<Rule> &, int, Ruleset *, int);
 void ruleset_swap(Ruleset *, int, int, std::vector<Rule> &);
