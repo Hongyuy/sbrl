@@ -33,7 +33,7 @@ gsl_rng *RAND_GSL;
 // #define __cplusplus
 // #pragma pop_macro("__cplusplus")
 
-PredModel train(Data *, int, int, params_t *);
+PredModel train(Data &, int, int, params_t *);
 int load_data(const char *, const char *, int *, int *, rule_t **, rule_t **);
 int load_data2(Data &data, Rcpp::StringVector ruleNames, Rcpp::StringVector labelNames, Rcpp::IntegerMatrix ruleTruthTables, Rcpp::IntegerMatrix labelTruthTables)
 {
@@ -103,7 +103,7 @@ int load_data2(Data &data, Rcpp::StringVector ruleNames, Rcpp::StringVector labe
 
         INIT_TIME(tv_acc);
         START_TIME(tv_start);
-	PredModel pred_model_sbrl = train(&data, initialization, method, &params);
+	PredModel pred_model_sbrl = train(data, initialization, method, &params);
         END_TIME(tv_start, tv_end, tv_acc);
         REPORT_TIME("Time to train", "", tv_end, 1);
 

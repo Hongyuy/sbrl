@@ -295,7 +295,7 @@ permute_rules(int nrules, gsl_rng *RAND_GSL)
 }
 
 PredModel
-train(Data *train_data, int initialization, int method, params_t *params)
+train(Data &train_data, int initialization, int method, params_t *params)
 {
 	PredModel pred_model;
 	int chain, default_rule;
@@ -307,30 +307,30 @@ train(Data *train_data, int initialization, int method, params_t *params)
     init_gsl_rand_gen(&RAND_GSL);
     
 	rs = NULL;
-	if (compute_pmf(train_data->nrules, params) != 0)
+	if (compute_pmf(train_data.nrules, params) != 0)
 		goto err;
-	compute_cardinality(train_data->rules, train_data->nrules);
+	compute_cardinality(train_data.rules, train_data.nrules);
 
-	if (compute_log_gammas(train_data->nsamples, params) != 0)
+	if (compute_log_gammas(train_data.nsamples, params) != 0)
 		goto err;
 
 
 	default_rule = 0;
 	if (ruleset_init(1,
-	    train_data->nsamples, &default_rule, train_data->rules, &rs) != 0)
+	    train_data.nsamples, &default_rule, train_data.rules, &rs) != 0)
 	    	goto err;
 
-	max_pos = compute_log_posterior(rs, train_data->rules,
-	    train_data->nrules, train_data->labels, params, 1, -1, &null_bound);
-	if (permute_rules(train_data->nrules, RAND_GSL) != 0)
+	max_pos = compute_log_posterior(rs, train_data.rules,
+	    train_data.nrules, train_data.labels, params, 1, -1, &null_bound);
+	if (permute_rules(train_data.nrules, RAND_GSL) != 0)
 		goto err;
 
 	for (chain = 0; chain < params->nchain; chain++) {
 		rs_temp = run_mcmc(params->iters,
-		    train_data->nsamples, train_data->nrules,
-		    train_data->rules, train_data->labels, params, max_pos, RAND_GSL);
-		pos_temp = compute_log_posterior(rs_temp, train_data->rules,
-		    train_data->nrules, train_data->labels, params, 1, -1,
+		    train_data.nsamples, train_data.nrules,
+		    train_data.rules, train_data.labels, params, max_pos, RAND_GSL);
+		pos_temp = compute_log_posterior(rs_temp, train_data.rules,
+		    train_data.nrules, train_data.labels, params, 1, -1,
 		    &null_bound);
 
 		if (pos_temp >= max_pos) {
@@ -343,7 +343,7 @@ train(Data *train_data, int initialization, int method, params_t *params)
 	}
 
 	pred_model.theta =
-	    get_theta(rs, train_data->rules, train_data->labels, params);
+	    get_theta(rs, train_data.rules, train_data.labels, params);
 	pred_model.rs = *rs;
 	rs = NULL;
 

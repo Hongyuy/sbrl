@@ -177,4 +177,4 @@ int ruleset_proposal(ruleset_t *, int, int *, int *, char *, double *, gsl_rng *
 ruleset_t *run_mcmc(int, int, int, rule_t *, rule_t *, params_t *, double, gsl_rng *);
 ruleset_t *run_simulated_annealing(int,
     int, int, int, rule_t *, rule_t *, params_t *, gsl_rng *);
-PredModel train(Data *, int, int, params_t *);
+PredModel train(Data &, int, int, params_t *);
