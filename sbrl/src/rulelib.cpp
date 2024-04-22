@@ -155,10 +155,10 @@ rules_free(std::vector<Rule> &rules, const int nrules, int add_default) {
 
 /* Malloc a vector to contain nsamples bits. */
 int
-rule_vinit(int len, VECTOR &ret)
+rule_vinit(int len, BitVec &ret)
 {
 #ifdef GMP
-	mpz_init2(ret, len);
+	mpz_init2(ret.vec, len);
 #else
 	int nentries;
 
@@ -171,10 +171,10 @@ rule_vinit(int len, VECTOR &ret)
 
 /* Deallocate a vector. */
 int
-rule_vfree(VECTOR &v)
+rule_vfree(BitVec &v)
 {
 #ifdef GMP
-	mpz_clear(v);
+	mpz_clear(v.vec);
 	/* Clobber the memory. */
 	memset(&v, 0, sizeof(v));
 
@@ -193,21 +193,21 @@ rule_vfree(VECTOR &v)
  * GMP functions if we're using the GMP library.
  */
 int
-ascii_to_vector(const char *line, size_t len, int &nsamples, int &nones, VECTOR &ret)
+ascii_to_vector(const char *line, size_t len, int &nsamples, int &nones, BitVec &ret)
 {
 #ifdef GMP
 	int retval;
 	size_t s;
 
-	if (mpz_init_set_str(ret, line, 2) != 0) {
+	if (mpz_init_set_str(ret.vec, line, 2) != 0) {
 		retval = errno;
-		mpz_clear(ret);
+		mpz_clear(ret.vec);
 		return (retval);
 	}
-	if ((s = mpz_sizeinbase (ret, 2)) > (size_t) nsamples)
+	if ((s = mpz_sizeinbase (ret.vec, 2)) > (size_t) nsamples)
 		nsamples = (int) s;
 		
-	nones = mpz_popcount(ret);
+	nones = mpz_popcount(ret.vec);
 	return (0);
 #else
 	/*
@@ -285,15 +285,15 @@ ascii_to_vector(const char *line, size_t len, int &nsamples, int &nones, VECTOR 
  * Create the truthtable for a default rule -- that is, it captures all samples.
  */
 int
-make_default(VECTOR &ttp, int len)
+make_default(BitVec &ttp, int len)
 {
 #ifdef GMP
-	mpz_init2(ttp, len);
-	mpz_ui_pow_ui(ttp, 2, (unsigned long)len);
-	mpz_sub_ui (ttp, ttp, 1);
+	mpz_init2(ttp.vec, len);
+	mpz_ui_pow_ui(ttp.vec, 2, (unsigned long)len);
+	mpz_sub_ui (ttp.vec, ttp.vec, 1);
 	return (0);
 #else
-	VECTOR tt;
+	BitVec tt;
 	size_t nventry, nbytes;
 	unsigned char *c;
 	int m;
@@ -306,7 +306,7 @@ make_default(VECTOR &ttp, int len)
 
 	/* Set all full bytes */
 	memset(c, BYTE_MASK, nbytes);
-	ttp = tt = (VECTOR)c;
+	ttp = tt = (BitVec)c;
 
 	/* Fix the last entry so it has 0's for any unused bits. */
 	m = len % BITS_PER_ENTRY;
@@ -324,7 +324,7 @@ ruleset_init(int nrs_rules,
 {
 	int cnt, i;
 	Ruleset *rs;
-	VECTOR not_captured;
+	BitVec not_captured;
 
 	/*
 	 * Allocate space for the ruleset structure and the ruleset entries.
@@ -425,7 +425,7 @@ ruleset_add(std::vector<Rule> &rules, int nrules, Ruleset **rsp, int newrule, in
 	int i, cnt;
 	Ruleset *rs;
 	// RulesetEntry *expand, *cur_re;
-	VECTOR not_caught;
+	BitVec not_caught;
 
 	rs = *rsp;
 	/* Check for space. */
@@ -497,7 +497,7 @@ void
 ruleset_delete(std::vector<Rule> &rules, int nrules, Ruleset *rs, int ndx)
 {
 	int i, nset;
-	VECTOR tmp_vec;
+	BitVec tmp_vec;
 	// RulesetEntry *old_re, *cur_re;
 
 	/* Compute new captures for all rules following the one at ndx.  */
@@ -593,10 +593,10 @@ pickrule:
 
 /* dest must exist */
 void
-rule_copy(VECTOR &dest, VECTOR &src, int len)
+rule_copy(BitVec &dest, BitVec &src, int len)
 {
 #ifdef GMP
-	mpz_set(dest, src);
+	mpz_set(dest.vec, src.vec);
 #else
 	int i, nentries;
 
@@ -617,7 +617,7 @@ void
 ruleset_swap(Ruleset *rs, int i, int j, std::vector<Rule> &rules)
 {
 	int nset;
-	VECTOR tmp_vec;
+	BitVec tmp_vec;
 	RulesetEntry re;
 
 	assert(i < (rs->n_rules - 1));
@@ -649,7 +649,7 @@ void
 ruleset_swap_any(Ruleset * rs, int i, int j, std::vector<Rule> & rules)
 {
 	int cnt, cnt_check, k, temp;
-	VECTOR caught;
+	BitVec caught;
 
 	if (i == j)
 		return;
@@ -706,12 +706,12 @@ ruleset_swap_any(Ruleset * rs, int i, int j, std::vector<Rule> & rules)
  * Dest must have been created.
  */
 void
-rule_vand(VECTOR &dest, VECTOR &src1, VECTOR &src2, int nsamples, int &cnt)
+rule_vand(BitVec &dest, BitVec &src1, BitVec &src2, int nsamples, int &cnt)
 {
 #ifdef GMP
-	mpz_and(dest, src1, src2);
+	mpz_and(dest.vec, src1.vec, src2.vec);
 	cnt = 0;
-	cnt = mpz_popcount(dest);
+	cnt = mpz_popcount(dest.vec);
 #else
 	int i, count, nentries;
 
@@ -729,12 +729,12 @@ rule_vand(VECTOR &dest, VECTOR &src1, VECTOR &src2, int nsamples, int &cnt)
 
 /* Dest must have been created. */
 void
-rule_vor(VECTOR &dest, VECTOR &src1, VECTOR &src2, int nsamples, int &cnt)
+rule_vor(BitVec &dest, BitVec &src1, BitVec &src2, int nsamples, int &cnt)
 {
 #ifdef GMP
-	mpz_ior(dest, src1, src2);
+	mpz_ior(dest.vec, src1.vec, src2.vec);
 	cnt = 0;
-	cnt = mpz_popcount(dest);
+	cnt = mpz_popcount(dest.vec);
 #else
 	int i, count, nentries;
 
@@ -760,16 +760,16 @@ rule_vor(VECTOR &dest, VECTOR &src1, VECTOR &src2, int nsamples, int &cnt)
  * the temporary is significantly faster (for large vectors).
  */
 void
-rule_vandnot(VECTOR &dest, VECTOR &src1, VECTOR &src2, int nsamples, int &ret_cnt)
+rule_vandnot(BitVec &dest, BitVec &src1, BitVec &src2, int nsamples, int &ret_cnt)
 {
 #ifdef GMP
-	mpz_t tmp;
+	BitVec tmp;
 
 	rule_vinit(nsamples, tmp);
-	mpz_com(tmp, src2);
-	mpz_and(dest, src1, tmp);
+	mpz_com(tmp.vec, src2.vec);
+	mpz_and(dest.vec, src1.vec, tmp.vec);
 	ret_cnt = 0;
-	ret_cnt = mpz_popcount(dest);
+	ret_cnt = mpz_popcount(dest.vec);
 	rule_vfree(tmp);
 #else
 	int i, count, nentries;
@@ -788,9 +788,9 @@ rule_vandnot(VECTOR &dest, VECTOR &src1, VECTOR &src2, int nsamples, int &ret_cn
 }
 
 int
-count_ones_vector(VECTOR &v, int len) {
+count_ones_vector(BitVec &v, int len) {
 #ifdef GMP
-	return mpz_popcount(v);
+	return mpz_popcount(v.vec);
 #else
 	int cnt = 0, i;
 	for (i = 0; i < (len+BITS_PER_ENTRY-1)/BITS_PER_ENTRY; i++) {
@@ -817,11 +817,11 @@ count_ones(v_entry val)
  * Find first set bit starting at position start_pos.
  */
 int
-rule_ff1(VECTOR &v, int start_pos, int len)
+rule_ff1(BitVec &v, int start_pos, int len)
 {
 #ifdef GMP
 	(void)len;
-	return mpz_scan1(v, start_pos);
+	return mpz_scan1(v.vec, start_pos);
 #else
 	int i;
 	for (i = start_pos; i < len; i++) {
@@ -871,7 +871,7 @@ rule_ff1(VECTOR &v, int start_pos, int len)
 //}
 
 //void
-//rule_vector_print(VECTOR v, int n)
+//rule_vector_print(BitVec v, int n)
 //{
 //#ifdef GMP
 //	mpz_out_str(stdout, 16, v);
@@ -899,9 +899,9 @@ rule_ff1(VECTOR &v, int start_pos, int len)
  * Return 0 if bit e is not set in vector v; return non-0 otherwise.
  */
 int
-rule_isset(VECTOR &v, int e) {
+rule_isset(BitVec &v, int e) {
 #ifdef GMP
-	return mpz_tstbit(v, e);
+	return mpz_tstbit(v.vec, e);
 #else
 	return ((v[e/BITS_PER_ENTRY] & (1 << (e % BITS_PER_ENTRY))) != 0);
 #endif

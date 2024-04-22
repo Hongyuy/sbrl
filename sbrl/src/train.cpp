@@ -348,7 +348,7 @@ std::vector<double>
 get_theta(Ruleset * rs, std::vector<Rule> & rules, std::vector<Rule> & labels, const Params &params)
 {
 	/* calculate captured 0's and 1's */
-	VECTOR v0;
+	BitVec v0;
 	std::vector<double> theta;
 	int j;
 
@@ -590,7 +590,7 @@ compute_log_posterior(Ruleset *rs, std::vector<Rule> &rules, int nrules, std::ve
 			norm_constant -= exp(log_eta_pmf[li]);
 	}
 	/* Calculate log_likelihood */
-	VECTOR v0;
+	BitVec v0;
 	double prefix_log_likelihood = 0.0;
 	int left0 = labels[0].support, left1 = labels[1].support;
 

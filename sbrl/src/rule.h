@@ -85,17 +85,15 @@ enum class Step
 };
 
 struct BitVec {
-	VECTOR v;
-	BitVec(int len=0) { if (len > 0) mpz_init2(v, len); };
-	void init(int len) { if (len > 0) mpz_init2(v, len); };
-	~BitVec() { mpz_clear(v); };
+	VECTOR vec;
+	BitVec() {};
 };
 
 struct Rule {
 	std::string features;	/* Representation of the rule. */
 	int support;			/* Number of 1's in truth table. */
 	int cardinality;
-	VECTOR truthtable;		/* Truth table; one bit per sample. */
+	BitVec truthtable;		/* Truth table; one bit per sample. */
 	Rule() = default;
 	Rule(const std::string &feat, int supp, int card): features{feat}, support{supp}, cardinality{card} {}
 };
@@ -103,7 +101,7 @@ struct Rule {
 struct RulesetEntry {
 	unsigned rule_id;
 	int ncaptured;			/* Number of 1's in bit vector. */
-	VECTOR captures;		/* Bit vector. */
+	BitVec captures;		/* Bit vector. */
 	RulesetEntry() = default;
 	RulesetEntry(unsigned id, int ncap): rule_id{id}, ncaptured{ncap} {}
 };
@@ -175,20 +173,20 @@ void rules_free(std::vector<Rule> &, const int, int);
 
 //void rule_print(Rule *, int, int, int);
 //void rule_print_all(Rule *, int, int);
-//void rule_vector_print(VECTOR &, int);
-void rule_copy(VECTOR &, VECTOR &, int);
+//void rule_vector_print(BitVec &, int);
+void rule_copy(BitVec &, BitVec &, int);
 
-int rule_ff1(VECTOR &, int, int);
-int rule_isset(VECTOR &, int);
-int rule_vinit(int, VECTOR &);
-int rule_vfree(VECTOR &);
-int make_default(VECTOR &, int);
-int ascii_to_vector(const char *, size_t, int &, int &, VECTOR &);
-void rule_vand(VECTOR &, VECTOR &, VECTOR &, int, int &);
-void rule_vandnot(VECTOR &, VECTOR &, VECTOR &, int, int &);
-void rule_vor(VECTOR &, VECTOR &, VECTOR &, int, int &);
+int rule_ff1(BitVec &, int, int);
+int rule_isset(BitVec &, int);
+int rule_vinit(int, BitVec &);
+int rule_vfree(BitVec &);
+int make_default(BitVec &, int);
+int ascii_to_vector(const char *, size_t, int &, int &, BitVec &);
+void rule_vand(BitVec &, BitVec &, BitVec &, int, int &);
+void rule_vandnot(BitVec &, BitVec &, BitVec &, int, int &);
+void rule_vor(BitVec &, BitVec &, BitVec &, int, int &);
 int count_ones(v_entry);
-int count_ones_vector(VECTOR &, int);
+int count_ones_vector(BitVec &, int);
 
 /* Functions for the Scalable Baysian Rule Lists */
 // double *predict(PredModel&, std::vector<Rule> &labels, const Params &);
