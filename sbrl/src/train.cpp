@@ -65,9 +65,9 @@ int debug;
 
 // void _quicksort (void *const, size_t, size_t, int (const void *, const void *));
 double compute_log_posterior(ruleset_t *,
-    rule_t *, int, rule_t *, params_t *, int, int, double *);
+    std::vector<rule_t> &, int, std::vector<rule_t> &, params_t *, int, int, double *);
 int gen_poission(double);
-std::vector<double> get_theta(ruleset_t *, rule_t *, rule_t *, params_t *);
+std::vector<double> get_theta(ruleset_t *, std::vector<rule_t> &, std::vector<rule_t> &, params_t *);
 void gsl_ran_poisson_test(void);
 void init_gsl_rand_gen(gsl_rng**);
 
@@ -112,7 +112,7 @@ sa_accepts(double new_log_post, double old_log_post,
  * 4. Call the appropriate function to determine acceptance criteria
  */
 ruleset_t *
-propose(ruleset_t *rs, rule_t *rules, rule_t *labels, int nrules,
+propose(ruleset_t *rs, std::vector<rule_t> &rules, std::vector<rule_t> &labels, int nrules,
     double *jump_prob, double *ret_log_post, double max_log_post,
     int *cnt, double *extra, params_t *params, gsl_rng *RAND_GSL,
     int (*accept_func)(double, double, double, double, double *, gsl_rng *))
@@ -253,7 +253,7 @@ compute_pmf(int nrules, params_t *params)
 }
 
 void
-compute_cardinality(rule_t *rules, int nrules)
+compute_cardinality(std::vector<rule_t> &rules, int nrules)
 {
 	int i;
 	for (i = 0; i <= MAX_RULE_CARDINALITY; i++)
@@ -371,7 +371,7 @@ err:
 }
 
 std::vector<double>
-get_theta(ruleset_t * rs, rule_t * rules, rule_t * labels, params_t *params)
+get_theta(ruleset_t * rs, std::vector<rule_t> & rules, std::vector<rule_t> & labels, params_t *params)
 {
 	/* calculate captured 0's and 1's */
 	VECTOR v0;
@@ -407,7 +407,7 @@ get_theta(ruleset_t * rs, rule_t * rules, rule_t * labels, params_t *params)
 
 ruleset_t *
 run_mcmc(int iters, int nsamples, int nrules,
-    rule_t *rules, rule_t *labels, params_t *params, double v_star, gsl_rng *RAND_GSL)
+    std::vector<rule_t> &rules, std::vector<rule_t> &labels, params_t *params, double v_star, gsl_rng *RAND_GSL)
 {
 	ruleset_t *rs;
 	double jump_prob, log_post_rs;
@@ -505,7 +505,7 @@ err:
 
 ruleset_t *
 run_simulated_annealing(int iters, int init_size, int nsamples,
-    int nrules, rule_t * rules, rule_t * labels, params_t *params, gsl_rng *RAND_GSL)
+    int nrules, std::vector<rule_t> & rules, std::vector<rule_t> & labels, params_t *params, gsl_rng *RAND_GSL)
 {
 	ruleset_t *rs;
 	double jump_prob;
@@ -583,7 +583,7 @@ err:
 }
 
 double
-compute_log_posterior(ruleset_t *rs, rule_t *rules, int nrules, rule_t *labels,
+compute_log_posterior(ruleset_t *rs, std::vector<rule_t> &rules, int nrules, std::vector<rule_t> &labels,
     params_t *params, int ifPrint, int length4bound, double *prefix_bound)
 {
 
