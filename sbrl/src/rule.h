@@ -127,6 +127,7 @@ struct Ruleset {
 	void ruleset_swap(int, int, std::vector<Rule> &);
 	void ruleset_swap_any(int, int, std::vector<Rule> &);
 	void ruleset_destroy();
+	int ruleset_proposal(int, int &, int &, Step &, double &, gsl_rng *);
 };
 
 struct Params {
@@ -190,7 +191,6 @@ int count_ones(v_entry);
 
 /* Functions for the Scalable Baysian Rule Lists */
 // double *predict(PredModel&, std::vector<Rule> &labels, const Params &);
-int ruleset_proposal(Ruleset *, int, int &, int &, Step &, double &, gsl_rng *);
 Ruleset *run_mcmc(int, int, int, std::vector<Rule> &, std::vector<Rule> &, const Params &, double, gsl_rng *);
 Ruleset *run_simulated_annealing(int,
     int, int, int, std::vector<Rule> &, std::vector<Rule> &, const Params &, gsl_rng *);

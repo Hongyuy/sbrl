@@ -134,8 +134,7 @@ propose(Ruleset *rs, std::vector<Rule> &rules, std::vector<Rule> &labels, int nr
 	if (ruleset_copy(&rs_new, rs) != 0)
 		goto err;
 
-	if (ruleset_proposal(rs_new,
-	    nrules, ndx1, ndx2, stepchar, jump_prob, RAND_GSL) != 0)
+	if (rs_new->ruleset_proposal(nrules, ndx1, ndx2, stepchar, jump_prob, RAND_GSL) != 0)
 	    	goto err;
 
 //	if (debug > 10) {
@@ -629,7 +628,7 @@ compute_log_posterior(Ruleset *rs, std::vector<Rule> &rules, int nrules, std::ve
 }
 
 int
-ruleset_proposal(Ruleset * rs, int nrules,
+Ruleset::ruleset_proposal(int nrules,
     int &ndx1, int &ndx2, Step &stepchar, double &jumpRatio, gsl_rng *RAND_GSL){
 	static double MOVEPROBS[15] = {
 		0.0, 1.0, 0.0,
@@ -648,13 +647,13 @@ ruleset_proposal(Ruleset * rs, int nrules,
 
 	double moveProbs[3], jumpRatios[3];
 	int offset = 0;
-	if (rs->n_rules == 1) {
+	if (this->n_rules == 1) {
 		offset = 0;
-	} else if (rs->n_rules == 2) {
+	} else if (this->n_rules == 2) {
 		offset = 3;
-	} else if (rs->n_rules == nrules - 1) {
+	} else if (this->n_rules == nrules - 1) {
 		offset = 6;
-	} else if (rs->n_rules == nrules - 2) {
+	} else if (this->n_rules == nrules - 2) {
 		offset = 9;
 	} else {
 		offset = 12;
@@ -667,28 +666,28 @@ ruleset_proposal(Ruleset * rs, int nrules,
 
 	if (u < moveProbs[0]) {
 		// Swap rules: cannot swap with the default rule
-		index1 = my_rng(RAND_GSL) % (rs->n_rules - 1);
+		index1 = my_rng(RAND_GSL) % (this->n_rules - 1);
 
 		// Make sure we do not swap with ourselves
 		do {
-			index2 = my_rng(RAND_GSL) % (rs->n_rules - 1);
+			index2 = my_rng(RAND_GSL) % (this->n_rules - 1);
 		} while (index2 == index1);
 
 		jumpRatio = jumpRatios[0];
 		stepchar = Step::Swap;
 	} else if (u < moveProbs[0] + moveProbs[1]) {
 		/* Add a new rule */
-		index1 = rs->pick_random_rule(nrules, RAND_GSL);
-		index2 = my_rng(RAND_GSL) % rs->n_rules;
-		jumpRatio = jumpRatios[1] * (nrules - 1 - rs->n_rules);
+		index1 = this->pick_random_rule(nrules, RAND_GSL);
+		index2 = my_rng(RAND_GSL) % this->n_rules;
+		jumpRatio = jumpRatios[1] * (nrules - 1 - this->n_rules);
 		stepchar = Step::Add;
 	} else if (u < moveProbs[0] + moveProbs[1] + moveProbs[2]) {
 		/* delete an existing rule */
-		index1 = my_rng(RAND_GSL) % (rs->n_rules - 1);
+		index1 = my_rng(RAND_GSL) % (this->n_rules - 1);
 		//cannot delete the default rule
 			index2 = 0;
 		//index2 doesn 't matter in this case
-			jumpRatio = jumpRatios[2] * (nrules - rs->n_rules);
+			jumpRatio = jumpRatios[2] * (nrules - this->n_rules);
 		stepchar = Step::Delete;
 	} else {
 		//should raise exception here.
