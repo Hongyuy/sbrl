@@ -79,12 +79,12 @@ int my_rng(gsl_rng *);
  * of the rule; the ruleset structure refers to rules by ID and contains
  * captures which is something computed off of the rule's truth table.
  */
-typedef struct rule {
+struct Rule {
 	char *features;			/* Representation of the rule. */
 	int support;			/* Number of 1's in truth table. */
 	int cardinality;
 	VECTOR truthtable;		/* Truth table; one bit per sample. */
-} rule_t;
+};
 
 typedef struct ruleset_entry {
 	unsigned rule_id;
@@ -109,8 +109,8 @@ struct Params {
 };
 
 struct Data {
-	std::vector<rule_t> rules;		/* rules in BitVector form in the data */
-	std::vector<rule_t> labels;	/* labels in BitVector form in the data */
+	std::vector<Rule> rules;		/* rules in BitVector form in the data */
+	std::vector<Rule> labels;	/* labels in BitVector form in the data */
 	int nrules;		/* number of rules */
 	int nsamples;		/* number of samples in the data. */
 };
@@ -138,25 +138,25 @@ struct PredModel
  */
 size_t getline_portable(char **, size_t *, FILE *);
 char* strsep_portable(char **, const char *);
-int ruleset_init(int, int, int *, std::vector<rule_t> &, ruleset_t **);
-int ruleset_add(std::vector<rule_t> &, int, ruleset_t **, int, int);
+int ruleset_init(int, int, int *, std::vector<Rule> &, ruleset_t **);
+int ruleset_add(std::vector<Rule> &, int, ruleset_t **, int, int);
 int ruleset_backup(ruleset_t *, int **);
 int ruleset_copy(ruleset_t **, ruleset_t *);
-void ruleset_delete(std::vector<rule_t> &, int, ruleset_t *, int);
-void ruleset_swap(ruleset_t *, int, int, std::vector<rule_t> &);
-void ruleset_swap_any(ruleset_t *, int, int, std::vector<rule_t> &);
+void ruleset_delete(std::vector<Rule> &, int, ruleset_t *, int);
+void ruleset_swap(ruleset_t *, int, int, std::vector<Rule> &);
+void ruleset_swap_any(ruleset_t *, int, int, std::vector<Rule> &);
 int pick_random_rule(int, ruleset_t *, gsl_rng *);
 
 void ruleset_destroy(ruleset_t *);
-//void ruleset_print(ruleset_t *, rule_t *, int);
+//void ruleset_print(ruleset_t *, Rule *, int);
 //void ruleset_entry_print(ruleset_entry_t *, int, int);
-int create_random_ruleset(int, int, int, std::vector<rule_t> &, ruleset_t **, gsl_rng *);
+int create_random_ruleset(int, int, int, std::vector<Rule> &, ruleset_t **, gsl_rng *);
 
-int rules_init(const char *, int &, int &, std::vector<rule_t> &, int);
-void rules_free(std::vector<rule_t> &, const int, int);
+int rules_init(const char *, int &, int &, std::vector<Rule> &, int);
+void rules_free(std::vector<Rule> &, const int, int);
 
-//void rule_print(rule_t *, int, int, int);
-//void rule_print_all(rule_t *, int, int);
+//void rule_print(Rule *, int, int, int);
+//void rule_print_all(Rule *, int, int);
 //void rule_vector_print(VECTOR, int);
 void rule_copy(VECTOR, VECTOR, int);
 
@@ -172,9 +172,9 @@ int count_ones(v_entry);
 int count_ones_vector(VECTOR, int);
 
 /* Functions for the Scalable Baysian Rule Lists */
-double *predict(PredModel&, std::vector<rule_t> &labels, const Params &);
+double *predict(PredModel&, std::vector<Rule> &labels, const Params &);
 int ruleset_proposal(ruleset_t *, int, int *, int *, char *, double *, gsl_rng *);
-ruleset_t *run_mcmc(int, int, int, std::vector<rule_t> &, std::vector<rule_t> &, const Params &, double, gsl_rng *);
+ruleset_t *run_mcmc(int, int, int, std::vector<Rule> &, std::vector<Rule> &, const Params &, double, gsl_rng *);
 ruleset_t *run_simulated_annealing(int,
-    int, int, int, std::vector<rule_t> &, std::vector<rule_t> &, const Params &, gsl_rng *);
+    int, int, int, std::vector<Rule> &, std::vector<Rule> &, const Params &, gsl_rng *);
 PredModel train(Data &, int, int, const Params &);

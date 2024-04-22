@@ -69,18 +69,18 @@ int byte_ones[] = {
  * to generate data files of the form:
  * 	Rule<TAB><bit vector>\n
  *
- * OUTPUTS: an array of rule_t's
+ * OUTPUTS: an array of Rule's
  */
 
 int
 rules_init(const char *infile, int &nrules,
-    int &nsamples, std::vector<rule_t> &rules_ret, int add_default_rule)
+    int &nsamples, std::vector<Rule> &rules_ret, int add_default_rule)
 {
 	FILE *fi;
 	char *cp, *features, *line, *rulestr;
 	int rule_cnt, sample_cnt, rsize;
 	int i, ones, ret;
-	rule_t *rules=NULL;
+	Rule *rules=NULL;
 	size_t linelen, rulelen;
 	ssize_t len;
 
@@ -99,7 +99,7 @@ rules_init(const char *infile, int &nrules,
 	while ((len = getline_portable(&line, &linelen, fi)) > 0) {
 		if (rule_cnt >= rsize) {
 			rsize += RULE_INC;
-			rules = (rule_t *)realloc(rules, rsize * sizeof(rule_t));
+			rules = (Rule *)realloc(rules, rsize * sizeof(Rule));
 			if (rules == NULL)
 				goto err;
 		}
@@ -174,7 +174,7 @@ err:
 }
 
 void
-rules_free(std::vector<rule_t> &rules, const int nrules, int add_default) {
+rules_free(std::vector<Rule> &rules, const int nrules, int add_default) {
 	int i, start;
 
 	/* Cannot free features for default rule. */
@@ -358,10 +358,10 @@ make_default(VECTOR *ttp, int len)
 /* Create a ruleset. */
 int
 ruleset_init(int nrs_rules,
-    int nsamples, int *idarray, std::vector<rule_t> &rules, ruleset_t **retruleset)
+    int nsamples, int *idarray, std::vector<Rule> &rules, ruleset_t **retruleset)
 {
 	int cnt, i;
-	// rule_t *cur_rule;
+	// Rule *cur_rule;
 	ruleset_t *rs;
 	ruleset_entry_t *cur_re;
 	VECTOR not_captured;
@@ -482,7 +482,7 @@ ruleset_destroy(ruleset_t *rs)
  * all rules after ndx down by one).
  */
 int
-ruleset_add(std::vector<rule_t> &rules, int nrules, ruleset_t **rsp, int newrule, int ndx)
+ruleset_add(std::vector<Rule> &rules, int nrules, ruleset_t **rsp, int newrule, int ndx)
 {
 	int i, cnt;
 	ruleset_t *rs;
@@ -553,7 +553,7 @@ ruleset_add(std::vector<rule_t> &rules, int nrules, ruleset_t **rsp, int newrule
  * Delete the rule in the ndx-th position in the given ruleset.
  */
 void
-ruleset_delete(std::vector<rule_t> &rules, int nrules, ruleset_t *rs, int ndx)
+ruleset_delete(std::vector<Rule> &rules, int nrules, ruleset_t *rs, int ndx)
 {
 	int i, nset;
 	VECTOR tmp_vec;
@@ -602,7 +602,7 @@ ruleset_delete(std::vector<rule_t> &rules, int nrules, ruleset_t *rs, int ndx)
  */
 int
 create_random_ruleset(int size,
-    int nsamples, int nrules, std::vector<rule_t> &rules, ruleset_t **rs, gsl_rng *RAND_GSL)
+    int nsamples, int nrules, std::vector<Rule> &rules, ruleset_t **rs, gsl_rng *RAND_GSL)
 {
 	int i, j, *ids, next, ret;
 
@@ -672,7 +672,7 @@ rule_copy(VECTOR dest, VECTOR src, int len)
  * 	then swap positions i and j
  */
 void
-ruleset_swap(ruleset_t *rs, int i, int j, std::vector<rule_t> &rules)
+ruleset_swap(ruleset_t *rs, int i, int j, std::vector<Rule> &rules)
 {
 	int nset;
 	VECTOR tmp_vec;
@@ -704,7 +704,7 @@ ruleset_swap(ruleset_t *rs, int i, int j, std::vector<rule_t> &rules)
 }
 
 void
-ruleset_swap_any(ruleset_t * rs, int i, int j, std::vector<rule_t> & rules)
+ruleset_swap_any(ruleset_t * rs, int i, int j, std::vector<Rule> & rules)
 {
 	int cnt, cnt_check, k, temp;
 	VECTOR caught;
@@ -892,7 +892,7 @@ rule_ff1(VECTOR v, int start_pos, int len)
 }
 
 //void
-//ruleset_print(ruleset_t *rs, rule_t *rules, int detail)
+//ruleset_print(ruleset_t *rs, Rule *rules, int detail)
 //{
 //	int i, n;
 //	int total_support;
@@ -918,9 +918,9 @@ rule_ff1(VECTOR v, int start_pos, int len)
 //}
 
 //void
-//rule_print(rule_t *rules, int ndx, int n, int detail)
+//rule_print(Rule *rules, int ndx, int n, int detail)
 //{
-//	rule_t *r;
+//	Rule *r;
 //
 //	r = rules + ndx;
 //	printf("RULE %d: ( %s ), support=%d, card=%d:",
@@ -945,7 +945,7 @@ rule_ff1(VECTOR v, int start_pos, int len)
 //}
 
 //void
-//rule_print_all(rule_t *rules, int nrules, int nsamples)
+//rule_print_all(Rule *rules, int nrules, int nsamples)
 //{
 //	int i, n;
 //

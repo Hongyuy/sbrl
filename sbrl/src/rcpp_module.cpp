@@ -34,7 +34,7 @@ gsl_rng *RAND_GSL;
 // #pragma pop_macro("__cplusplus")
 
 PredModel train(Data &, int, int, const Params &);
-int load_data(const char *, const char *, int &, int &, std::vector<rule_t> &, std::vector<rule_t> &);
+int load_data(const char *, const char *, int &, int &, std::vector<Rule> &, std::vector<Rule> &);
 int load_data2(Data &data, Rcpp::StringVector ruleNames, Rcpp::StringVector labelNames, Rcpp::IntegerMatrix ruleTruthTables, Rcpp::IntegerMatrix labelTruthTables)
 {
         data.nrules = ruleNames.size();
@@ -180,7 +180,7 @@ void R_init_sbrl(DllInfo *dll)
 
 int
 load_data(const char *data_file, const char *label_file,
-    int &ret_samples, int &ret_nrules, std::vector<rule_t> &rules, std::vector<rule_t> &labels)
+    int &ret_samples, int &ret_nrules, std::vector<Rule> &rules, std::vector<Rule> &labels)
 {
         int nlabels, ret, samples_chk;
 
