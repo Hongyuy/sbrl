@@ -318,51 +318,41 @@ BitVec::make_default(int len)
 }
 
 /* Create a ruleset. */
-int
-ruleset_init(int nrs_rules,
-    int nsamples, const std::vector<int> &idarray, std::vector<Rule> &rules, Ruleset **retruleset)
+Ruleset
+Ruleset::ruleset_init(int nrs_rules,
+    int nsamples, const std::vector<int> &idarray, std::vector<Rule> &rules)
 {
-	int cnt, i;
-	Ruleset *rs;
-	BitVec not_captured;
+	Ruleset rs(nrs_rules);
+	rs.n_rules = 0;
+	rs.n_alloc = nrs_rules;
+	rs.n_samples = nsamples;
 
-	/*
-	 * Allocate space for the ruleset structure and the ruleset entries.
-	 */
-	rs = new Ruleset(nrs_rules);
-	/*
-	 * Allocate the ruleset at the front of the structure and then
-	 * the RulesetEntry array at the end.
-	 */
-	rs->n_rules = 0;
-	rs->n_alloc = nrs_rules;
-	rs->n_samples = nsamples;
+	BitVec not_captured;
 	not_captured.make_default(nsamples);
 
-	cnt = nsamples;
-	for (i = 0; i < nrs_rules; i++) {
+	int cnt = nsamples;
+	for (int i = 0; i < nrs_rules; i++) {
 		auto cur_rule = &rules[idarray[i]];
-		auto cur_re = &rs->entries[i];
+		auto cur_re = &rs.entries[i];
 		cur_re->rule_id = idarray[i];
 
 		if (cur_re->captures.rule_vinit(nsamples) != 0)
 			goto err1;
-		rs->n_rules++;
+		rs.n_rules++;
 		rule_vand(cur_re->captures, not_captured,
 		    cur_rule->truthtable, nsamples, cur_re->ncaptured);
 
 		rule_vandnot(not_captured, not_captured,
-		    rs->entries[i].captures, nsamples, cnt);
+		    rs.entries[i].captures, nsamples, cnt);
 	}
 	assert(cnt==0);
 
-	*retruleset = rs;
 	(void)not_captured.rule_vfree();
-	return (0);
+	return rs;
 
 err1:
 	(void)not_captured.rule_vfree();
-	rs->ruleset_destroy();
+	rs.ruleset_destroy();
 	return (ENOMEM);
 }
 
@@ -384,24 +374,22 @@ std::vector<int> Ruleset::backup()
  * terribly efficient, but it's simpler. If the allocation and frees become
  * too expensive, we can make this smarter.
  */
-int
-ruleset_copy(Ruleset **ret_dest, Ruleset *src)
+Ruleset
+Ruleset::ruleset_copy()
 {
 	int i;
-	Ruleset *dest = new Ruleset(src->n_rules);
-	dest->n_alloc = src->n_rules;
-	dest->n_rules = src->n_rules;
-	dest->n_samples = src->n_samples;
+	Ruleset dest(this->n_rules);
+	dest.n_alloc = this->n_rules;
+	dest.n_rules = this->n_rules;
+	dest.n_samples = this->n_samples;
     
-	for (i = 0; i < src->n_rules; i++) {
-		dest->entries[i].rule_id = src->entries[i].rule_id;
-		dest->entries[i].ncaptured = src->entries[i].ncaptured;
-		dest->entries[i].captures.rule_vinit(src->n_samples);
-		src->entries[i].captures.rule_copy(dest->entries[i].captures, src->n_samples);
+	for (i = 0; i < this->n_rules; i++) {
+		dest.entries[i].rule_id = this->entries[i].rule_id;
+		dest.entries[i].ncaptured = this->entries[i].ncaptured;
+		dest.entries[i].captures.rule_vinit(this->n_samples);
+		this->entries[i].captures.rule_copy(dest.entries[i].captures, this->n_samples);
 	}
-	*ret_dest = dest;
-
-	return (0);
+	return dest;
 }
 
 /* Reclaim resources associated with a ruleset. */
@@ -539,9 +527,9 @@ Ruleset::ruleset_delete(std::vector<Rule> &rules, int nrules, int ndx)
  * We create random rulesets for testing and for creating initial proposals
  * in MCMC
  */
-int
-create_random_ruleset(int size,
-    int nsamples, int nrules, std::vector<Rule> &rules, Ruleset **rs, gsl_rng *RAND_GSL)
+Ruleset
+Ruleset::create_random_ruleset(int size,
+    int nsamples, int nrules, std::vector<Rule> &rules, gsl_rng *RAND_GSL)
 {
 	int i, j, next, ret;
 	std::vector<int> ids(size, 0);
@@ -558,8 +546,7 @@ try_again:	next = RANDOM_RANGE(1, (nrules - 1), RAND_GSL);
 	/* Always put rule 0 (the default) as the last rule. */
 	ids[i] = 0;
 
-	ret = ruleset_init(size, nsamples, ids, rules, rs);
-	return (ret);
+	return Ruleset::ruleset_init(size, nsamples, ids, rules);
 }
 
 #define MAX_TRIES 10

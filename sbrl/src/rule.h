@@ -58,6 +58,8 @@
 
 #include <vector>
 #include <string>
+#include <stdexcept>
+
 /*
  * Define types for bit vectors.
  */
@@ -128,6 +130,9 @@ struct Ruleset {
 	void ruleset_swap_any(int, int, std::vector<Rule> &);
 	void ruleset_destroy();
 	int ruleset_proposal(int, int &, int &, Step &, double &, gsl_rng *);
+	static Ruleset ruleset_init(int, int, const std::vector<int> &, std::vector<Rule> &);
+	static Ruleset create_random_ruleset(int, int, int, std::vector<Rule> &, gsl_rng *);
+	Ruleset ruleset_copy();
 };
 
 struct Params {
@@ -169,12 +174,9 @@ struct PredModel
  */
 // size_t getline_portable(char **, size_t *, FILE *);
 // char* strsep_portable(char **, const char *);
-int ruleset_init(int, int, const std::vector<int> &, std::vector<Rule> &, Ruleset **);
-int ruleset_copy(Ruleset **, Ruleset *);
 
 //void ruleset_print(Ruleset *, Rule *, int);
 //void ruleset_entry_print(RulesetEntry *, int, int);
-int create_random_ruleset(int, int, int, std::vector<Rule> &, Ruleset **, gsl_rng *);
 
 int rules_init(const std::string &, std::vector<Rule> &, const int, const int, const int);
 void rules_free(std::vector<Rule> &, const int, int);
@@ -191,7 +193,7 @@ int count_ones(v_entry);
 
 /* Functions for the Scalable Baysian Rule Lists */
 // double *predict(PredModel&, std::vector<Rule> &labels, const Params &);
-Ruleset *run_mcmc(int, int, int, std::vector<Rule> &, std::vector<Rule> &, const Params &, double, gsl_rng *);
-Ruleset *run_simulated_annealing(int,
+Ruleset run_mcmc(int, int, int, std::vector<Rule> &, std::vector<Rule> &, const Params &, double, gsl_rng *);
+Ruleset run_simulated_annealing(int,
     int, int, int, std::vector<Rule> &, std::vector<Rule> &, const Params &, gsl_rng *);
 PredModel train(Data &, int, int, const Params &);

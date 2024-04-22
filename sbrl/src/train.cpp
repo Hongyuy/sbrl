@@ -72,10 +72,10 @@ static int permute_ndx;
 int debug;
 
 // void _quicksort (void *const, size_t, size_t, int (const void *, const void *));
-double compute_log_posterior(Ruleset *,
+double compute_log_posterior(Ruleset &,
     std::vector<Rule> &, int, std::vector<Rule> &, const Params &, int, int, double &);
 int gen_poission(double);
-std::vector<double> get_theta(Ruleset *, std::vector<Rule> &, std::vector<Rule> &, const Params &);
+std::vector<double> get_theta(Ruleset &, std::vector<Rule> &, std::vector<Rule> &, const Params &);
 void gsl_ran_poisson_test(void);
 void init_gsl_rand_gen(gsl_rng**);
 
@@ -119,8 +119,8 @@ sa_accepts(double new_log_post, double old_log_post,
  * 3. Compute the log_posterior
  * 4. Call the appropriate function to determine acceptance criteria
  */
-Ruleset *
-propose(Ruleset *rs, std::vector<Rule> &rules, std::vector<Rule> &labels, int nrules,
+Ruleset
+propose(Ruleset &rs, std::vector<Rule> &rules, std::vector<Rule> &labels, int nrules,
     double &jump_prob, double &ret_log_post, double max_log_post,
     int &cnt, double &extra, const Params &params, gsl_rng *RAND_GSL,
     int (*accept_func)(double, double, double, double, double &, gsl_rng *))
@@ -128,14 +128,9 @@ propose(Ruleset *rs, std::vector<Rule> &rules, std::vector<Rule> &labels, int nr
 	Step stepchar;
 	double new_log_post, prefix_bound;
 	int change_ndx, ndx1, ndx2;
-	Ruleset *rs_new, *rs_ret;
-	rs_new = NULL;
+	Ruleset rs_new = rs.ruleset_copy();
 
-	if (ruleset_copy(&rs_new, rs) != 0)
-		goto err;
-
-	if (rs_new->ruleset_proposal(nrules, ndx1, ndx2, stepchar, jump_prob, RAND_GSL) != 0)
-	    	goto err;
+	rs_new.ruleset_proposal(nrules, ndx1, ndx2, stepchar, jump_prob, RAND_GSL);
 
 //	if (debug > 10) {
 //		printf("Given ruleset: \n");
@@ -146,25 +141,23 @@ propose(Ruleset *rs, std::vector<Rule> &rules, std::vector<Rule> &labels, int nr
 	switch (stepchar) {
 	case Step::Add:
 		/* Add the rule whose id is ndx1 at position ndx2 */
-		if (rs_new->ruleset_add(rules, nrules, ndx1, ndx2) != 0)
-			goto err;
+		rs_new.ruleset_add(rules, nrules, ndx1, ndx2);
 		change_ndx = ndx2 + 1;
 		n_add++;
 		break;
 	case Step::Delete:
 		/* Delete the rule at position ndx1. */
 		change_ndx = ndx1;
-		rs_new->ruleset_delete(rules, nrules, ndx1);
+		rs_new.ruleset_delete(rules, nrules, ndx1);
 		n_delete++;
 		break;
 	case Step::Swap:
 		/* Swap the rules at ndx1 and ndx2. */
-		rs_new->ruleset_swap_any(ndx1, ndx2, rules);
+		rs_new.ruleset_swap_any(ndx1, ndx2, rules);
 		change_ndx = 1 + (ndx1 > ndx2 ? ndx1 : ndx2);
 		n_swap++;
 		break;
 	default:
-		goto err;
 		break;
 	}
 
@@ -182,22 +175,15 @@ propose(Ruleset *rs, std::vector<Rule> &rules, std::vector<Rule> &labels, int nr
 	    ret_log_post, prefix_bound, max_log_post, extra, RAND_GSL)) {
 //	    	if (debug > 10)
 //			printf("Accepted\n");
-		rs_ret = rs_new;
 		ret_log_post = new_log_post;
-		rs->ruleset_destroy();
+		rs.ruleset_destroy();
+		return rs_new;
 	} else {
 //	    	if (debug > 10)
 //			printf("Rejected\n");
-		rs_ret = rs;
-		rs_new->ruleset_destroy();
+		rs_new.ruleset_destroy();
+		return rs;
 	}
-
-	return (rs_ret);
-err:
-	if (rs_new != NULL)
-		rs_new->ruleset_destroy();
-	rs->ruleset_destroy();
-	return (NULL);
 }
 
 /********** End of proposal routines *******/
@@ -280,15 +266,14 @@ train(Data &train_data, int initialization, int method, const Params &params)
 {
 	PredModel pred_model;
 	int chain;
-	Ruleset *rs, *rs_temp;
 	double max_pos, pos_temp, null_bound;
 	std::vector<int> default_rule(1, 0);
+	Ruleset rs = Ruleset::ruleset_init(1, train_data.nsamples, default_rule, train_data.rules);
     
     gsl_rng *RAND_GSL=NULL;
     /* initialize random number generator for some distributions. */
     init_gsl_rand_gen(&RAND_GSL);
     
-	rs = NULL;
 	if (compute_pmf(train_data.nrules, params) != 0)
 		goto err;
 	compute_cardinality(train_data.rules, train_data.nrules);
@@ -296,18 +281,13 @@ train(Data &train_data, int initialization, int method, const Params &params)
 	if (compute_log_gammas(train_data.nsamples, params) != 0)
 		goto err;
 
-
-	if (ruleset_init(1,
-	    train_data.nsamples, default_rule, train_data.rules, &rs) != 0)
-	    	goto err;
-
 	max_pos = compute_log_posterior(rs, train_data.rules,
 	    train_data.nrules, train_data.labels, params, 1, -1, null_bound);
 	if (rule_permutation.permute_rules(train_data.nrules, RAND_GSL) != 0)
 		goto err;
 
 	for (chain = 0; chain < params.nchain; chain++) {
-		rs_temp = run_mcmc(params.iters,
+		auto rs_temp = run_mcmc(params.iters,
 		    train_data.nsamples, train_data.nrules,
 		    train_data.rules, train_data.labels, params, max_pos, RAND_GSL);
 		pos_temp = compute_log_posterior(rs_temp, train_data.rules,
@@ -315,18 +295,17 @@ train(Data &train_data, int initialization, int method, const Params &params)
 		    null_bound);
 
 		if (pos_temp >= max_pos) {
-			rs->ruleset_destroy();
+			rs.ruleset_destroy();
 			rs = rs_temp;
 			max_pos = pos_temp;
 		} else {
-			rs_temp->ruleset_destroy();
+			rs_temp.ruleset_destroy();
 		}
 	}
 
 	pred_model.theta =
 	    get_theta(rs, train_data.rules, train_data.labels, params);
-	pred_model.rs = *rs;
-	rs = NULL;
+	pred_model.rs = rs;
 
 	/*
 	 * THIS IS INTENTIONAL -- makes error handling localized.
@@ -335,31 +314,28 @@ train(Data &train_data, int initialization, int method, const Params &params)
 	 */
 err:
 	/* Free allocated memory. */
-	if (rs != NULL)
-		rs->ruleset_destroy();
-    
     gsl_rng_free(RAND_GSL);
     
 	return (pred_model);
 }
 
 std::vector<double>
-get_theta(Ruleset * rs, std::vector<Rule> & rules, std::vector<Rule> & labels, const Params &params)
+get_theta(Ruleset &rs, std::vector<Rule> & rules, std::vector<Rule> & labels, const Params &params)
 {
 	/* calculate captured 0's and 1's */
 	BitVec v0;
 	std::vector<double> theta;
 	int j;
 
-	v0.rule_vinit(rs->n_samples);
-	theta.reserve(rs->n_rules);
+	v0.rule_vinit(rs.n_samples);
+	theta.reserve(rs.n_rules);
 
-	for (j = 0; j < rs->n_rules; j++) {
+	for (j = 0; j < rs.n_rules; j++) {
 		int n0, n1;
 
-		rule_vand(v0, rs->entries[j].captures,
-		    labels[0].truthtable, rs->n_samples, n0);
-		n1 = rs->entries[j].ncaptured - n0;
+		rule_vand(v0, rs.entries[j].captures,
+		    labels[0].truthtable, rs.n_samples, n0);
+		n1 = rs.entries[j].ncaptured - n0;
 		theta[j] = (n1 + params.alpha[1]) * 1.0 /
 		    (n1 + n0 + params.alpha[0] + params.alpha[1]);
 //		if (debug) {
@@ -378,11 +354,11 @@ get_theta(Ruleset * rs, std::vector<Rule> & rules, std::vector<Rule> & labels, c
 	return (theta);
 }
 
-Ruleset *
+Ruleset
 run_mcmc(int iters, int nsamples, int nrules,
     std::vector<Rule> &rules, std::vector<Rule> &labels, const Params &params, double v_star, gsl_rng *RAND_GSL)
 {
-	Ruleset *rs;
+	Ruleset rs;
 	double jump_prob, log_post_rs;
 	int len, nsuccessful_rej;
 	int i, count;
@@ -390,7 +366,6 @@ run_mcmc(int iters, int nsamples, int nrules,
 	std::vector<int> rarray(2, 0);
 	std::vector<int> rs_idarray;
 
-	rs = NULL;
 	log_post_rs = 0.0;
 	nsuccessful_rej = 0;
 	prefix_bound = -1e10; // This really should be -MAX_DBL
@@ -408,16 +383,17 @@ run_mcmc(int iters, int nsamples, int nrules,
 	count = 0;
 	while (prefix_bound < v_star) {
 		// TODO Gather some stats on how much we loop in here.
-		if (rs != NULL) {
-			rs->ruleset_destroy();
+		// if (rs != NULL) {
+		if (rs.entries.size()) {
+			rs.ruleset_destroy();
 			count++;
 			if (count == (nrules - 1))
-				return (NULL);
+				throw std::runtime_error("exausted rules");
 		}
 		rarray[0] = rule_permutation[permute_ndx++].ndx;
 		if (permute_ndx >= nrules)
 			permute_ndx = 1;
-		ruleset_init(2, nsamples, rarray, rules, &rs);
+		rs = Ruleset::ruleset_init(2, nsamples, rarray, rules);
 		log_post_rs = compute_log_posterior(rs, rules,
 		    nrules, labels, params, 0, 1, prefix_bound);
 //		if (debug > 10) {
@@ -432,26 +408,25 @@ run_mcmc(int iters, int nsamples, int nrules,
 	 * The initial ruleset is our best ruleset so far, so keep a
 	 * list of the rules it contains.
 	 */
-	rs_idarray = rs->backup();
+	rs_idarray = rs.backup();
 	max_log_posterior = log_post_rs;
-	len = rs->n_rules;
+	len = rs.n_rules;
 
 	for (i = 0; i < iters; i++) {
-		if ((rs = propose(rs, rules, labels, nrules, jump_prob,
+		rs = propose(rs, rules, labels, nrules, jump_prob,
 		    log_post_rs, max_log_posterior, nsuccessful_rej,
-		    jump_prob, params, RAND_GSL, mcmc_accepts)) == NULL)
-		    	goto err;
+		    jump_prob, params, RAND_GSL, mcmc_accepts);
 
 		if (log_post_rs > max_log_posterior) {
-			rs_idarray = rs->backup();
+			rs_idarray = rs.backup();
 			max_log_posterior = log_post_rs;
-			len = rs->n_rules;
+			len = rs.n_rules;
 		}
 	}
 
 	/* Regenerate the best rule list */
-	rs->ruleset_destroy();
-	ruleset_init(len, nsamples, rs_idarray, rules, &rs);
+	rs.ruleset_destroy();
+	rs = Ruleset::ruleset_init(len, nsamples, rs_idarray, rules);
 
 //	if (debug) {
 //		printf("\n%s%d #add=%d #delete=%d #swap=%d):\n",
@@ -465,18 +440,13 @@ run_mcmc(int iters, int nsamples, int nrules,
 //		ruleset_print(rs, rules, (debug > 100));
 //	}
 	return (rs);
-
-err:
-	if (rs != NULL)
-		rs->ruleset_destroy();
-	return (NULL);
 }
 
-Ruleset *
+Ruleset
 run_simulated_annealing(int iters, int init_size, int nsamples,
     int nrules, std::vector<Rule> & rules, std::vector<Rule> & labels, const Params &params, gsl_rng *RAND_GSL)
 {
-	Ruleset *rs;
+	Ruleset rs = Ruleset::create_random_ruleset(init_size, nsamples, nrules, rules, RAND_GSL);
 	double jump_prob;
 	int dummy, i, j, k, iter, iters_per_step, len;
 	double log_post_rs, max_log_posterior = -1e9, prefix_bound = 0.0;
@@ -487,15 +457,11 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 	log_post_rs = 0.0;
 	iters_per_step = 200;
 
-	/* Initialize the ruleset. */
-	if (create_random_ruleset(init_size, nsamples, nrules, rules, &rs, RAND_GSL) != 0)
-		return (NULL);
-
 	log_post_rs = compute_log_posterior(rs,
 	    rules, nrules, labels, params, 0, -1, prefix_bound);
-	rs_idarray = rs->backup();
+	rs_idarray = rs.backup();
 	max_log_posterior = log_post_rs;
-	len = rs->n_rules;
+	len = rs.n_rules;
 
 //	if (debug > 10) {
 //		printf("Initial ruleset: \n");
@@ -518,20 +484,18 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 	for (k = 0; k < ntimepoints; k++) {
 		double tk = T[k];
 		for (iter = 0; iter < iters_per_step; iter++) {
-    			if ((rs = propose(rs, rules, labels, nrules, jump_prob,
+    		rs = propose(rs, rules, labels, nrules, jump_prob,
 			    log_post_rs, max_log_posterior, dummy, tk,
-			    params, RAND_GSL, sa_accepts)) == NULL)
-			    	goto err;
+			    params, RAND_GSL, sa_accepts);
 
 			if (log_post_rs > max_log_posterior) {
-				rs_idarray = rs->backup();
+				rs_idarray = rs.backup();
 				max_log_posterior = log_post_rs;
-				len = rs->n_rules;
+				len = rs.n_rules;
 			}
 		}
 	}
 	/* Regenerate the best rule list. */
-	rs->ruleset_destroy();
 //	printf("\n\n/*----The best rule list is: */\n");
 //	ruleset_init(len, nsamples, rs_idarray, rules, &rs);
 //	printf("max_log_posterior = %6f\n\n", max_log_posterior);
@@ -542,14 +506,10 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 //	ruleset_print(rs, rules, (debug > 100));
 
 	return (rs);
-err:
-	if (rs != NULL)
-		rs->ruleset_destroy();
-	return (NULL);
 }
 
 double
-compute_log_posterior(Ruleset *rs, std::vector<Rule> &rules, int nrules, std::vector<Rule> &labels,
+compute_log_posterior(Ruleset &rs, std::vector<Rule> &rules, int nrules, std::vector<Rule> &labels,
     const Params &params, int ifPrint, int length4bound, double &prefix_bound)
 {
 
@@ -565,16 +525,16 @@ compute_log_posterior(Ruleset *rs, std::vector<Rule> &rules, int nrules, std::ve
 
 	/* Calculate log_prior. */
 	norm_constant = eta_norm;
-	log_prior = log_lambda_pmf[rs->n_rules - 1];
+	log_prior = log_lambda_pmf[rs.n_rules - 1];
 
-	if (rs->n_rules - 1 > params.lambda)
-		prefix_prior += log_lambda_pmf[rs->n_rules - 1];
+	if (rs.n_rules - 1 > params.lambda)
+		prefix_prior += log_lambda_pmf[rs.n_rules - 1];
 	else
 		prefix_prior += log_lambda_pmf[(int)params.lambda];
 
 	// Don't compute the last (default) rule.
-	for (i = 0; i < rs->n_rules - 1; i++) {
-		li = rules[rs->entries[i].rule_id].cardinality;
+	for (i = 0; i < rs.n_rules - 1; i++) {
+		li = rules[rs.entries[i].rule_id].cardinality;
 		log_prior += log_eta_pmf[li] - log(norm_constant);
 
 		log_prior -= log(local_cards[li]);
@@ -593,13 +553,13 @@ compute_log_posterior(Ruleset *rs, std::vector<Rule> &rules, int nrules, std::ve
 	double prefix_log_likelihood = 0.0;
 	int left0 = labels[0].support, left1 = labels[1].support;
 
-	v0.rule_vinit(rs->n_samples);
-	for (j = 0; j < rs->n_rules; j++) {
+	v0.rule_vinit(rs.n_samples);
+	for (j = 0; j < rs.n_rules; j++) {
 		int n0, n1;	 // Count of 0's; count of 1's
 
-		rule_vand(v0, rs->entries[j].captures,
-		    labels[0].truthtable, rs->n_samples, n0);
-		n1 = rs->entries[j].ncaptured - n0;
+		rule_vand(v0, rs.entries[j].captures,
+		    labels[0].truthtable, rs.n_samples, n0);
+		n1 = rs.entries[j].ncaptured - n0;
 		log_likelihood += log_gammas[n0 + a0] +
 		    log_gammas[n1 + a1] - 
 		    log_gammas[n0 + n1 + a01];
