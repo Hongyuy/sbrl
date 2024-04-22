@@ -108,12 +108,12 @@ typedef struct params {
 	int nchain;
 } params_t;
 
-typedef struct data {
+struct Data {
 	rule_t * rules;		/* rules in BitVector form in the data */
 	rule_t * labels;	/* labels in BitVector form in the data */
 	int nrules;		/* number of rules */
 	int nsamples;		/* number of samples in the data. */
-} data_t;
+};
 
 typedef struct interval {
 	double a, b;
@@ -177,4 +177,4 @@ int ruleset_proposal(ruleset_t *, int, int *, int *, char *, double *, gsl_rng *
 ruleset_t *run_mcmc(int, int, int, rule_t *, rule_t *, params_t *, double, gsl_rng *);
 ruleset_t *run_simulated_annealing(int,
     int, int, int, rule_t *, rule_t *, params_t *, gsl_rng *);
-PredModel train(data_t *, int, int, params_t *);
+PredModel train(Data *, int, int, params_t *);

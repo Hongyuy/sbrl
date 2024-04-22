@@ -33,8 +33,14 @@ gsl_rng *RAND_GSL;
 // #define __cplusplus
 // #pragma pop_macro("__cplusplus")
 
-PredModel train(data_t *, int, int, params_t *);
+PredModel train(Data *, int, int, params_t *);
 int load_data(const char *, const char *, int *, int *, rule_t **, rule_t **);
+int load_data2(Data &data, Rcpp::StringVector ruleNames, Rcpp::StringVector labelNames, Rcpp::IntegerMatrix ruleTruthTables, Rcpp::IntegerMatrix labelTruthTables)
+{
+        data.nrules = ruleNames.size();
+        data.nsamples = ruleTruthTables.ncol();
+        return 0;
+}
 
 // #if 0
 // int debug;
@@ -45,7 +51,7 @@ int load_data(const char *, const char *, int *, int *, rule_t **, rule_t **);
                       Rcpp::StringVector ruleNames, Rcpp::StringVector labelNames, Rcpp::IntegerMatrix ruleTruthTables, Rcpp::IntegerMatrix labelTruthTables) {
 //        Rprintf("training!\n");
 
-	data_t	data;
+	Data	data, data2;
 	int	ret;
 	struct timeval tv_acc, tv_start, tv_end;
 	std::string df = Rcpp::as<std::string>(dataFile[0]);
@@ -63,6 +69,8 @@ int load_data(const char *, const char *, int *, int *, rule_t **, rule_t **);
         END_TIME(tv_start, tv_end, tv_acc);
         REPORT_TIME("Initialize time", "per rule", tv_end, data.nrules);
 
+        if ((ret = load_data2(data2, ruleNames, labelNames, ruleTruthTables, labelTruthTables)) != 0)
+                return (ret);
 //#if 0
 //        if (debug)
 //                printf("%d rules %d samples\n\n", nrules, nsamples);

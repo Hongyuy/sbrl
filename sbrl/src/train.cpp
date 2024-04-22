@@ -295,7 +295,7 @@ permute_rules(int nrules, gsl_rng *RAND_GSL)
 }
 
 PredModel
-train(data_t *train_data, int initialization, int method, params_t *params)
+train(Data *train_data, int initialization, int method, params_t *params)
 {
 	PredModel pred_model;
 	int chain, default_rule;
