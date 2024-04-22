@@ -102,7 +102,7 @@ struct Ruleset {
 	int n_rules;			/* Number of actual rules. */
 	int n_alloc;			/* Spaces allocated for rules. */
 	int n_samples;
-	RulesetEntry * rules;	/* Array of rules. */
+	RulesetEntry * entries;	/* Array of rules. */
 };
 
 struct Params {

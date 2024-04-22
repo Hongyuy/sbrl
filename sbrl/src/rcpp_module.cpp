@@ -109,7 +109,7 @@ int load_data2(Data &data, Rcpp::StringVector ruleNames, Rcpp::StringVector labe
 
         Rcpp::IntegerVector id;
 	for (int i=0; i<pred_model_sbrl.rs.n_rules; i++)
-                id.push_back(pred_model_sbrl.rs.rules[i].rule_id);
+                id.push_back(pred_model_sbrl.rs.entries[i].rule_id);
 	
         Rcpp::NumericVector prob;
 	for (int i=0; i<pred_model_sbrl.rs.n_rules; i++)

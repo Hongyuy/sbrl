@@ -330,8 +330,8 @@ ruleset_init(int nrs_rules,
 	if (rs == NULL)
 		return (errno);
     else {
-        rs->rules = (RulesetEntry*)malloc(nrs_rules * sizeof(RulesetEntry));
-        if (rs->rules == NULL)
+        rs->entries = (RulesetEntry*)malloc(nrs_rules * sizeof(RulesetEntry));
+        if (rs->entries == NULL)
             return (errno);
     }
 	/*
@@ -346,7 +346,7 @@ ruleset_init(int nrs_rules,
 	cnt = nsamples;
 	for (i = 0; i < nrs_rules; i++) {
 		auto cur_rule = &rules[idarray[i]];
-		cur_re = rs->rules + i;
+		cur_re = rs->entries + i;
 		cur_re->rule_id = idarray[i];
 
 		if (rule_vinit(nsamples, &cur_re->captures) != 0)
@@ -356,7 +356,7 @@ ruleset_init(int nrs_rules,
 		    cur_rule->truthtable, nsamples, &cur_re->ncaptured);
 
 		rule_vandnot(not_captured, not_captured,
-		    rs->rules[i].captures, nsamples, &cnt);
+		    rs->entries[i].captures, nsamples, &cnt);
 	}
 	assert(cnt==0);
 
@@ -386,7 +386,7 @@ ruleset_backup(Ruleset *rs, int **rs_idarray)
 		return (errno);
 
 	for (i = 0; i < rs->n_rules; i++)
-		ids[i] = rs->rules[i].rule_id;
+		ids[i] = rs->entries[i].rule_id;
 
 	*rs_idarray = ids;
 
@@ -406,18 +406,18 @@ ruleset_copy(Ruleset **ret_dest, Ruleset *src)
 
 	if ((dest = (Ruleset*)malloc(sizeof(Ruleset))) == NULL)
 		return (errno);
-    else if ((dest->rules = (RulesetEntry*)malloc(src->n_rules * sizeof(RulesetEntry)))==NULL)
+    else if ((dest->entries = (RulesetEntry*)malloc(src->n_rules * sizeof(RulesetEntry)))==NULL)
         return (errno);
 	dest->n_alloc = src->n_rules;
 	dest->n_rules = src->n_rules;
 	dest->n_samples = src->n_samples;
     
 	for (i = 0; i < src->n_rules; i++) {
-		dest->rules[i].rule_id = src->rules[i].rule_id;
-		dest->rules[i].ncaptured = src->rules[i].ncaptured;
-		rule_vinit(src->n_samples, &(dest->rules[i].captures));
-		rule_copy(dest->rules[i].captures,
-		    src->rules[i].captures, src->n_samples);
+		dest->entries[i].rule_id = src->entries[i].rule_id;
+		dest->entries[i].ncaptured = src->entries[i].ncaptured;
+		rule_vinit(src->n_samples, &(dest->entries[i].captures));
+		rule_copy(dest->entries[i].captures,
+		    src->entries[i].captures, src->n_samples);
 	}
 	*ret_dest = dest;
 
@@ -430,7 +430,7 @@ ruleset_destroy(Ruleset *rs)
 {
 	int j;
 	for (j = 0; j < rs->n_rules; j++)
-		rule_vfree(&rs->rules[j].captures);
+		rule_vfree(&rs->entries[j].captures);
 	free(rs);
 }
 
@@ -449,10 +449,10 @@ ruleset_add(std::vector<Rule> &rules, int nrules, Ruleset **rsp, int newrule, in
 	rs = *rsp;
 	/* Check for space. */
 	if (rs->n_alloc < rs->n_rules + 1) {
-		expand = (RulesetEntry*)realloc(rs->rules, (rs->n_rules + 1) * sizeof(RulesetEntry));
+		expand = (RulesetEntry*)realloc(rs->entries, (rs->n_rules + 1) * sizeof(RulesetEntry));
 		if (expand == NULL)
 			return (errno);
-		rs->rules = expand;
+		rs->entries = expand;
 		rs->n_alloc = rs->n_rules + 1;
 		*rsp = rs;
 	}
@@ -465,7 +465,7 @@ ruleset_add(std::vector<Rule> &rules, int nrules, Ruleset **rsp, int newrule, in
 	rule_vinit(rs->n_samples, &not_caught);
 	for (i = ndx; i < rs->n_rules; i++)
 	    rule_vor(not_caught,
-	        not_caught, rs->rules[i].captures, rs->n_samples, &cnt);
+	        not_caught, rs->entries[i].captures, rs->n_samples, &cnt);
 
 
 	/*
@@ -473,14 +473,14 @@ ruleset_add(std::vector<Rule> &rules, int nrules, Ruleset **rsp, int newrule, in
 	 * doing may be a little sketchy -- we're copying the mpz_t's around.
 	 */
 	if (ndx != rs->n_rules) {
-		memmove(rs->rules + (ndx + 1), rs->rules + ndx,
+		memmove(rs->entries + (ndx + 1), rs->entries + ndx,
 		    sizeof(RulesetEntry) * (rs->n_rules - ndx));
 	}
 
 	/* Insert and initialize the new rule. */
 	rs->n_rules++;
-	rs->rules[ndx].rule_id = newrule;
-	rule_vinit(rs->n_samples, &rs->rules[ndx].captures);
+	rs->entries[ndx].rule_id = newrule;
+	rule_vinit(rs->n_samples, &rs->entries[ndx].captures);
 
 	/*
 	 * Now, recompute all the captures entries for the new rule and
@@ -488,7 +488,7 @@ ruleset_add(std::vector<Rule> &rules, int nrules, Ruleset **rsp, int newrule, in
 	 */
     
 	for (i = ndx; i < rs->n_rules; i++) {
-		cur_re = rs->rules + i;
+		cur_re = rs->entries + i;
 		/*
 		 * Captures for this rule gets anything in not_caught
 		 * that is also in the rule's truthtable.
@@ -517,7 +517,7 @@ ruleset_delete(std::vector<Rule> &rules, int nrules, Ruleset *rs, int ndx)
 	RulesetEntry *old_re, *cur_re;
 
 	/* Compute new captures for all rules following the one at ndx.  */
-	old_re = rs->rules + ndx;
+	old_re = rs->entries + ndx;
 
 	if (rule_vinit(rs->n_samples, &tmp_vec) != 0)
 		return;
@@ -526,11 +526,11 @@ ruleset_delete(std::vector<Rule> &rules, int nrules, Ruleset *rs, int ndx)
 		 * My new captures is my old captures or'd with anything that
 		 * was captured by ndx and is captured by my rule.
 		 */
-		cur_re = rs->rules + i;
+		cur_re = rs->entries + i;
 		rule_vand(tmp_vec, rules[cur_re->rule_id].truthtable,
 		    old_re->captures, rs->n_samples, &nset);
 		rule_vor(cur_re->captures, cur_re->captures,
-		    tmp_vec, rs->n_samples, &rs->rules[i].ncaptured);
+		    tmp_vec, rs->n_samples, &rs->entries[i].ncaptured);
 
 		/*
 		 * Now remove the ones from old_re->captures that just got set
@@ -542,11 +542,11 @@ ruleset_delete(std::vector<Rule> &rules, int nrules, Ruleset *rs, int ndx)
 
 	/* Now remove alloc'd data for rule at ndx and for tmp_vec. */
 	rule_vfree(&tmp_vec);
-	rule_vfree(&rs->rules[ndx].captures);
+	rule_vfree(&rs->entries[ndx].captures);
 
 	/* Shift up cells if necessary. */
 	if (ndx != rs->n_rules - 1)
-		memmove(rs->rules + ndx, rs->rules + ndx + 1,
+		memmove(rs->entries + ndx, rs->entries + ndx + 1,
 		    sizeof(RulesetEntry) * (rs->n_rules - 1 - ndx));
 
 	rs->n_rules--;
@@ -598,7 +598,7 @@ pickrule:
 		new_rule = 1 + (new_rule % (nrules-2));
 		
 	for (j = 0; j < rs->n_rules; j++) {
-		if (rs->rules[j].rule_id == new_rule) {
+		if (rs->entries[j].rule_id == new_rule) {
 			cnt++;
 			goto pickrule;
 		}
@@ -642,20 +642,20 @@ ruleset_swap(Ruleset *rs, int i, int j, std::vector<Rule> &rules)
 	rule_vinit(rs->n_samples, &tmp_vec);
 
 	/* tmp_vec =  i.captures & j.tt */
-	rule_vand(tmp_vec, rs->rules[i].captures,
-	    rules[rs->rules[j].rule_id].truthtable, rs->n_samples, &nset);
+	rule_vand(tmp_vec, rs->entries[i].captures,
+	    rules[rs->entries[j].rule_id].truthtable, rs->n_samples, &nset);
 	/* j.captures = j.captures | tmp_vec */
-	rule_vor(rs->rules[j].captures, rs->rules[j].captures,
-	    tmp_vec, rs->n_samples, &rs->rules[j].ncaptured);
+	rule_vor(rs->entries[j].captures, rs->entries[j].captures,
+	    tmp_vec, rs->n_samples, &rs->entries[j].ncaptured);
 
 	/* i.captures = i.captures & ~j.captures */
-	rule_vandnot(rs->rules[i].captures, rs->rules[i].captures,
-	    rs->rules[j].captures, rs->n_samples, &rs->rules[i].ncaptured);
+	rule_vandnot(rs->entries[i].captures, rs->entries[i].captures,
+	    rs->entries[j].captures, rs->n_samples, &rs->entries[i].ncaptured);
 
 	/* Now swap the two entries */
-	re = rs->rules[i];
-	rs->rules[i] = rs->rules[j];
-	rs->rules[j] = re;
+	re = rs->entries[i];
+	rs->entries[i] = rs->entries[j];
+	rs->entries[j] = re;
 
 	rule_vfree(&tmp_vec);
 }
@@ -689,12 +689,12 @@ ruleset_swap_any(Ruleset * rs, int i, int j, std::vector<Rule> & rules)
 
 	for (k = i; k <= j; k++)
 		rule_vor(caught,
-		    caught, rs->rules[k].captures, rs->n_samples, &cnt);
+		    caught, rs->entries[k].captures, rs->n_samples, &cnt);
 
 	/* Now swap the rules in the ruleset. */
-	temp = rs->rules[i].rule_id;
-	rs->rules[i].rule_id = rs->rules[j].rule_id;
-	rs->rules[j].rule_id = temp;
+	temp = rs->entries[i].rule_id;
+	rs->entries[i].rule_id = rs->entries[j].rule_id;
+	rs->entries[j].rule_id = temp;
 
 	cnt_check = 0;
 	for (k = i; k <= j; k++) {
@@ -702,14 +702,14 @@ ruleset_swap_any(Ruleset * rs, int i, int j, std::vector<Rule> & rules)
 		 * Compute the items captured by rule k by anding the caught
 		 * vector with the truthtable of the kth rule.
 		 */
-		rule_vand(rs->rules[k].captures, caught,
-		    rules[rs->rules[k].rule_id].truthtable,
-		    rs->n_samples, &rs->rules[k].ncaptured);
-		cnt_check += rs->rules[k].ncaptured;
+		rule_vand(rs->entries[k].captures, caught,
+		    rules[rs->entries[k].rule_id].truthtable,
+		    rs->n_samples, &rs->entries[k].ncaptured);
+		cnt_check += rs->entries[k].ncaptured;
 
 		/* Now remove the caught items from the caught vector. */
 		rule_vandnot(caught,
-		    caught, rs->rules[k].captures, rs->n_samples, &temp);
+		    caught, rs->entries[k].captures, rs->n_samples, &temp);
 	}
 	assert(temp == 0);
 	assert(cnt == cnt_check);

@@ -384,9 +384,9 @@ get_theta(Ruleset * rs, std::vector<Rule> & rules, std::vector<Rule> & labels, c
 	for (j = 0; j < rs->n_rules; j++) {
 		int n0, n1;
 
-		rule_vand(v0, rs->rules[j].captures,
+		rule_vand(v0, rs->entries[j].captures,
 		    labels[0].truthtable, rs->n_samples, &n0);
-		n1 = rs->rules[j].ncaptured - n0;
+		n1 = rs->entries[j].ncaptured - n0;
 		theta[j] = (n1 + params.alpha[1]) * 1.0 /
 		    (n1 + n0 + params.alpha[0] + params.alpha[1]);
 //		if (debug) {
@@ -608,7 +608,7 @@ compute_log_posterior(Ruleset *rs, std::vector<Rule> &rules, int nrules, std::ve
 
 	// Don't compute the last (default) rule.
 	for (i = 0; i < rs->n_rules - 1; i++) {
-		li = rules[rs->rules[i].rule_id].cardinality;
+		li = rules[rs->entries[i].rule_id].cardinality;
 		log_prior += log_eta_pmf[li] - log(norm_constant);
 
 		log_prior -= log(local_cards[li]);
@@ -631,9 +631,9 @@ compute_log_posterior(Ruleset *rs, std::vector<Rule> &rules, int nrules, std::ve
 	for (j = 0; j < rs->n_rules; j++) {
 		int n0, n1;	 // Count of 0's; count of 1's
 
-		rule_vand(v0, rs->rules[j].captures,
+		rule_vand(v0, rs->entries[j].captures,
 		    labels[0].truthtable, rs->n_samples, &n0);
-		n1 = rs->rules[j].ncaptured - n0;
+		n1 = rs->entries[j].ncaptured - n0;
 		log_likelihood += log_gammas[n0 + a0] +
 		    log_gammas[n1 + a1] - 
 		    log_gammas[n0 + n1 + a01];
