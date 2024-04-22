@@ -114,7 +114,7 @@ sa_accepts(double new_log_post, double old_log_post,
 Ruleset *
 propose(Ruleset *rs, std::vector<Rule> &rules, std::vector<Rule> &labels, int nrules,
     double *jump_prob, double *ret_log_post, double max_log_post,
-    int *cnt, double *extra, const Params &params, gsl_rng *RAND_GSL,
+    int &cnt, double *extra, const Params &params, gsl_rng *RAND_GSL,
     int (*accept_func)(double, double, double, double, double *, gsl_rng *))
 {
 	Step stepchar;
@@ -169,7 +169,7 @@ propose(Ruleset *rs, std::vector<Rule> &rules, std::vector<Rule> &labels, int nr
 //		printf("With new log_posterior = %0.6f\n", new_log_post);
 //	}
 	if (prefix_bound < max_log_post)
-		(*cnt)++;
+		cnt++;
 
 	if (accept_func(new_log_post,
 	    *ret_log_post, prefix_bound, max_log_post, extra, RAND_GSL)) {
@@ -466,7 +466,7 @@ run_mcmc(int iters, int nsamples, int nrules,
 
 	for (i = 0; i < iters; i++) {
 		if ((rs = propose(rs, rules, labels, nrules, &jump_prob,
-		    &log_post_rs, max_log_posterior, &nsuccessful_rej,
+		    &log_post_rs, max_log_posterior, nsuccessful_rej,
 		    &jump_prob, params, RAND_GSL, mcmc_accepts)) == NULL)
 		    	goto err;
 
@@ -549,7 +549,7 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 		double tk = T[k];
 		for (iter = 0; iter < iters_per_step; iter++) {
     			if ((rs = propose(rs, rules, labels, nrules, &jump_prob,
-			    &log_post_rs, max_log_posterior, &dummy, &tk,
+			    &log_post_rs, max_log_posterior, dummy, &tk,
 			    params, RAND_GSL, sa_accepts)) == NULL)
 			    	goto err;
 

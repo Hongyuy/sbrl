@@ -172,7 +172,7 @@ int rule_isset(VECTOR, int);
 int rule_vinit(int, VECTOR &);
 int rule_vfree(VECTOR &);
 int make_default(VECTOR &, int);
-int ascii_to_vector(const char *, size_t, int *, int *, VECTOR &);
+int ascii_to_vector(const char *, size_t, int &, int &, VECTOR &);
 void rule_vand(VECTOR, VECTOR, VECTOR, int, int &);
 void rule_vandnot(VECTOR, VECTOR, VECTOR, int, int &);
 void rule_vor(VECTOR, VECTOR, VECTOR, int, int &);

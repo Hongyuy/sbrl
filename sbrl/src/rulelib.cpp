@@ -100,7 +100,7 @@ rules_init(std::string &infile, int &nrules,
 		 * let's make it NUL-terminated and shorten the line length
 		 * by one.
 		 */
-		if (ascii_to_vector(truthTable, truthTableLen, &sample_cnt, &ones, rule.truthtable) != 0)
+		if (ascii_to_vector(truthTable, truthTableLen, sample_cnt, ones, rule.truthtable) != 0)
 		    	goto err;
 		rule.support = ones;
 
@@ -185,7 +185,7 @@ rule_vfree(VECTOR &v)
  * GMP functions if we're using the GMP library.
  */
 int
-ascii_to_vector(const char *line, size_t len, int *nsamples, int *nones, VECTOR &ret)
+ascii_to_vector(const char *line, size_t len, int &nsamples, int &nones, VECTOR &ret)
 {
 #ifdef GMP
 	int retval;
@@ -196,14 +196,14 @@ ascii_to_vector(const char *line, size_t len, int *nsamples, int *nones, VECTOR 
 		mpz_clear(ret);
 		return (retval);
 	}
-	if ((s = mpz_sizeinbase (ret, 2)) > (size_t) *nsamples)
-		*nsamples = (int) s;
+	if ((s = mpz_sizeinbase (ret, 2)) > (size_t) nsamples)
+		nsamples = (int) s;
 		
-	*nones = mpz_popcount(ret);
+	nones = mpz_popcount(ret);
 	return (0);
 #else
 	/*
-	 * If *nsamples is 0, then we will set it to the number of
+	 * If nsamples is 0, then we will set it to the number of
 	 * 0's and 1's. If it is non-zero, then we'll ensure that
 	 * the line is the right length.
 	 */
@@ -217,10 +217,10 @@ ascii_to_vector(const char *line, size_t len, int *nsamples, int *nones, VECTOR 
 	assert(line != NULL);
 
 	/* Compute bufsize in number of unsigned elements. */
-	if (*nsamples == 0)
+	if (nsamples == 0)
 		bufsize = (len + BITS_PER_ENTRY - 1) / BITS_PER_ENTRY;
 	else
-		bufsize = (*nsamples + BITS_PER_ENTRY - 1) / BITS_PER_ENTRY;
+		bufsize = (nsamples + BITS_PER_ENTRY - 1) / BITS_PER_ENTRY;
 	if ((buf = (v_entry*)malloc(bufsize * sizeof(v_entry))) == NULL)
 		return(errno);
 	
@@ -259,15 +259,15 @@ ascii_to_vector(const char *line, size_t len, int *nsamples, int *nones, VECTOR 
 	if ((i % BITS_PER_ENTRY) != 0)
 		*bufp = val;
 
-	if (*nsamples == 0)
-		*nsamples = i;
-	else if (*nsamples != i) {
+	if (nsamples == 0)
+		nsamples = i;
+	else if (nsamples != i) {
 //		fprintf(stderr, "Wrong number of samples. Expected %d got %d\n",
 //		    *nsamples, i);
 		/* free(buf); */
 		buf = NULL;
 	}
-	*nones = ones;
+	nones = ones;
 	ret = buf;
 	return (0);
 #endif
