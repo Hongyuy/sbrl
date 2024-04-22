@@ -32,7 +32,7 @@ gsl_rng *RAND_GSL;
 // #pragma pop_macro("__cplusplus")
 
 PredModel train(Data &, int, int, const Params &);
-int load_data(std::string &, std::string &, int &, int &, std::vector<Rule> &, std::vector<Rule> &);
+int load_data(std::string &, std::string &, Data &);
 int load_data2(Data &data, Rcpp::StringVector ruleNames, Rcpp::StringVector labelNames, Rcpp::IntegerMatrix ruleTruthTables, Rcpp::IntegerMatrix labelTruthTables)
 {
         data.nrules = ruleNames.size();
@@ -61,8 +61,9 @@ int load_data2(Data &data, Rcpp::StringVector ruleNames, Rcpp::StringVector labe
          */
         INIT_TIME(tv_acc);
         START_TIME(tv_start);
-        if ((ret = load_data(df, lf,
-		data.nsamples, data.nrules, data.rules, data.labels)) != 0)
+        data.nrules = ruleNames.size(); // will increment to add the default rule that's not included in the matrix
+        data.nsamples = ruleTruthTables.ncol();
+        if ((ret = load_data(df, lf, data)) != 0)
                 return (ret);
         END_TIME(tv_start, tv_end, tv_acc);
         REPORT_TIME("Initialize time", "per rule", tv_end, data.nrules);
@@ -177,23 +178,21 @@ void R_init_sbrl(DllInfo *dll)
 }
 
 int
-load_data(std::string &data_file, std::string &label_file,
-    int &ret_samples, int &ret_nrules, std::vector<Rule> &rules, std::vector<Rule> &labels)
+load_data(std::string &data_file, std::string &label_file, Data &data)
 {
-        int nlabels, ret, samples_chk;
+        int ret, add_default_rule;
 
         /* Load data. */
-        if ((ret = rules_init(data_file, ret_nrules, ret_samples, rules, 1)) != 0)
+        add_default_rule = 1;
+        data.nrules++;
+        if ((ret = rules_init(data_file, data.rules, data.nrules, data.nsamples, add_default_rule)) != 0)
                 return (ret);
 
         /* Load labels. */
-        if ((ret =
-            rules_init(label_file, nlabels, samples_chk, labels, 0)) != 0) {
+        add_default_rule = 0;
+        if ((ret = rules_init(label_file, data.labels, 2, data.nsamples, add_default_rule)) != 0) {
                 // free (*rules);
                 return (ret);
         }
-
-        assert(nlabels == 2);
-        assert(samples_chk == ret_samples);
         return (0);
 }

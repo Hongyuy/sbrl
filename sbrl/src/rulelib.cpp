@@ -72,12 +72,11 @@ int byte_ones[] = {
  */
 
 int
-rules_init(std::string &infile, int &nrules,
-    int &nsamples, std::vector<Rule> &rules_ret, int add_default_rule)
+rules_init(const std::string &infile, std::vector<Rule> &rules_ret,
+           const int nrules_expected, const int nsamples_expected, const int add_default_rule)
 {
 	std::fstream fi(infile.c_str());
 	std::string linestr;
-	Rule rule;
 	int sample_cnt = 0, ones = 0;
 
 	/*
@@ -85,12 +84,14 @@ rules_init(std::string &infile, int &nrules,
 	 * the end.
 	 */
 	if (add_default_rule)
-		rules_ret.push_back(rule);
+		rules_ret.push_back({});
 	while (std::getline(fi, linestr) && linestr.size()) {
 		/* Get the rule string; line will contain the bits. */
 		const auto pos = linestr.find(' ');
 		if (pos == std::string::npos)
 			goto err;
+		rules_ret.push_back({});
+		auto &rule = rules_ret.back();
 		rule.features = linestr.substr(0, pos);
 		auto truthTable = linestr.data() + pos;
 		auto truthTableLen = linestr.size() - pos - 1;
@@ -108,7 +109,7 @@ rules_init(std::string &infile, int &nrules,
 		rule.cardinality = 1;
 		for (char &c : rule.features)
 			rule.cardinality += (c == ',');
-		rules_ret.push_back(rule);
+		// Rprintf("%s\n", mpz_class(rules_ret.back().truthtable).get_str(2).c_str());
 	}
 
 	/* Now create the 0'th (default) rule. */
@@ -119,9 +120,16 @@ rules_init(std::string &infile, int &nrules,
 		if (make_default(rules_ret[0].truthtable, sample_cnt) != 0)
 		    goto err;
 	}
-
-	nsamples = sample_cnt;
-	nrules = rules_ret.size();
+	if (nrules_expected != rules_ret.size())
+	{
+		Rprintf("fatal: (nrules_expected) %d != %d", nrules_expected, rules_ret.size());
+		return (-1);
+	}
+	if (nsamples_expected != sample_cnt)
+	{
+		Rprintf("fatal: (nsamples_expected) %d != %d", nsamples_expected, sample_cnt);
+		return (-1);
+	}
 	return (0);
 
 err:
