@@ -127,7 +127,7 @@ propose(Ruleset *rs, std::vector<Rule> &rules, std::vector<Rule> &labels, int nr
 		goto err;
 
 	if (ruleset_proposal(rs_new,
-	    nrules, &ndx1, &ndx2, stepchar, jump_prob, RAND_GSL) != 0)
+	    nrules, ndx1, ndx2, stepchar, jump_prob, RAND_GSL) != 0)
 	    	goto err;
 
 //	if (debug > 10) {
@@ -660,7 +660,7 @@ compute_log_posterior(Ruleset *rs, std::vector<Rule> &rules, int nrules, std::ve
 
 int
 ruleset_proposal(Ruleset * rs, int nrules,
-    int *ndx1, int *ndx2, Step &stepchar, double *jumpRatio, gsl_rng *RAND_GSL){
+    int &ndx1, int &ndx2, Step &stepchar, double *jumpRatio, gsl_rng *RAND_GSL){
 	static double MOVEPROBS[15] = {
 		0.0, 1.0, 0.0,
 		0.0, 0.5, 0.5,
@@ -724,8 +724,8 @@ ruleset_proposal(Ruleset * rs, int nrules,
 		//should raise exception here.
 		return -1;
 	}
-	*ndx1 = index1;
-	*ndx2 = index2;
+	ndx1 = index1;
+	ndx2 = index2;
 	return (0);
 }
 
