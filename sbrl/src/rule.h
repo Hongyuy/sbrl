@@ -99,14 +99,14 @@ typedef struct ruleset {
 	ruleset_entry_t * rules;	/* Array of rules. */
 } ruleset_t;
 
-typedef struct params {
+struct Params {
 	double lambda;
 	double eta;
 	double threshold;
 	int alpha[2];
 	int iters;
 	int nchain;
-} params_t;
+};
 
 struct Data {
 	std::vector<rule_t> rules;		/* rules in BitVector form in the data */
@@ -172,9 +172,9 @@ int count_ones(v_entry);
 int count_ones_vector(VECTOR, int);
 
 /* Functions for the Scalable Baysian Rule Lists */
-double *predict(PredModel&, std::vector<rule_t> &labels, params_t *);
+double *predict(PredModel&, std::vector<rule_t> &labels, const Params &);
 int ruleset_proposal(ruleset_t *, int, int *, int *, char *, double *, gsl_rng *);
-ruleset_t *run_mcmc(int, int, int, std::vector<rule_t> &, std::vector<rule_t> &, params_t *, double, gsl_rng *);
+ruleset_t *run_mcmc(int, int, int, std::vector<rule_t> &, std::vector<rule_t> &, const Params &, double, gsl_rng *);
 ruleset_t *run_simulated_annealing(int,
-    int, int, int, std::vector<rule_t> &, std::vector<rule_t> &, params_t *, gsl_rng *);
-PredModel train(Data &, int, int, params_t *);
+    int, int, int, std::vector<rule_t> &, std::vector<rule_t> &, const Params &, gsl_rng *);
+PredModel train(Data &, int, int, const Params &);

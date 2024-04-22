@@ -65,9 +65,9 @@ int debug;
 
 // void _quicksort (void *const, size_t, size_t, int (const void *, const void *));
 double compute_log_posterior(ruleset_t *,
-    std::vector<rule_t> &, int, std::vector<rule_t> &, params_t *, int, int, double *);
+    std::vector<rule_t> &, int, std::vector<rule_t> &, const Params &, int, int, double *);
 int gen_poission(double);
-std::vector<double> get_theta(ruleset_t *, std::vector<rule_t> &, std::vector<rule_t> &, params_t *);
+std::vector<double> get_theta(ruleset_t *, std::vector<rule_t> &, std::vector<rule_t> &, const Params &);
 void gsl_ran_poisson_test(void);
 void init_gsl_rand_gen(gsl_rng**);
 
@@ -114,7 +114,7 @@ sa_accepts(double new_log_post, double old_log_post,
 ruleset_t *
 propose(ruleset_t *rs, std::vector<rule_t> &rules, std::vector<rule_t> &labels, int nrules,
     double *jump_prob, double *ret_log_post, double max_log_post,
-    int *cnt, double *extra, params_t *params, gsl_rng *RAND_GSL,
+    int *cnt, double *extra, const Params &params, gsl_rng *RAND_GSL,
     int (*accept_func)(double, double, double, double, double *, gsl_rng *))
 {
 	char stepchar;
@@ -195,13 +195,13 @@ err:
 
 /********** End of proposal routines *******/
 int
-compute_log_gammas(int nsamples, params_t *params)
+compute_log_gammas(int nsamples, const Params &params)
 {
 	int i, max;
 
 	/* Pre-compute alpha sum for accessing the log_gammas. */
-	a0 = params->alpha[0];
-	a1 = params->alpha[1];
+	a0 = params.alpha[0];
+	a1 = params.alpha[1];
 	a01 = a0 + a1;
 
 	max = nsamples + 2 * (1 + a01);
@@ -215,14 +215,14 @@ compute_log_gammas(int nsamples, params_t *params)
 }
 
 int
-compute_pmf(int nrules, params_t *params)
+compute_pmf(int nrules, const Params &params)
 {
 	int i;
 	if ((log_lambda_pmf = (double*)malloc(nrules * sizeof(double))) == NULL)
 		return (errno);
 	for (i = 0; i < nrules; i++) {
 		log_lambda_pmf[i] =
-		    log(gsl_ran_poisson_pdf(i, params->lambda));
+		    log(gsl_ran_poisson_pdf(i, params.lambda));
 //		if (debug > 100)
 //			printf("log_lambda_pmf[ %d ] = %6f\n",
 //			    i, log_lambda_pmf[i]);
@@ -233,7 +233,7 @@ compute_pmf(int nrules, params_t *params)
 		return (errno);
 	for (i = 0; i <= MAX_RULE_CARDINALITY; i++) {
 		log_eta_pmf[i] =
-		    log(gsl_ran_poisson_pdf(i, params->eta));
+		    log(gsl_ran_poisson_pdf(i, params.eta));
 //		if (debug > 100)
 //			printf("log_eta_pmf[ %d ] = %6f\n",
 //			    i, log_eta_pmf[i]);
@@ -243,8 +243,8 @@ compute_pmf(int nrules, params_t *params)
 	 * For simplicity, assume that all the cardinalities
 	 * <= MAX_RULE_CARDINALITY appear in the mined rules
 	 */
-	eta_norm = gsl_cdf_poisson_P(MAX_RULE_CARDINALITY, params->eta)
-	    - gsl_ran_poisson_pdf(0, params->eta);
+	eta_norm = gsl_cdf_poisson_P(MAX_RULE_CARDINALITY, params.eta)
+	    - gsl_ran_poisson_pdf(0, params.eta);
 
 //	if (debug > 10)
 //		printf("eta_norm(Beta_Z) = %6f\n", eta_norm);
@@ -295,7 +295,7 @@ permute_rules(int nrules, gsl_rng *RAND_GSL)
 }
 
 PredModel
-train(Data &train_data, int initialization, int method, params_t *params)
+train(Data &train_data, int initialization, int method, const Params &params)
 {
 	PredModel pred_model;
 	int chain, default_rule;
@@ -325,8 +325,8 @@ train(Data &train_data, int initialization, int method, params_t *params)
 	if (permute_rules(train_data.nrules, RAND_GSL) != 0)
 		goto err;
 
-	for (chain = 0; chain < params->nchain; chain++) {
-		rs_temp = run_mcmc(params->iters,
+	for (chain = 0; chain < params.nchain; chain++) {
+		rs_temp = run_mcmc(params.iters,
 		    train_data.nsamples, train_data.nrules,
 		    train_data.rules, train_data.labels, params, max_pos, RAND_GSL);
 		pos_temp = compute_log_posterior(rs_temp, train_data.rules,
@@ -371,7 +371,7 @@ err:
 }
 
 std::vector<double>
-get_theta(ruleset_t * rs, std::vector<rule_t> & rules, std::vector<rule_t> & labels, params_t *params)
+get_theta(ruleset_t * rs, std::vector<rule_t> & rules, std::vector<rule_t> & labels, const Params &params)
 {
 	/* calculate captured 0's and 1's */
 	VECTOR v0;
@@ -387,12 +387,12 @@ get_theta(ruleset_t * rs, std::vector<rule_t> & rules, std::vector<rule_t> & lab
 		rule_vand(v0, rs->rules[j].captures,
 		    labels[0].truthtable, rs->n_samples, &n0);
 		n1 = rs->rules[j].ncaptured - n0;
-		theta[j] = (n1 + params->alpha[1]) * 1.0 /
-		    (n1 + n0 + params->alpha[0] + params->alpha[1]);
+		theta[j] = (n1 + params.alpha[1]) * 1.0 /
+		    (n1 + n0 + params.alpha[0] + params.alpha[1]);
 //		if (debug) {
 //			printf("n0=%d, n1=%d, captured=%d, training accuracy =",
 //			    n0, n1, rs->rules[j].ncaptured);
-//			if (theta[j] >= params->threshold)
+//			if (theta[j] >= params.threshold)
 //				printf(" %.8f\n",
 //				    n1 * 1.0 / rs->rules[j].ncaptured);
 //			else
@@ -407,7 +407,7 @@ get_theta(ruleset_t * rs, std::vector<rule_t> & rules, std::vector<rule_t> & lab
 
 ruleset_t *
 run_mcmc(int iters, int nsamples, int nrules,
-    std::vector<rule_t> &rules, std::vector<rule_t> &labels, params_t *params, double v_star, gsl_rng *RAND_GSL)
+    std::vector<rule_t> &rules, std::vector<rule_t> &labels, const Params &params, double v_star, gsl_rng *RAND_GSL)
 {
 	ruleset_t *rs;
 	double jump_prob, log_post_rs;
@@ -505,7 +505,7 @@ err:
 
 ruleset_t *
 run_simulated_annealing(int iters, int init_size, int nsamples,
-    int nrules, std::vector<rule_t> & rules, std::vector<rule_t> & labels, params_t *params, gsl_rng *RAND_GSL)
+    int nrules, std::vector<rule_t> & rules, std::vector<rule_t> & labels, const Params &params, gsl_rng *RAND_GSL)
 {
 	ruleset_t *rs;
 	double jump_prob;
@@ -584,7 +584,7 @@ err:
 
 double
 compute_log_posterior(ruleset_t *rs, std::vector<rule_t> &rules, int nrules, std::vector<rule_t> &labels,
-    params_t *params, int ifPrint, int length4bound, double *prefix_bound)
+    const Params &params, int ifPrint, int length4bound, double *prefix_bound)
 {
 
 	double log_prior;
@@ -601,10 +601,10 @@ compute_log_posterior(ruleset_t *rs, std::vector<rule_t> &rules, int nrules, std
 	norm_constant = eta_norm;
 	log_prior = log_lambda_pmf[rs->n_rules - 1];
 
-	if (rs->n_rules - 1 > params->lambda)
+	if (rs->n_rules - 1 > params.lambda)
 		prefix_prior += log_lambda_pmf[rs->n_rules - 1];
 	else
-		prefix_prior += log_lambda_pmf[(int)params->lambda];
+		prefix_prior += log_lambda_pmf[(int)params.lambda];
 
 	// Don't compute the last (default) rule.
 	for (i = 0; i < rs->n_rules - 1; i++) {
