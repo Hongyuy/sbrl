@@ -25,21 +25,21 @@ gsl_rng *RAND_GSL;
 #define NLABELS 2
 #endif
 
-extern "C" {
-// https://stackoverflow.com/questions/1793800/can-i-redefine-a-c-macro-then-define-it-back
-#pragma push_macro("__cplusplus")
-#undef __cplusplus
+// extern "C" {
+// // https://stackoverflow.com/questions/1793800/can-i-redefine-a-c-macro-then-define-it-back
+// #pragma push_macro("__cplusplus")
+// #undef __cplusplus
 #include "rule.h"
-#define __cplusplus
-#pragma pop_macro("__cplusplus")
+// #define __cplusplus
+// #pragma pop_macro("__cplusplus")
 
 pred_model_t *train(data_t *, int, int, params_t *);
 int load_data(const char *, const char *, int *, int *, rule_t **, rule_t **);
 
-#if 0
-int debug;
-#endif
-}
+// #if 0
+// int debug;
+// #endif
+// }
 
     Rcpp::List _train(int initialization, int method, Rcpp::List paramList, Rcpp::CharacterVector dataFile, Rcpp::CharacterVector labelFile) {
 //        Rprintf("training!\n");
