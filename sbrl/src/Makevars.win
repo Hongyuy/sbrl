@@ -1,0 +1,8 @@
+#GSL_CFLAGS = @GSL_CFLAGS@
+GSL_LIBS = -lgsl -lgslcblas -lm
+#GMP_CFLAGS = @GMP_CFLAGS@
+GMP_LIBS = -lgmp
+
+PKG_LIBS= $(GSL_LIBS) -L"C:\Rtools\local323\lib\x64" $(GMP_LIBS)
+PKG_CFLAGS= -DGMP -I../inst/include #$(GSL_CFLAGS) $(GMP_CFLAGS)
+PKG_CXXFLAGS= -DGMP -I../inst/include #$(GSL_CFLAGS) $(GMP_CFLAGS)

@@ -1,0 +1,9 @@
+useDynLib(sbrl)
+importFrom("methods", "as", "new")
+importFrom("utils", "write.table")
+import(Rcpp)
+
+exportPattern("^[[:alpha:]]+")
+
+S3method(predict, sbrl)
+S3method(print, sbrl)
