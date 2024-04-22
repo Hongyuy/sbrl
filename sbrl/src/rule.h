@@ -85,6 +85,13 @@ enum class Step
 	Add, Delete, Swap
 };
 
+struct BitVec {
+	VECTOR v;
+	BitVec(int len=0) { if (len > 0) mpz_init2(v, len); };
+	void init(int len) { if (len > 0) mpz_init2(v, len); };
+	~BitVec() { mpz_clear(v); };
+};
+
 struct Rule {
 	std::string features;	/* Representation of the rule. */
 	int support;			/* Number of 1's in truth table. */
