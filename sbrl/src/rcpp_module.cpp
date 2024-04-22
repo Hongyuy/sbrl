@@ -32,12 +32,11 @@ gsl_rng *RAND_GSL;
 // #pragma pop_macro("__cplusplus")
 
 PredModel train(Data &, int, int, const Params &);
-int load_data(std::string &, std::string &, Data &);
-int load_data2(Data &data, Rcpp::StringVector ruleNames, Rcpp::StringVector labelNames, Rcpp::IntegerMatrix ruleTruthTables, Rcpp::IntegerMatrix labelTruthTables)
+void load_data(std::string &, std::string &, Data &);
+void load_data2(Data &data, Rcpp::StringVector ruleNames, Rcpp::StringVector labelNames, Rcpp::IntegerMatrix ruleTruthTables, Rcpp::IntegerMatrix labelTruthTables)
 {
         data.nrules = ruleNames.size();
         data.nsamples = ruleTruthTables.ncol();
-        return 0;
 }
 
 // #if 0
@@ -48,82 +47,93 @@ int load_data2(Data &data, Rcpp::StringVector ruleNames, Rcpp::StringVector labe
     Rcpp::List _train(int initialization, int method, Rcpp::List paramList, Rcpp::CharacterVector dataFile, Rcpp::CharacterVector labelFile,
                       Rcpp::StringVector ruleNames, Rcpp::StringVector labelNames, Rcpp::IntegerMatrix ruleTruthTables, Rcpp::IntegerMatrix labelTruthTables) {
 //        Rprintf("training!\n");
-
 	Data	data, data2;
 	int	ret;
 	struct timeval tv_acc, tv_start, tv_end;
 	std::string df = Rcpp::as<std::string>(dataFile[0]);
 	std::string lf = Rcpp::as<std::string>(labelFile[0]);
-
-        /*
-	 * We treat the label file as a separate ruleset, since it has
- 	 * a similar format.
-         */
-        INIT_TIME(tv_acc);
-        START_TIME(tv_start);
-        data.nrules = ruleNames.size(); // will increment to add the default rule that's not included in the matrix
-        data.nsamples = ruleTruthTables.ncol();
-        if ((ret = load_data(df, lf, data)) != 0)
-                return (ret);
-        END_TIME(tv_start, tv_end, tv_acc);
-        REPORT_TIME("Initialize time", "per rule", tv_end, data.nrules);
-
-        if ((ret = load_data2(data2, ruleNames, labelNames, ruleTruthTables, labelTruthTables)) != 0)
-                return (ret);
-//#if 0
-//        if (debug)
-//                printf("%d rules %d samples\n\n", nrules, nsamples);
-//
-//        if (debug > 100)
-//                rule_print_all(rules, nrules, nsamples);
-//
-//        if (debug > 100) {
-//                printf("Labels for %d samples\n\n", nsamples);
-//                rule_print_all(labels, nsamples, nsamples);
-//        }
-//#endif
- 
-	Params params;
-        Rcpp::NumericVector nv;
-        Rcpp::IntegerVector iv;
-        nv = paramList[0];
-        params.lambda = nv[0];
-        nv = paramList[1];
-        params.eta = nv[0];
-        nv = paramList[2];
-        params.threshold = nv[0];
-        nv = paramList[3];
-        params.alpha[0] = nv[0];
-        params.alpha[1] = nv[1];
-        iv = paramList[4];
-        params.iters = iv[0];
-        iv = paramList[5];
-        params.nchain = iv[0];
-
-        INIT_TIME(tv_acc);
-        START_TIME(tv_start);
-	PredModel pred_model_sbrl = train(data, initialization, method, params);
-        END_TIME(tv_start, tv_end, tv_acc);
-        REPORT_TIME("Time to train", "", tv_end, 1);
-
         Rcpp::IntegerVector id;
-	for (int i=0; i<pred_model_sbrl.ids.size(); i++)
-                id.push_back(pred_model_sbrl.ids[i]);
-	
         Rcpp::NumericVector prob;
-	for (int i=0; i<pred_model_sbrl.thetas.size(); i++)
-                prob.push_back(pred_model_sbrl.thetas[i]);
 
-#if 0
-        Rcpp::NumericVector ci_low;
-	for (int i=0; i<pred_model_brl->rs->n_rules; i++)
-        	ci_low.push_back(pred_model_brl->confIntervals->a);
+        try {
+                /*
+                * We treat the label file as a separate ruleset, since it has
+                * a similar format.
+                */
+                INIT_TIME(tv_acc);
+                START_TIME(tv_start);
+                data.nrules = ruleNames.size(); // will increment to add the default rule that's not included in the matrix
+                data.nsamples = ruleTruthTables.ncol();
+                load_data(df, lf, data);
+                END_TIME(tv_start, tv_end, tv_acc);
+                REPORT_TIME("Initialize time", "per rule", tv_end, data.nrules);
 
-        Rcpp::NumericVector ci_high;
-	for (int i=0; i<pred_model_brl->rs->n_rules; i++)
-        	ci_high.push_back(pred_model_brl->confIntervals->b);
-#endif
+                load_data2(data2, ruleNames, labelNames, ruleTruthTables, labelTruthTables);
+        //#if 0
+        //        if (debug)
+        //                printf("%d rules %d samples\n\n", nrules, nsamples);
+        //
+        //        if (debug > 100)
+        //                rule_print_all(rules, nrules, nsamples);
+        //
+        //        if (debug > 100) {
+        //                printf("Labels for %d samples\n\n", nsamples);
+        //                rule_print_all(labels, nsamples, nsamples);
+        //        }
+        //#endif
 
+                Params params;
+                Rcpp::NumericVector nv;
+                Rcpp::IntegerVector iv;
+                nv = paramList[0];
+                params.lambda = nv[0];
+                nv = paramList[1];
+                params.eta = nv[0];
+                nv = paramList[2];
+                params.threshold = nv[0];
+                nv = paramList[3];
+                params.alpha[0] = nv[0];
+                params.alpha[1] = nv[1];
+                iv = paramList[4];
+                params.iters = iv[0];
+                iv = paramList[5];
+                params.nchain = iv[0];
+
+                INIT_TIME(tv_acc);
+                START_TIME(tv_start);
+                PredModel pred_model_sbrl = train(data, initialization, method, params);
+                END_TIME(tv_start, tv_end, tv_acc);
+                REPORT_TIME("Time to train", "", tv_end, 1);
+
+
+                for (int i=0; i<pred_model_sbrl.ids.size(); i++)
+                        id.push_back(pred_model_sbrl.ids[i]);
+
+                for (int i=0; i<pred_model_sbrl.thetas.size(); i++)
+                        prob.push_back(pred_model_sbrl.thetas[i]);
+
+        #if 0
+                Rcpp::NumericVector ci_low;
+                for (int i=0; i<pred_model_brl->rs->n_rules; i++)
+                        ci_low.push_back(pred_model_brl->confIntervals->a);
+
+                Rcpp::NumericVector ci_high;
+                for (int i=0; i<pred_model_brl->rs->n_rules; i++)
+                        ci_high.push_back(pred_model_brl->confIntervals->b);
+        #endif
+        }
+        catch (const std::overflow_error& e) {
+                Rprintf("overflow_error: %s\n", e.what());
+        }
+        catch (const std::runtime_error& e) {
+                Rprintf("runtime_error: %s\n", e.what());
+        }
+        catch (const std::exception& e) {
+                Rprintf("exception: %s\n", e.what());
+        }
+        catch (...) {
+                Rprintf("unknown error. please investigate or contact the maintainer of the package.\n");
+        }
         // Rcpp::DataFrame brl =  Rcpp::DataFrame::create(Rcpp::Named("clause")=clause, Rcpp::Named("prob")=prob, Rcpp::Named("ci_low")=ci_low, Rcpp::Named("ci_high")=ci_high);
         Rcpp::DataFrame rs =  Rcpp::DataFrame::create(Rcpp::Named("V1")=id, Rcpp::Named("V2")=prob);
 
@@ -177,7 +187,7 @@ void R_init_sbrl(DllInfo *dll)
   R_useDynamicSymbols(dll, FALSE);
 }
 
-int
+void
 load_data(std::string &data_file, std::string &label_file, Data &data)
 {
         int add_default_rule;
@@ -190,5 +200,4 @@ load_data(std::string &data_file, std::string &label_file, Data &data)
         /* Load labels. */
         add_default_rule = 0;
         rules_init(label_file, data.labels, 2, data.nsamples, add_default_rule);
-        return (0);
 }
