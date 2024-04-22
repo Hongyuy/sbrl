@@ -87,6 +87,8 @@ enum class Step
 struct BitVec {
 	VECTOR vec;
 	BitVec() {};
+	int rule_ff1(int, int);
+	int rule_isset(int);
 };
 
 struct Rule {
@@ -176,8 +178,6 @@ void rules_free(std::vector<Rule> &, const int, int);
 //void rule_vector_print(BitVec &, int);
 void rule_copy(BitVec &, BitVec &, int);
 
-int rule_ff1(BitVec &, int, int);
-int rule_isset(BitVec &, int);
 int rule_vinit(int, BitVec &);
 int rule_vfree(BitVec &);
 int make_default(BitVec &, int);

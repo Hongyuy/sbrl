@@ -817,15 +817,15 @@ count_ones(v_entry val)
  * Find first set bit starting at position start_pos.
  */
 int
-rule_ff1(BitVec &v, int start_pos, int len)
+BitVec::rule_ff1(int start_pos, int len)
 {
 #ifdef GMP
 	(void)len;
-	return mpz_scan1(v.vec, start_pos);
+	return mpz_scan1(this->vec, start_pos);
 #else
 	int i;
 	for (i = start_pos; i < len; i++) {
-		if (rule_isset(v, i))
+		if (this->rule_isset(i))
 			return i;
 	}
 	return -1;
@@ -899,9 +899,9 @@ rule_ff1(BitVec &v, int start_pos, int len)
  * Return 0 if bit e is not set in vector v; return non-0 otherwise.
  */
 int
-rule_isset(BitVec &v, int e) {
+BitVec::rule_isset(int e) {
 #ifdef GMP
-	return mpz_tstbit(v.vec, e);
+	return mpz_tstbit(this->vec, e);
 #else
 	return ((v[e/BITS_PER_ENTRY] & (1 << (e % BITS_PER_ENTRY))) != 0);
 #endif
