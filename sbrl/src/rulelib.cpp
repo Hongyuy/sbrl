@@ -123,9 +123,8 @@ rules_init(std::string &infile, int &nrules,
 
 		/* Now compute the number of clauses in the rule. */
 		rule.cardinality = 1;
-		for (cp = rulestr; *cp != '\0'; cp++)
-			if (*cp == ',')
-				rule.cardinality++;
+		for (char &c : rule.features)
+			rule.cardinality += (c == ',');
 		rules_ret.push_back(rule);
 	}
 	fclose(fi);
