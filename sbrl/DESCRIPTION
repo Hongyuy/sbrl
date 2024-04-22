@@ -26,7 +26,7 @@ RcppModules: sbrl
 LinkingTo: Rcpp
 NeedsCompilation: yes
 LazyData: yes
-SystemRequirements: gmp (>= 4.2.0), gsl, C++11
+SystemRequirements: gmp (>= 4.2.0), gsl
 Packaged: 2024-03-26 06:42:39 UTC; hongyuy
 Repository: CRAN
 Date/Publication: 2024-03-26 16:50:02 UTC
