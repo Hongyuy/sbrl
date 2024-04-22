@@ -251,7 +251,7 @@ train(Data &train_data, int initialization, int method, const Params &params)
 	int chain;
 	double max_pos, pos_temp, null_bound;
 	std::vector<int> default_rule(1, 0);
-	Ruleset rs = Ruleset::ruleset_init(1, train_data.nsamples, default_rule, train_data.rules);
+	Ruleset rs = Ruleset::ruleset_init(train_data.nsamples, default_rule, train_data.rules);
     
     gsl_rng *RAND_GSL=NULL;
     /* initialize random number generator for some distributions. */
@@ -341,7 +341,7 @@ run_mcmc(int iters, int nsamples, int nrules,
 {
 	Ruleset rs;
 	double jump_prob, log_post_rs;
-	int len, nsuccessful_rej;
+	int nsuccessful_rej;
 	int i, count;
 	double max_log_posterior, prefix_bound;
 	std::vector<int> rarray(2, 0);
@@ -374,7 +374,7 @@ run_mcmc(int iters, int nsamples, int nrules,
 		rarray[0] = rule_permutation[rule_permutation.permute_ndx++].ndx;
 		if (rule_permutation.permute_ndx >= nrules)
 			rule_permutation.permute_ndx = 1;
-		rs = Ruleset::ruleset_init(2, nsamples, rarray, rules);
+		rs = Ruleset::ruleset_init(nsamples, rarray, rules);
 		log_post_rs = compute_log_posterior(rs, rules,
 		    nrules, labels, params, 0, 1, prefix_bound);
 //		if (debug > 10) {
@@ -391,7 +391,6 @@ run_mcmc(int iters, int nsamples, int nrules,
 	 */
 	rs_idarray = rs.backup();
 	max_log_posterior = log_post_rs;
-	len = rs.n_rules;
 
 	for (i = 0; i < iters; i++) {
 		rs = propose(rs, rules, labels, nrules, jump_prob,
@@ -401,13 +400,12 @@ run_mcmc(int iters, int nsamples, int nrules,
 		if (log_post_rs > max_log_posterior) {
 			rs_idarray = rs.backup();
 			max_log_posterior = log_post_rs;
-			len = rs.n_rules;
 		}
 	}
 
 	/* Regenerate the best rule list */
 	rs.ruleset_destroy();
-	rs = Ruleset::ruleset_init(len, nsamples, rs_idarray, rules);
+	rs = Ruleset::ruleset_init(nsamples, rs_idarray, rules);
 
 //	if (debug) {
 //		printf("\n%s%d #add=%d #delete=%d #swap=%d):\n",

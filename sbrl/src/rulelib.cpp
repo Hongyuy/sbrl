@@ -309,19 +309,19 @@ BitVec::make_default(int len)
 
 /* Create a ruleset. */
 Ruleset
-Ruleset::ruleset_init(int nrs_rules,
+Ruleset::ruleset_init(
     int nsamples, const std::vector<int> &idarray, std::vector<Rule> &rules)
 {
-	Ruleset rs(nrs_rules);
+	Ruleset rs(idarray.size());
 	rs.n_rules = 0;
-	rs.n_alloc = nrs_rules;
+	rs.n_alloc = idarray.size();
 	rs.n_samples = nsamples;
 
 	BitVec not_captured;
 	not_captured.make_default(nsamples);
 
 	int cnt = nsamples;
-	for (int i = 0; i < nrs_rules; i++) {
+	for (int i = 0; i < idarray.size(); i++) {
 		auto cur_rule = &rules[idarray[i]];
 		auto cur_re = &rs.entries[i];
 		cur_re->rule_id = idarray[i];
@@ -534,7 +534,7 @@ Ruleset::create_random_ruleset(int size,
 	/* Always put rule 0 (the default) as the last rule. */
 	ids[i] = 0;
 
-	return Ruleset::ruleset_init(size, nsamples, ids, rules);
+	return Ruleset::ruleset_init(nsamples, ids, rules);
 }
 
 #define MAX_TRIES 10
