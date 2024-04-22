@@ -162,12 +162,10 @@ propose(Ruleset &rs, std::vector<Rule> &rules, std::vector<Rule> &labels, int nr
 //	    	if (debug > 10)
 //			printf("Accepted\n");
 		ret_log_post = new_log_post;
-		rs.ruleset_destroy();
 		return rs_new;
 	} else {
 //	    	if (debug > 10)
 //			printf("Rejected\n");
-		rs_new.ruleset_destroy();
 		return rs;
 	}
 }
@@ -276,11 +274,8 @@ train(Data &train_data, int initialization, int method, const Params &params)
 		    null_bound);
 
 		if (pos_temp >= max_pos) {
-			rs.ruleset_destroy();
 			rs = rs_temp;
 			max_pos = pos_temp;
-		} else {
-			rs_temp.ruleset_destroy();
 		}
 	}
 
@@ -365,7 +360,6 @@ run_mcmc(int iters, int nsamples, int nrules,
 		// TODO Gather some stats on how much we loop in here.
 		// if (rs != NULL) {
 		if (rs.entries.size()) {
-			rs.ruleset_destroy();
 			count++;
 			if (count == (nrules - 1))
 				throw std::runtime_error("exausted rules");
@@ -403,7 +397,6 @@ run_mcmc(int iters, int nsamples, int nrules,
 	}
 
 	/* Regenerate the best rule list */
-	rs.ruleset_destroy();
 	rs = Ruleset::ruleset_init(nsamples, rs_idarray, rules);
 
 //	if (debug) {

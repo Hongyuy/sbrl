@@ -371,6 +371,7 @@ Ruleset::ruleset_copy()
 }
 
 /* Reclaim resources associated with a ruleset. */
+/*
 void
 Ruleset::ruleset_destroy()
 {
@@ -379,6 +380,7 @@ Ruleset::ruleset_destroy()
 		entry.captures.rule_vfree();
 	// free(rs);
 }
+*/
 
 /*
  * Add the specified rule to the ruleset at position ndx (shifting
