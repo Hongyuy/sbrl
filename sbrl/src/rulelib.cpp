@@ -84,13 +84,13 @@ rules_init(const std::string &infile, std::vector<Rule> &rules_ret,
 	 * the end.
 	 */
 	if (add_default_rule)
-		rules_ret.push_back({});
+		rules_ret.emplace_back();
 	while (std::getline(fi, linestr) && linestr.size()) {
 		/* Get the rule string; line will contain the bits. */
 		const auto pos = linestr.find(' ');
 		if (pos == std::string::npos)
 			throw std::runtime_error("failed to parse rule name and truethtable");
-		rules_ret.push_back({});
+		rules_ret.emplace_back();
 		auto &rule = rules_ret.back();
 		rule.features = linestr.substr(0, pos);
 		auto truthTable = linestr.data() + pos;

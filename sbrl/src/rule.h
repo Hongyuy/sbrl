@@ -118,6 +118,7 @@ struct Rule {
 	BitVec truthtable;		/* Truth table; one bit per sample. */
 	Rule() = default;
 	Rule(const std::string &feat, int supp, int card): features{feat}, support{supp}, cardinality{card} {}
+	Rule& operator= (const Rule&) = delete;
 };
 
 struct RulesetEntry {
