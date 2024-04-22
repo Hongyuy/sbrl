@@ -59,7 +59,14 @@ typedef struct _permute {
 	int val;
 	int ndx;
 } permute_t;
-static permute_t *rule_permutation;
+
+struct Permutations {
+	permute_t * ptr;
+	~Permutations() { if (ptr) free(ptr); }
+	permute_t & operator [](int i) {return ptr[i];}
+	int permute_rules(int nrules, gsl_rng *RAND_GSL);
+};
+static Permutations rule_permutation;
 static int permute_ndx;
 
 int debug;
@@ -269,29 +276,6 @@ compute_cardinality(std::vector<Rule> &rules, int nrules)
 //			    card_count[i], i);
 }
 
-int
-permute_cmp(const void *v1, const void *v2)
-{
-	return ((permute_t *)v1)->val - ((permute_t *)v2)->val;
-}
-
-int
-permute_rules(int nrules, gsl_rng *RAND_GSL)
-{
-	int i;
-	if ((rule_permutation = (permute_t*)malloc(sizeof(permute_t) * nrules)) == NULL)
-		return (-1);
-	for (i = 0; i < nrules; i++) {
-		rule_permutation[i].val = my_rng(RAND_GSL);
-		rule_permutation[i].ndx = i;
-	}
-//    _quicksort(rule_permutation, nrules, sizeof(permute_t), permute_cmp);
-    qsort(rule_permutation+1, nrules-1, sizeof(permute_t), permute_cmp);
-	permute_ndx = 1;
-	return (0);
-
-}
-
 PredModel
 train(Data &train_data, int initialization, int method, const Params &params)
 {
@@ -320,7 +304,7 @@ train(Data &train_data, int initialization, int method, const Params &params)
 
 	max_pos = compute_log_posterior(rs, train_data.rules,
 	    train_data.nrules, train_data.labels, params, 1, -1, null_bound);
-	if (permute_rules(train_data.nrules, RAND_GSL) != 0)
+	if (rule_permutation.permute_rules(train_data.nrules, RAND_GSL) != 0)
 		goto err;
 
 	for (chain = 0; chain < params.nchain; chain++) {
@@ -352,8 +336,6 @@ train(Data &train_data, int initialization, int method, const Params &params)
 	 */
 err:
 	/* Free allocated memory. */
-	if (rule_permutation != NULL)
-		free(rule_permutation);
 	if (rs != NULL)
 		ruleset_destroy(rs);
     
@@ -752,3 +734,21 @@ gen_gamma_pdf (double x, double a, double b)
 */
 
 unsigned RANDOM_RANGE(int lo, int hi, gsl_rng *RAND_GSL) { return (unsigned)(lo + (unsigned)((my_rng(RAND_GSL) / (float)RAND_MAX) * (hi - lo + 1))); }
+
+int permute_cmp(const void *v1, const void *v2) { return ((permute_t *)v1)->val - ((permute_t *)v2)->val; }
+
+int Permutations::permute_rules(int nrules, gsl_rng *RAND_GSL)
+{
+	int i;
+	if (ptr != NULL)
+		return (-1);
+	if ((ptr = (permute_t*)malloc(sizeof(permute_t) * nrules)) == NULL)
+		return (-1);
+	for (i = 0; i < nrules; i++) {
+		ptr[i].val = my_rng(RAND_GSL);
+		ptr[i].ndx = i;
+	}
+	qsort(ptr+1, nrules-1, sizeof(permute_t), permute_cmp);
+	permute_ndx = 1;
+	return (0);
+}
