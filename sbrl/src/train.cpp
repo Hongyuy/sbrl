@@ -65,7 +65,7 @@ int debug;
 
 // void _quicksort (void *const, size_t, size_t, int (const void *, const void *));
 double compute_log_posterior(Ruleset *,
-    std::vector<Rule> &, int, std::vector<Rule> &, const Params &, int, int, double *);
+    std::vector<Rule> &, int, std::vector<Rule> &, const Params &, int, int, double &);
 int gen_poission(double);
 std::vector<double> get_theta(Ruleset *, std::vector<Rule> &, std::vector<Rule> &, const Params &);
 void gsl_ran_poisson_test(void);
@@ -84,23 +84,23 @@ int my_rng(gsl_rng * RAND_GSL)
 
 int
 mcmc_accepts(double new_log_post, double old_log_post,
-             double prefix_bound, double max_log_post, double *extra, gsl_rng *RAND_GSL)
+             double prefix_bound, double max_log_post, double &extra, gsl_rng *RAND_GSL)
 {
     /* Extra = jump_prob */
     return (prefix_bound > max_log_post &&
             log((my_rng(RAND_GSL) / (float)RAND_MAX)) <
-            (new_log_post - old_log_post + log(*extra)));
+            (new_log_post - old_log_post + log(extra)));
 }
 
 int
 sa_accepts(double new_log_post, double old_log_post,
-           double prefix_bound, double max_log_post, double *extra, gsl_rng *RAND_GSL)
+           double prefix_bound, double max_log_post, double &extra, gsl_rng *RAND_GSL)
 {
     /* Extra = tk */
     return (prefix_bound > max_log_post &&
             (new_log_post > old_log_post ||
              (log((my_rng(RAND_GSL) / (float)RAND_MAX)) <
-              (new_log_post - old_log_post) / *extra)));
+              (new_log_post - old_log_post) / extra)));
 }
 
 
@@ -113,9 +113,9 @@ sa_accepts(double new_log_post, double old_log_post,
  */
 Ruleset *
 propose(Ruleset *rs, std::vector<Rule> &rules, std::vector<Rule> &labels, int nrules,
-    double *jump_prob, double *ret_log_post, double max_log_post,
-    int &cnt, double *extra, const Params &params, gsl_rng *RAND_GSL,
-    int (*accept_func)(double, double, double, double, double *, gsl_rng *))
+    double &jump_prob, double &ret_log_post, double max_log_post,
+    int &cnt, double &extra, const Params &params, gsl_rng *RAND_GSL,
+    int (*accept_func)(double, double, double, double, double &, gsl_rng *))
 {
 	Step stepchar;
 	double new_log_post, prefix_bound;
@@ -162,7 +162,7 @@ propose(Ruleset *rs, std::vector<Rule> &rules, std::vector<Rule> &labels, int nr
 	}
 
 	new_log_post = compute_log_posterior(rs_new,
-	    rules, nrules, labels, params, 0, change_ndx, &prefix_bound);
+	    rules, nrules, labels, params, 0, change_ndx, prefix_bound);
 
 //	if (debug > 10) {
 //		ruleset_print(rs_new, rules, (debug > 100));
@@ -172,11 +172,11 @@ propose(Ruleset *rs, std::vector<Rule> &rules, std::vector<Rule> &labels, int nr
 		cnt++;
 
 	if (accept_func(new_log_post,
-	    *ret_log_post, prefix_bound, max_log_post, extra, RAND_GSL)) {
+	    ret_log_post, prefix_bound, max_log_post, extra, RAND_GSL)) {
 //	    	if (debug > 10)
 //			printf("Accepted\n");
 		rs_ret = rs_new;
-		*ret_log_post = new_log_post;
+		ret_log_post = new_log_post;
 		ruleset_destroy(rs);
 	} else {
 //	    	if (debug > 10)
@@ -321,7 +321,7 @@ train(Data &train_data, int initialization, int method, const Params &params)
 	    	goto err;
 
 	max_pos = compute_log_posterior(rs, train_data.rules,
-	    train_data.nrules, train_data.labels, params, 1, -1, &null_bound);
+	    train_data.nrules, train_data.labels, params, 1, -1, null_bound);
 	if (permute_rules(train_data.nrules, RAND_GSL) != 0)
 		goto err;
 
@@ -331,7 +331,7 @@ train(Data &train_data, int initialization, int method, const Params &params)
 		    train_data.rules, train_data.labels, params, max_pos, RAND_GSL);
 		pos_temp = compute_log_posterior(rs_temp, train_data.rules,
 		    train_data.nrules, train_data.labels, params, 1, -1,
-		    &null_bound);
+		    null_bound);
 
 		if (pos_temp >= max_pos) {
 			ruleset_destroy(rs);
@@ -446,7 +446,7 @@ run_mcmc(int iters, int nsamples, int nrules,
 			permute_ndx = 1;
 		ruleset_init(2, nsamples, rarray, rules, &rs);
 		log_post_rs = compute_log_posterior(rs, rules,
-		    nrules, labels, params, 0, 1, &prefix_bound);
+		    nrules, labels, params, 0, 1, prefix_bound);
 //		if (debug > 10) {
 //			printf("Initial random ruleset\n");
 //			ruleset_print(rs, rules, 1);
@@ -465,9 +465,9 @@ run_mcmc(int iters, int nsamples, int nrules,
 	len = rs->n_rules;
 
 	for (i = 0; i < iters; i++) {
-		if ((rs = propose(rs, rules, labels, nrules, &jump_prob,
-		    &log_post_rs, max_log_posterior, nsuccessful_rej,
-		    &jump_prob, params, RAND_GSL, mcmc_accepts)) == NULL)
+		if ((rs = propose(rs, rules, labels, nrules, jump_prob,
+		    log_post_rs, max_log_posterior, nsuccessful_rej,
+		    jump_prob, params, RAND_GSL, mcmc_accepts)) == NULL)
 		    	goto err;
 
 		if (log_post_rs > max_log_posterior) {
@@ -521,7 +521,7 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 		return (NULL);
 
 	log_post_rs = compute_log_posterior(rs,
-	    rules, nrules, labels, params, 0, -1, &prefix_bound);
+	    rules, nrules, labels, params, 0, -1, prefix_bound);
 	if (ruleset_backup(rs, rs_idarray) != 0)
 		goto err;
 	max_log_posterior = log_post_rs;
@@ -548,8 +548,8 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 	for (k = 0; k < ntimepoints; k++) {
 		double tk = T[k];
 		for (iter = 0; iter < iters_per_step; iter++) {
-    			if ((rs = propose(rs, rules, labels, nrules, &jump_prob,
-			    &log_post_rs, max_log_posterior, dummy, &tk,
+    			if ((rs = propose(rs, rules, labels, nrules, jump_prob,
+			    log_post_rs, max_log_posterior, dummy, tk,
 			    params, RAND_GSL, sa_accepts)) == NULL)
 			    	goto err;
 
@@ -581,7 +581,7 @@ err:
 
 double
 compute_log_posterior(Ruleset *rs, std::vector<Rule> &rules, int nrules, std::vector<Rule> &labels,
-    const Params &params, int ifPrint, int length4bound, double *prefix_bound)
+    const Params &params, int ifPrint, int length4bound, double &prefix_bound)
 {
 
 	double log_prior;
@@ -650,7 +650,7 @@ compute_log_posterior(Ruleset *rs, std::vector<Rule> &rules, int nrules, std::ve
 			}
 		}
 	}
-	*prefix_bound = prefix_prior + prefix_log_likelihood;
+	prefix_bound = prefix_prior + prefix_log_likelihood;
 //	if (debug > 20)
 //		printf("log_prior = %6f\t log_likelihood = %6f\n",
 //		    log_prior, log_likelihood);
@@ -660,7 +660,7 @@ compute_log_posterior(Ruleset *rs, std::vector<Rule> &rules, int nrules, std::ve
 
 int
 ruleset_proposal(Ruleset * rs, int nrules,
-    int &ndx1, int &ndx2, Step &stepchar, double *jumpRatio, gsl_rng *RAND_GSL){
+    int &ndx1, int &ndx2, Step &stepchar, double &jumpRatio, gsl_rng *RAND_GSL){
 	static double MOVEPROBS[15] = {
 		0.0, 1.0, 0.0,
 		0.0, 0.5, 0.5,
@@ -704,13 +704,13 @@ ruleset_proposal(Ruleset * rs, int nrules,
 			index2 = my_rng(RAND_GSL) % (rs->n_rules - 1);
 		} while (index2 == index1);
 
-		*jumpRatio = jumpRatios[0];
+		jumpRatio = jumpRatios[0];
 		stepchar = Step::Swap;
 	} else if (u < moveProbs[0] + moveProbs[1]) {
 		/* Add a new rule */
 		index1 = pick_random_rule(nrules, rs, RAND_GSL);
 		index2 = my_rng(RAND_GSL) % rs->n_rules;
-		*jumpRatio = jumpRatios[1] * (nrules - 1 - rs->n_rules);
+		jumpRatio = jumpRatios[1] * (nrules - 1 - rs->n_rules);
 		stepchar = Step::Add;
 	} else if (u < moveProbs[0] + moveProbs[1] + moveProbs[2]) {
 		/* delete an existing rule */
@@ -718,7 +718,7 @@ ruleset_proposal(Ruleset * rs, int nrules,
 		//cannot delete the default rule
 			index2 = 0;
 		//index2 doesn 't matter in this case
-			* jumpRatio = jumpRatios[2] * (nrules - rs->n_rules);
+			jumpRatio = jumpRatios[2] * (nrules - rs->n_rules);
 		stepchar = Step::Delete;
 	} else {
 		//should raise exception here.

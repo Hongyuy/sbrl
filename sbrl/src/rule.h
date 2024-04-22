@@ -180,8 +180,8 @@ int count_ones(v_entry);
 int count_ones_vector(VECTOR, int);
 
 /* Functions for the Scalable Baysian Rule Lists */
-double *predict(PredModel&, std::vector<Rule> &labels, const Params &);
-int ruleset_proposal(Ruleset *, int, int &, int &, Step &, double *, gsl_rng *);
+// double *predict(PredModel&, std::vector<Rule> &labels, const Params &);
+int ruleset_proposal(Ruleset *, int, int &, int &, Step &, double &, gsl_rng *);
 Ruleset *run_mcmc(int, int, int, std::vector<Rule> &, std::vector<Rule> &, const Params &, double, gsl_rng *);
 Ruleset *run_simulated_annealing(int,
     int, int, int, std::vector<Rule> &, std::vector<Rule> &, const Params &, gsl_rng *);
