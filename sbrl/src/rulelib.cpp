@@ -32,9 +32,10 @@
 #include <unistd.h>
 #include "rule.h"
 #include "Rcpp.h"
+#include <fstream>
 
 /* Function declarations. */
-int ascii_to_vector(char *, size_t, int *, int *, VECTOR *);
+int ascii_to_vector(const char *, size_t, int *, int *, VECTOR *);
 int make_default(VECTOR *, int);
 #define RULE_INC 100
 #define BITS_PER_ENTRY (sizeof(v_entry) * 8)
@@ -76,16 +77,10 @@ int
 rules_init(std::string &infile, int &nrules,
     int &nsamples, std::vector<Rule> &rules_ret, int add_default_rule)
 {
-	FILE *fi;
-	char *cp, *features, *line, *rulestr;
-	int sample_cnt = 0;
-	int i, ones, ret;
+	std::fstream fi(infile.c_str());
+	std::string linestr;
 	Rule rule;
-	size_t linelen, rulelen;
-	ssize_t len;
-
-	if ((fi = fopen(infile.c_str(), "r")) == NULL)
-        return (errno);
+	int sample_cnt = 0, ones = 0;
 
 	/*
 	 * Leave a space for the 0th (default) rule, which we'll add at
@@ -93,30 +88,21 @@ rules_init(std::string &infile, int &nrules,
 	 */
 	if (add_default_rule)
 		rules_ret.push_back(rule);
-	line = NULL;
-	linelen = 0;
-	while ((len = getline_portable(&line, &linelen, fi)) > 0) {
+	while (std::getline(fi, linestr) && linestr.size()) {
 		/* Get the rule string; line will contain the bits. */
-		features = line;
-		if ((rulestr = strsep_portable(&features, " ")) == NULL) 
+		const auto pos = linestr.find(' ');
+		if (pos == std::string::npos)
 			goto err;
-
-		rulelen = strlen(rulestr) + 1;
-		len -= rulelen;
-
-		rule.features = std::string(rulestr);
-
+		rule.features = linestr.substr(0, pos);
+		auto truthTable = linestr.data() + pos;
+		auto truthTableLen = linestr.size() - pos - 1;
 		/*
 		 * At this point features is (probably) a line terminated by a
 		 * newline at features[len-1]; if it is newline-terminated, then
 		 * let's make it NUL-terminated and shorten the line length
 		 * by one.
 		 */
-		if (features[len-1] == '\n') {
-			features[len-1] = '\0';
-			len--;
-		}
-		if (ascii_to_vector(features, len, &sample_cnt, &ones,
+		if (ascii_to_vector(truthTable, truthTableLen, &sample_cnt, &ones,
 		    &rule.truthtable) != 0)
 		    	goto err;
 		rule.support = ones;
@@ -127,7 +113,6 @@ rules_init(std::string &infile, int &nrules,
 			rule.cardinality += (c == ',');
 		rules_ret.push_back(rule);
 	}
-	fclose(fi);
 
 	/* Now create the 0'th (default) rule. */
 	if (add_default_rule) {
@@ -143,9 +128,7 @@ rules_init(std::string &infile, int &nrules,
 	return (0);
 
 err:
-	ret = errno;
-	(void)fclose(fi);
-	return (ret);
+	return (errno);
 }
 
 void
@@ -205,7 +188,7 @@ rule_vfree(VECTOR *v)
  * GMP functions if we're using the GMP library.
  */
 int
-ascii_to_vector(char *line, size_t len, int *nsamples, int *nones, VECTOR *ret)
+ascii_to_vector(const char *line, size_t len, int *nsamples, int *nones, VECTOR *ret)
 {
 #ifdef GMP
 	int retval;
