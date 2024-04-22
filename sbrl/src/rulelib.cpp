@@ -315,7 +315,7 @@ make_default(VECTOR *ttp, int len)
 /* Create a ruleset. */
 int
 ruleset_init(int nrs_rules,
-    int nsamples, int *idarray, std::vector<Rule> &rules, Ruleset **retruleset)
+    int nsamples, const std::vector<int> &idarray, std::vector<Rule> &rules, Ruleset **retruleset)
 {
 	int cnt, i;
 	Ruleset *rs;
@@ -367,20 +367,12 @@ err1:
  * realloc, which will do the right thing.
  */
 int
-ruleset_backup(Ruleset *rs, int **rs_idarray)
+ruleset_backup(Ruleset *rs, std::vector<int> &ids_ret)
 {
-	int i, *ids;
-	
-	ids = *rs_idarray;
-
-	if ((ids = (int*)realloc(ids, (rs->n_rules * sizeof(int)))) == NULL)
-		return (errno);
-
-	for (i = 0; i < rs->n_rules; i++)
-		ids[i] = rs->entries[i].rule_id;
-
-	*rs_idarray = ids;
-
+	std::vector<int> ids;
+	for (int i = 0; i < rs->n_rules; i++)
+		ids.push_back(rs->entries[i].rule_id);
+	ids_ret = ids;
 	return (0);
 }
 
@@ -552,9 +544,9 @@ int
 create_random_ruleset(int size,
     int nsamples, int nrules, std::vector<Rule> &rules, Ruleset **rs, gsl_rng *RAND_GSL)
 {
-	int i, j, *ids, next, ret;
+	int i, j, next, ret;
+	std::vector<int> ids(size, 0);
 
-	ids = (int*)calloc(size, sizeof(int));
 	for (i = 0; i < (size - 1); i++) {
 try_again:	next = RANDOM_RANGE(1, (nrules - 1));
 		/* Check for duplicates. */
@@ -568,7 +560,6 @@ try_again:	next = RANDOM_RANGE(1, (nrules - 1));
 	ids[i] = 0;
 
 	ret = ruleset_init(size, nsamples, ids, rules, rs);
-	free(ids);
 	return (ret);
 }
 

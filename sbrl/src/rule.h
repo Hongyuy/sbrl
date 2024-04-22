@@ -145,9 +145,9 @@ struct PredModel
  */
 // size_t getline_portable(char **, size_t *, FILE *);
 // char* strsep_portable(char **, const char *);
-int ruleset_init(int, int, int *, std::vector<Rule> &, Ruleset **);
+int ruleset_init(int, int, const std::vector<int> &, std::vector<Rule> &, Ruleset **);
 int ruleset_add(std::vector<Rule> &, int, Ruleset **, int, int);
-int ruleset_backup(Ruleset *, int **);
+int ruleset_backup(Ruleset *, std::vector<int> &);
 int ruleset_copy(Ruleset **, Ruleset *);
 void ruleset_delete(std::vector<Rule> &, int, Ruleset *, int);
 void ruleset_swap(Ruleset *, int, int, std::vector<Rule> &);

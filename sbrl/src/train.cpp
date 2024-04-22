@@ -298,9 +298,10 @@ PredModel
 train(Data &train_data, int initialization, int method, const Params &params)
 {
 	PredModel pred_model;
-	int chain, default_rule;
+	int chain;
 	Ruleset *rs, *rs_temp;
 	double max_pos, pos_temp, null_bound;
+	std::vector<int> default_rule(1, 0);
     
     gsl_rng *RAND_GSL=NULL;
     /* initialize random number generator for some distributions. */
@@ -315,9 +316,8 @@ train(Data &train_data, int initialization, int method, const Params &params)
 		goto err;
 
 
-	default_rule = 0;
 	if (ruleset_init(1,
-	    train_data.nsamples, &default_rule, train_data.rules, &rs) != 0)
+	    train_data.nsamples, default_rule, train_data.rules, &rs) != 0)
 	    	goto err;
 
 	max_pos = compute_log_posterior(rs, train_data.rules,
@@ -411,12 +411,13 @@ run_mcmc(int iters, int nsamples, int nrules,
 {
 	Ruleset *rs;
 	double jump_prob, log_post_rs;
-	int *rs_idarray, len, nsuccessful_rej;
-	int i, rarray[2], count;
+	int len, nsuccessful_rej;
+	int i, count;
 	double max_log_posterior, prefix_bound;
+	std::vector<int> rarray(2, 0);
+	std::vector<int> rs_idarray;
 
 	rs = NULL;
-	rs_idarray = NULL;
 	log_post_rs = 0.0;
 	nsuccessful_rej = 0;
 	prefix_bound = -1e10; // This really should be -MAX_DBL
@@ -458,7 +459,7 @@ run_mcmc(int iters, int nsamples, int nrules,
 	 * The initial ruleset is our best ruleset so far, so keep a
 	 * list of the rules it contains.
 	 */
-	if (ruleset_backup(rs, &rs_idarray) != 0)
+	if (ruleset_backup(rs, rs_idarray) != 0)
 		goto err;
 	max_log_posterior = log_post_rs;
 	len = rs->n_rules;
@@ -470,7 +471,7 @@ run_mcmc(int iters, int nsamples, int nrules,
 		    	goto err;
 
 		if (log_post_rs > max_log_posterior) {
-			if (ruleset_backup(rs, &rs_idarray) != 0)
+			if (ruleset_backup(rs, rs_idarray) != 0)
 				goto err;
 			max_log_posterior = log_post_rs;
 			len = rs->n_rules;
@@ -480,7 +481,6 @@ run_mcmc(int iters, int nsamples, int nrules,
 	/* Regenerate the best rule list */
 	ruleset_destroy(rs);
 	ruleset_init(len, nsamples, rs_idarray, rules, &rs);
-	free(rs_idarray);
 
 //	if (debug) {
 //		printf("\n%s%d #add=%d #delete=%d #swap=%d):\n",
@@ -498,8 +498,6 @@ run_mcmc(int iters, int nsamples, int nrules,
 err:
 	if (rs != NULL)
 		ruleset_destroy(rs);
-	if (rs_idarray != NULL)
-		free(rs_idarray);
 	return (NULL);
 }
 
@@ -509,10 +507,11 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 {
 	Ruleset *rs;
 	double jump_prob;
-	int dummy, i, j, k, iter, iters_per_step, *rs_idarray = NULL, len;
+	int dummy, i, j, k, iter, iters_per_step, len;
 	double log_post_rs, max_log_posterior = -1e9, prefix_bound = 0.0;
 	double T[100000], tmp[50];
 	int ntimepoints = 0;
+	std::vector<int> rs_idarray;
 
 	log_post_rs = 0.0;
 	iters_per_step = 200;
@@ -523,7 +522,7 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 
 	log_post_rs = compute_log_posterior(rs,
 	    rules, nrules, labels, params, 0, -1, &prefix_bound);
-	if (ruleset_backup(rs, &rs_idarray) != 0)
+	if (ruleset_backup(rs, rs_idarray) != 0)
 		goto err;
 	max_log_posterior = log_post_rs;
 	len = rs->n_rules;
@@ -555,7 +554,7 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 			    	goto err;
 
 			if (log_post_rs > max_log_posterior) {
-				if (ruleset_backup(rs, &rs_idarray) != 0)
+				if (ruleset_backup(rs, rs_idarray) != 0)
 					goto err;
 				max_log_posterior = log_post_rs;
 				len = rs->n_rules;
@@ -577,8 +576,6 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 err:
 	if (rs != NULL)
 		ruleset_destroy(rs);
-	if (rs_idarray != NULL)
-		free(rs_idarray);
 	return (NULL);
 }
 
