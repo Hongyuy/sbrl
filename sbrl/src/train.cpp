@@ -568,9 +568,9 @@ compute_log_posterior(Ruleset &rs, std::vector<Rule> &rules, int nrules, std::ve
 	return (log_prior + log_likelihood);
 }
 
-int
+void
 Ruleset::ruleset_proposal(int nrules,
-    int &ndx1, int &ndx2, Step &stepchar, double &jumpRatio, gsl_rng *RAND_GSL){
+    int &ndx1, int &ndx2, Step &stepchar, double &jumpRatio, gsl_rng *RAND_GSL) const {
 	static double MOVEPROBS[15] = {
 		0.0, 1.0, 0.0,
 		0.0, 0.5, 0.5,
@@ -632,11 +632,10 @@ Ruleset::ruleset_proposal(int nrules,
 		stepchar = Step::Delete;
 	} else {
 		//should raise exception here.
-		return -1;
+		throw std::runtime_error(std::string("unexpected: u = ") + std::to_string(u));
 	}
 	ndx1 = index1;
 	ndx2 = index2;
-	return (0);
 }
 
 void

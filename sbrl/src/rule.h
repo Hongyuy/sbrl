@@ -135,14 +135,14 @@ struct Ruleset {
 	std::vector<RulesetEntry> entries;	/* Array of rules. */
 	Ruleset(int n=0): entries(n) {}
 	Ruleset(int n0, int n1, int n2): n_rules{n0}, n_alloc{n1}, n_samples{n2} {}
-	std::vector<int> backup();
+	std::vector<int> backup() const;
 	int pick_random_rule(int, gsl_rng *) const;
-	int ruleset_add(std::vector<Rule> &, int, int, int);
+	void ruleset_proposal(int, int &, int &, Step &, double &, gsl_rng *) const;
+	void ruleset_add(std::vector<Rule> &, int, int, int);
 	void ruleset_delete(std::vector<Rule> &, int, int);
 	void ruleset_swap(int, int, std::vector<Rule> &);
 	void ruleset_swap_any(int, int, std::vector<Rule> &);
 	void ruleset_destroy();
-	int ruleset_proposal(int, int &, int &, Step &, double &, gsl_rng *);
 	static Ruleset ruleset_init(int, int, const std::vector<int> &, std::vector<Rule> &);
 	static Ruleset create_random_ruleset(int, int, int, std::vector<Rule> &, gsl_rng *);
 	Ruleset ruleset_copy();

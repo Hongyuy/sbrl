@@ -346,7 +346,7 @@ Ruleset::ruleset_init(int nrs_rules,
  * We don't know how long the idarray currently is so always call
  * realloc, which will do the right thing.
  */
-std::vector<int> Ruleset::backup()
+std::vector<int> Ruleset::backup() const
 {
 	std::vector<int> ids;
 	for (int i = 0; i < this->n_rules; i++)
@@ -391,7 +391,7 @@ Ruleset::ruleset_destroy()
  * Add the specified rule to the ruleset at position ndx (shifting
  * all rules after ndx down by one).
  */
-int
+void
 Ruleset::ruleset_add(std::vector<Rule> &rules, int nrules, int newrule, int ndx)
 {
 	int i, cnt;
@@ -453,10 +453,9 @@ Ruleset::ruleset_add(std::vector<Rule> &rules, int nrules, int newrule, int ndx)
 		rule_vandnot(not_caught,
 		    not_caught, cur_re->captures, this->n_samples, cnt);
 	}
-	assert(cnt == 0);
 	not_caught.rule_vfree();
-
-	return(0);
+	if (cnt != 0)
+		throw std::runtime_error("ruleset_add failed");
 }
 
 /*
