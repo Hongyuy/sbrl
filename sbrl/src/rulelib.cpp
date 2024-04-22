@@ -358,18 +358,18 @@ make_default(VECTOR *ttp, int len)
 /* Create a ruleset. */
 int
 ruleset_init(int nrs_rules,
-    int nsamples, int *idarray, std::vector<Rule> &rules, ruleset_t **retruleset)
+    int nsamples, int *idarray, std::vector<Rule> &rules, Ruleset **retruleset)
 {
 	int cnt, i;
 	// Rule *cur_rule;
-	ruleset_t *rs;
+	Ruleset *rs;
 	RulesetEntry *cur_re;
 	VECTOR not_captured;
 
 	/*
 	 * Allocate space for the ruleset structure and the ruleset entries.
 	 */
-	rs = (ruleset_t*)malloc(sizeof(ruleset_t));
+	rs = (Ruleset*)malloc(sizeof(Ruleset));
 	if (rs == NULL)
 		return (errno);
     else {
@@ -419,7 +419,7 @@ err1:
  * realloc, which will do the right thing.
  */
 int
-ruleset_backup(ruleset_t *rs, int **rs_idarray)
+ruleset_backup(Ruleset *rs, int **rs_idarray)
 {
 	int i, *ids;
 	
@@ -442,12 +442,12 @@ ruleset_backup(ruleset_t *rs, int **rs_idarray)
  * too expensive, we can make this smarter.
  */
 int
-ruleset_copy(ruleset_t **ret_dest, ruleset_t *src)
+ruleset_copy(Ruleset **ret_dest, Ruleset *src)
 {
 	int i;
-	ruleset_t *dest;
+	Ruleset *dest;
 
-	if ((dest = (ruleset_t*)malloc(sizeof(ruleset_t))) == NULL)
+	if ((dest = (Ruleset*)malloc(sizeof(Ruleset))) == NULL)
 		return (errno);
     else if ((dest->rules = (RulesetEntry*)malloc(src->n_rules * sizeof(RulesetEntry)))==NULL)
         return (errno);
@@ -469,7 +469,7 @@ ruleset_copy(ruleset_t **ret_dest, ruleset_t *src)
 
 /* Reclaim resources associated with a ruleset. */
 void
-ruleset_destroy(ruleset_t *rs)
+ruleset_destroy(Ruleset *rs)
 {
 	int j;
 	for (j = 0; j < rs->n_rules; j++)
@@ -482,10 +482,10 @@ ruleset_destroy(ruleset_t *rs)
  * all rules after ndx down by one).
  */
 int
-ruleset_add(std::vector<Rule> &rules, int nrules, ruleset_t **rsp, int newrule, int ndx)
+ruleset_add(std::vector<Rule> &rules, int nrules, Ruleset **rsp, int newrule, int ndx)
 {
 	int i, cnt;
-	ruleset_t *rs;
+	Ruleset *rs;
 	RulesetEntry *expand, *cur_re;
 	VECTOR not_caught;
 
@@ -553,7 +553,7 @@ ruleset_add(std::vector<Rule> &rules, int nrules, ruleset_t **rsp, int newrule, 
  * Delete the rule in the ndx-th position in the given ruleset.
  */
 void
-ruleset_delete(std::vector<Rule> &rules, int nrules, ruleset_t *rs, int ndx)
+ruleset_delete(std::vector<Rule> &rules, int nrules, Ruleset *rs, int ndx)
 {
 	int i, nset;
 	VECTOR tmp_vec;
@@ -602,7 +602,7 @@ ruleset_delete(std::vector<Rule> &rules, int nrules, ruleset_t *rs, int ndx)
  */
 int
 create_random_ruleset(int size,
-    int nsamples, int nrules, std::vector<Rule> &rules, ruleset_t **rs, gsl_rng *RAND_GSL)
+    int nsamples, int nrules, std::vector<Rule> &rules, Ruleset **rs, gsl_rng *RAND_GSL)
 {
 	int i, j, *ids, next, ret;
 
@@ -629,7 +629,7 @@ try_again:	next = RANDOM_RANGE(1, (nrules - 1));
  * Given a rule set, pick a random rule (not already in the set).
  */
 int
-pick_random_rule(int nrules, ruleset_t *rs, gsl_rng *RAND_GSL)
+pick_random_rule(int nrules, Ruleset *rs, gsl_rng *RAND_GSL)
 {
 	int cnt, j, new_rule;
 
@@ -672,7 +672,7 @@ rule_copy(VECTOR dest, VECTOR src, int len)
  * 	then swap positions i and j
  */
 void
-ruleset_swap(ruleset_t *rs, int i, int j, std::vector<Rule> &rules)
+ruleset_swap(Ruleset *rs, int i, int j, std::vector<Rule> &rules)
 {
 	int nset;
 	VECTOR tmp_vec;
@@ -704,7 +704,7 @@ ruleset_swap(ruleset_t *rs, int i, int j, std::vector<Rule> &rules)
 }
 
 void
-ruleset_swap_any(ruleset_t * rs, int i, int j, std::vector<Rule> & rules)
+ruleset_swap_any(Ruleset * rs, int i, int j, std::vector<Rule> & rules)
 {
 	int cnt, cnt_check, k, temp;
 	VECTOR caught;
@@ -892,7 +892,7 @@ rule_ff1(VECTOR v, int start_pos, int len)
 }
 
 //void
-//ruleset_print(ruleset_t *rs, Rule *rules, int detail)
+//ruleset_print(Ruleset *rs, Rule *rules, int detail)
 //{
 //	int i, n;
 //	int total_support;

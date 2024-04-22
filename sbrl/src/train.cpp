@@ -64,10 +64,10 @@ static int permute_ndx;
 int debug;
 
 // void _quicksort (void *const, size_t, size_t, int (const void *, const void *));
-double compute_log_posterior(ruleset_t *,
+double compute_log_posterior(Ruleset *,
     std::vector<Rule> &, int, std::vector<Rule> &, const Params &, int, int, double *);
 int gen_poission(double);
-std::vector<double> get_theta(ruleset_t *, std::vector<Rule> &, std::vector<Rule> &, const Params &);
+std::vector<double> get_theta(Ruleset *, std::vector<Rule> &, std::vector<Rule> &, const Params &);
 void gsl_ran_poisson_test(void);
 void init_gsl_rand_gen(gsl_rng**);
 
@@ -111,8 +111,8 @@ sa_accepts(double new_log_post, double old_log_post,
  * 3. Compute the log_posterior
  * 4. Call the appropriate function to determine acceptance criteria
  */
-ruleset_t *
-propose(ruleset_t *rs, std::vector<Rule> &rules, std::vector<Rule> &labels, int nrules,
+Ruleset *
+propose(Ruleset *rs, std::vector<Rule> &rules, std::vector<Rule> &labels, int nrules,
     double *jump_prob, double *ret_log_post, double max_log_post,
     int *cnt, double *extra, const Params &params, gsl_rng *RAND_GSL,
     int (*accept_func)(double, double, double, double, double *, gsl_rng *))
@@ -120,7 +120,7 @@ propose(ruleset_t *rs, std::vector<Rule> &rules, std::vector<Rule> &labels, int 
 	char stepchar;
 	double new_log_post, prefix_bound;
 	int change_ndx, ndx1, ndx2;
-	ruleset_t *rs_new, *rs_ret;
+	Ruleset *rs_new, *rs_ret;
 	rs_new = NULL;
 
 	if (ruleset_copy(&rs_new, rs) != 0)
@@ -299,7 +299,7 @@ train(Data &train_data, int initialization, int method, const Params &params)
 {
 	PredModel pred_model;
 	int chain, default_rule;
-	ruleset_t *rs, *rs_temp;
+	Ruleset *rs, *rs_temp;
 	double max_pos, pos_temp, null_bound;
     
     gsl_rng *RAND_GSL=NULL;
@@ -371,7 +371,7 @@ err:
 }
 
 std::vector<double>
-get_theta(ruleset_t * rs, std::vector<Rule> & rules, std::vector<Rule> & labels, const Params &params)
+get_theta(Ruleset * rs, std::vector<Rule> & rules, std::vector<Rule> & labels, const Params &params)
 {
 	/* calculate captured 0's and 1's */
 	VECTOR v0;
@@ -405,11 +405,11 @@ get_theta(ruleset_t * rs, std::vector<Rule> & rules, std::vector<Rule> & labels,
 	return (theta);
 }
 
-ruleset_t *
+Ruleset *
 run_mcmc(int iters, int nsamples, int nrules,
     std::vector<Rule> &rules, std::vector<Rule> &labels, const Params &params, double v_star, gsl_rng *RAND_GSL)
 {
-	ruleset_t *rs;
+	Ruleset *rs;
 	double jump_prob, log_post_rs;
 	int *rs_idarray, len, nsuccessful_rej;
 	int i, rarray[2], count;
@@ -503,11 +503,11 @@ err:
 	return (NULL);
 }
 
-ruleset_t *
+Ruleset *
 run_simulated_annealing(int iters, int init_size, int nsamples,
     int nrules, std::vector<Rule> & rules, std::vector<Rule> & labels, const Params &params, gsl_rng *RAND_GSL)
 {
-	ruleset_t *rs;
+	Ruleset *rs;
 	double jump_prob;
 	int dummy, i, j, k, iter, iters_per_step, *rs_idarray = NULL, len;
 	double log_post_rs, max_log_posterior = -1e9, prefix_bound = 0.0;
@@ -583,7 +583,7 @@ err:
 }
 
 double
-compute_log_posterior(ruleset_t *rs, std::vector<Rule> &rules, int nrules, std::vector<Rule> &labels,
+compute_log_posterior(Ruleset *rs, std::vector<Rule> &rules, int nrules, std::vector<Rule> &labels,
     const Params &params, int ifPrint, int length4bound, double *prefix_bound)
 {
 
@@ -662,7 +662,7 @@ compute_log_posterior(ruleset_t *rs, std::vector<Rule> &rules, int nrules, std::
 }
 
 int
-ruleset_proposal(ruleset_t * rs, int nrules,
+ruleset_proposal(Ruleset * rs, int nrules,
     int *ndx1, int *ndx2, char *stepchar, double *jumpRatio, gsl_rng *RAND_GSL){
 	static double MOVEPROBS[15] = {
 		0.0, 1.0, 0.0,
