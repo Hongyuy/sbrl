@@ -117,7 +117,7 @@ rules_init(const std::string &infile, std::vector<Rule> &rules_ret,
 		rules_ret[0].support = sample_cnt;
 		rules_ret[0].features = (char*)"default";
 		rules_ret[0].cardinality = 0;
-		if (make_default(rules_ret[0].truthtable, sample_cnt) != 0)
+		if (rules_ret[0].truthtable.make_default(sample_cnt) != 0)
 		    goto err;
 	}
 	if (nrules_expected != rules_ret.size())
@@ -285,12 +285,12 @@ ascii_to_vector(const char *line, size_t len, int &nsamples, int &nones, BitVec 
  * Create the truthtable for a default rule -- that is, it captures all samples.
  */
 int
-make_default(BitVec &ttp, int len)
+BitVec::make_default(int len)
 {
 #ifdef GMP
-	mpz_init2(ttp.vec, len);
-	mpz_ui_pow_ui(ttp.vec, 2, (unsigned long)len);
-	mpz_sub_ui (ttp.vec, ttp.vec, 1);
+	mpz_init2(this->vec, len);
+	mpz_ui_pow_ui(this->vec, 2, (unsigned long)len);
+	mpz_sub_ui (this->vec, this->vec, 1);
 	return (0);
 #else
 	BitVec tt;
@@ -337,7 +337,7 @@ ruleset_init(int nrs_rules,
 	rs->n_rules = 0;
 	rs->n_alloc = nrs_rules;
 	rs->n_samples = nsamples;
-	make_default(not_captured, nsamples);
+	not_captured.make_default(nsamples);
 
 	cnt = nsamples;
 	for (i = 0; i < nrs_rules; i++) {
