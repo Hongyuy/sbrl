@@ -84,4 +84,8 @@ data_test <- tictactoe[(b+1):nrow(tictactoe), ]
 # Make predictions on the test set
   yhat <- predict(sbrl_model, data_test)
 # yhat will be a list of predicted negative and positive probabilities for the test data. 
+
+#clean up
+rm(list = ls())
+gc()
 }

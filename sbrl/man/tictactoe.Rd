@@ -32,4 +32,8 @@ https://archive.ics.uci.edu/ml/datasets/Tic-Tac-Toe+Endgame
 \examples{
 data(tictactoe)
 ## maybe str(tictactoe) ; plot(tictactoe) ...
+
+#clean up
+rm(list = ls())
+gc()
 }

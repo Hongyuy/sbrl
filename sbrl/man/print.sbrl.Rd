@@ -43,4 +43,8 @@ data_test <- tictactoe[(b+1):nrow(tictactoe), ]
    minsupport_pos=0.10, minsupport_neg=0.10, 
    lambda=10.0, eta=1.0, nchain=25)
   print(sbrl_model)
+
+#clean up
+rm(list = ls())
+gc()
 }
