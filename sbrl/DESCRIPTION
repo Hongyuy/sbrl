@@ -2,7 +2,7 @@ Package: sbrl
 Type: Package
 Title: Scalable Bayesian Rule Lists Model
 Version: 1.4
-Date: 2024-03-21
+Date: 2024-04-07
 Authors@R: c(person("Hongyu", "Yang", role = c("aut", "cre"),
 		     email = "edwardyhy1@gmail.com"),
 	      person("Morris", "Chen", role = "ctb",
