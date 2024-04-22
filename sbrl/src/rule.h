@@ -122,6 +122,7 @@ struct BitVec {
 		this->vec->_mp_size = other.vec->_mp_size;
 		this->vec->_mp_d = other.vec->_mp_d;
 		other.vec->_mp_d = nullptr;
+		return *this;
 	}
 	~BitVec() { if (vec->_mp_d) rule_vfree(); }
 private:
@@ -151,14 +152,15 @@ struct RulesetEntry {
     RulesetEntry(const RulesetEntry &other) = delete;
 	RulesetEntry& operator= (const RulesetEntry &other) = delete;
     RulesetEntry(RulesetEntry &&other): rule_id{other.rule_id}, ncaptured{other.ncaptured}, captures{std::move(other.captures)} {
-		other.rule_id = -1;
+		other.rule_id = (unsigned int)-1;
 	}
 	RulesetEntry& operator= (RulesetEntry &&other) {
 		if (this == &other) return *this;
 		this->rule_id = other.rule_id;
 		this->ncaptured = other.ncaptured;
 		this->captures = std::move(other.captures);
-		other.rule_id = -1;
+		other.rule_id = (unsigned int)-1;
+		return *this;
 	}
 };
 

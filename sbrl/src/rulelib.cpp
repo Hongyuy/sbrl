@@ -144,6 +144,8 @@ rules_free(std::vector<Rule> &rules, const int nrules, int add_default) {
 int
 BitVec::rule_vinit(int len)
 {
+	if (len <= 0)
+		throw std::runtime_error("invalid len");
 #ifdef GMP
 	mpz_init2(this->vec, len);
 #else
