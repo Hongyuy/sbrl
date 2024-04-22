@@ -86,17 +86,17 @@ struct Rule {
 	VECTOR truthtable;		/* Truth table; one bit per sample. */
 };
 
-typedef struct ruleset_entry {
+struct RulesetEntry {
 	unsigned rule_id;
 	int ncaptured;			/* Number of 1's in bit vector. */
 	VECTOR captures;		/* Bit vector. */
-} ruleset_entry_t;
+};
 
 typedef struct ruleset {
 	int n_rules;			/* Number of actual rules. */
 	int n_alloc;			/* Spaces allocated for rules. */
 	int n_samples;
-	ruleset_entry_t * rules;	/* Array of rules. */
+	RulesetEntry * rules;	/* Array of rules. */
 } ruleset_t;
 
 struct Params {
@@ -149,7 +149,7 @@ int pick_random_rule(int, ruleset_t *, gsl_rng *);
 
 void ruleset_destroy(ruleset_t *);
 //void ruleset_print(ruleset_t *, Rule *, int);
-//void ruleset_entry_print(ruleset_entry_t *, int, int);
+//void ruleset_entry_print(RulesetEntry *, int, int);
 int create_random_ruleset(int, int, int, std::vector<Rule> &, ruleset_t **, gsl_rng *);
 
 int rules_init(const char *, int &, int &, std::vector<Rule> &, int);

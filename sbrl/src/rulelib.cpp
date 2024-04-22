@@ -363,7 +363,7 @@ ruleset_init(int nrs_rules,
 	int cnt, i;
 	// Rule *cur_rule;
 	ruleset_t *rs;
-	ruleset_entry_t *cur_re;
+	RulesetEntry *cur_re;
 	VECTOR not_captured;
 
 	/*
@@ -373,13 +373,13 @@ ruleset_init(int nrs_rules,
 	if (rs == NULL)
 		return (errno);
     else {
-        rs->rules = (ruleset_entry_t*)malloc(nrs_rules * sizeof(ruleset_entry_t));
+        rs->rules = (RulesetEntry*)malloc(nrs_rules * sizeof(RulesetEntry));
         if (rs->rules == NULL)
             return (errno);
     }
 	/*
 	 * Allocate the ruleset at the front of the structure and then
-	 * the ruleset_entry_t array at the end.
+	 * the RulesetEntry array at the end.
 	 */
 	rs->n_rules = 0;
 	rs->n_alloc = nrs_rules;
@@ -449,7 +449,7 @@ ruleset_copy(ruleset_t **ret_dest, ruleset_t *src)
 
 	if ((dest = (ruleset_t*)malloc(sizeof(ruleset_t))) == NULL)
 		return (errno);
-    else if ((dest->rules = (ruleset_entry_t*)malloc(src->n_rules * sizeof(ruleset_entry_t)))==NULL)
+    else if ((dest->rules = (RulesetEntry*)malloc(src->n_rules * sizeof(RulesetEntry)))==NULL)
         return (errno);
 	dest->n_alloc = src->n_rules;
 	dest->n_rules = src->n_rules;
@@ -486,13 +486,13 @@ ruleset_add(std::vector<Rule> &rules, int nrules, ruleset_t **rsp, int newrule, 
 {
 	int i, cnt;
 	ruleset_t *rs;
-	ruleset_entry_t *expand, *cur_re;
+	RulesetEntry *expand, *cur_re;
 	VECTOR not_caught;
 
 	rs = *rsp;
 	/* Check for space. */
 	if (rs->n_alloc < rs->n_rules + 1) {
-		expand = (ruleset_entry_t*)realloc(rs->rules, (rs->n_rules + 1) * sizeof(ruleset_entry_t));
+		expand = (RulesetEntry*)realloc(rs->rules, (rs->n_rules + 1) * sizeof(RulesetEntry));
 		if (expand == NULL)
 			return (errno);
 		rs->rules = expand;
@@ -517,7 +517,7 @@ ruleset_add(std::vector<Rule> &rules, int nrules, ruleset_t **rsp, int newrule, 
 	 */
 	if (ndx != rs->n_rules) {
 		memmove(rs->rules + (ndx + 1), rs->rules + ndx,
-		    sizeof(ruleset_entry_t) * (rs->n_rules - ndx));
+		    sizeof(RulesetEntry) * (rs->n_rules - ndx));
 	}
 
 	/* Insert and initialize the new rule. */
@@ -557,7 +557,7 @@ ruleset_delete(std::vector<Rule> &rules, int nrules, ruleset_t *rs, int ndx)
 {
 	int i, nset;
 	VECTOR tmp_vec;
-	ruleset_entry_t *old_re, *cur_re;
+	RulesetEntry *old_re, *cur_re;
 
 	/* Compute new captures for all rules following the one at ndx.  */
 	old_re = rs->rules + ndx;
@@ -590,7 +590,7 @@ ruleset_delete(std::vector<Rule> &rules, int nrules, ruleset_t *rs, int ndx)
 	/* Shift up cells if necessary. */
 	if (ndx != rs->n_rules - 1)
 		memmove(rs->rules + ndx, rs->rules + ndx + 1,
-		    sizeof(ruleset_entry_t) * (rs->n_rules - 1 - ndx));
+		    sizeof(RulesetEntry) * (rs->n_rules - 1 - ndx));
 
 	rs->n_rules--;
 	return;
@@ -676,7 +676,7 @@ ruleset_swap(ruleset_t *rs, int i, int j, std::vector<Rule> &rules)
 {
 	int nset;
 	VECTOR tmp_vec;
-	ruleset_entry_t re;
+	RulesetEntry re;
 
 	assert(i < (rs->n_rules - 1));
 	assert(j < (rs->n_rules - 1));
@@ -910,7 +910,7 @@ rule_ff1(VECTOR v, int start_pos, int len)
 //}
 
 //void
-//ruleset_entry_print(ruleset_entry_t *re, int n, int detail)
+//ruleset_entry_print(RulesetEntry *re, int n, int detail)
 //{
 //	printf("%d captured; \n", re->ncaptured);
 //	if (detail)
