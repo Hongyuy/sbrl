@@ -482,7 +482,7 @@ Ruleset
 Ruleset::create_random_ruleset(int size,
     int nsamples, int nrules, std::vector<Rule> &rules, gsl_rng *RAND_GSL)
 {
-	int i, j, next, ret;
+	int i, j, next;
 	std::vector<int> ids;
 
 	for (i = 0; i < (size - 1); i++) {
@@ -511,7 +511,7 @@ Ruleset::create_random_ruleset(int size,
 int
 Ruleset::pick_random_rule(int nrules, gsl_rng *RAND_GSL) const
 {
-	int cnt, j, new_rule;
+	int cnt, new_rule;
 
 	cnt = 0;
 pickrule:

@@ -48,7 +48,6 @@ void load_data2(Data &data, Rcpp::StringVector ruleNames, Rcpp::StringVector lab
                       Rcpp::StringVector ruleNames, Rcpp::StringVector labelNames, Rcpp::IntegerMatrix ruleTruthTables, Rcpp::IntegerMatrix labelTruthTables) {
 //        Rprintf("training!\n");
 	Data	data, data2;
-	int	ret;
 	struct timeval tv_acc, tv_start, tv_end;
 	std::string df = Rcpp::as<std::string>(dataFile[0]);
 	std::string lf = Rcpp::as<std::string>(labelFile[0]);
