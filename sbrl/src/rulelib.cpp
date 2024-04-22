@@ -100,7 +100,7 @@ rules_init(const std::string &infile, std::vector<Rule> &rules_ret,
 		 * let's make it NUL-terminated and shorten the line length
 		 * by one.
 		 */
-		if (ascii_to_vector(truthTable, truthTableLen, sample_cnt, ones, rule.truthtable) != 0)
+		if (rule.truthtable.set_vector_from_ascii(truthTable, truthTableLen, sample_cnt, ones) != 0)
 			throw std::runtime_error("failed to parse rule name and truethtable");
 		rule.support = ones;
 
@@ -182,21 +182,21 @@ BitVec::rule_vfree()
  * GMP functions if we're using the GMP library.
  */
 int
-ascii_to_vector(const char *line, size_t len, int &nsamples, int &nones, BitVec &ret)
+BitVec::set_vector_from_ascii(const char *line, size_t len, int &nsamples, int &nones)
 {
 #ifdef GMP
 	int retval;
 	size_t s;
 
-	if (mpz_init_set_str(ret.vec, line, 2) != 0) {
+	if (mpz_init_set_str(this->vec, line, 2) != 0) {
 		retval = errno;
-		mpz_clear(ret.vec);
+		mpz_clear(this->vec);
 		return (retval);
 	}
-	if ((s = mpz_sizeinbase (ret.vec, 2)) > (size_t) nsamples)
+	if ((s = mpz_sizeinbase (this->vec, 2)) > (size_t) nsamples)
 		nsamples = (int) s;
 		
-	nones = mpz_popcount(ret.vec);
+	nones = mpz_popcount(this->vec);
 	return (0);
 #else
 	/*
