@@ -325,7 +325,6 @@ get_theta(Ruleset &rs, std::vector<Rule> & rules, std::vector<Rule> & labels, co
 //			printf("theta[%d] = %.8f\n", j, theta[j]);
 //		}
 	}
-	v0.rule_vfree();
 	return (theta);
 }
 
@@ -552,7 +551,6 @@ compute_log_posterior(Ruleset &rs, std::vector<Rule> &rules, int nrules, std::ve
 //	if (debug > 20)
 //		printf("log_prior = %6f\t log_likelihood = %6f\n",
 //		    log_prior, log_likelihood);
-	v0.rule_vfree();
 	return (log_prior + log_likelihood);
 }
 

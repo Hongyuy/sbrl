@@ -105,10 +105,11 @@ struct BitVec {
 	int rule_ff1(int, int);
 	int rule_isset(int);
 	int rule_vinit(int);
-	int rule_vfree();
 	int count_ones_vector(int);
 	void rule_copy(BitVec &, int);
 	int make_default(int);
+private:
+	int rule_vfree();
 };
 
 struct Rule {

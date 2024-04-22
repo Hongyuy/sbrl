@@ -133,12 +133,10 @@ rules_free(std::vector<Rule> &rules, const int nrules, int add_default) {
 	/* Cannot free features for default rule. */
 	start = 0;
 	if (add_default) {
-		rules[0].truthtable.rule_vfree();
 		start = 1;
 	}
 
 	for (i = start; i < nrules; i++) {
-		rules[i].truthtable.rule_vfree();
 	}
 	// free(rules);
 }
@@ -333,8 +331,6 @@ Ruleset::ruleset_init(
 		    rs.entries[i].captures, nsamples, cnt);
 	}
 	assert(cnt==0);
-
-	(void)not_captured.rule_vfree();
 	return rs;
 }
 
@@ -439,7 +435,6 @@ Ruleset::ruleset_add(std::vector<Rule> &rules, int nrules, int newrule, int ndx)
 		rule_vandnot(not_caught,
 		    not_caught, cur_re->captures, this->n_samples, cnt);
 	}
-	not_caught.rule_vfree();
 	if (cnt != 0)
 		throw std::runtime_error("ruleset_add failed");
 }
@@ -478,10 +473,6 @@ Ruleset::ruleset_delete(std::vector<Rule> &rules, int nrules, int ndx)
 		rule_vandnot(old_re->captures, old_re->captures,
 		    cur_re->captures, this->n_samples, nset);
 	}
-
-	/* Now remove alloc'd data for rule at ndx and for tmp_vec. */
-	tmp_vec.rule_vfree();
-	this->entries[ndx].captures.rule_vfree();
 
 	/* Shift up cells if necessary. */
 	if (ndx != n_rules - 1)
@@ -597,8 +588,6 @@ Ruleset::ruleset_swap(int i, int j, std::vector<Rule> &rules)
 
 	/* Now swap the two entries */
 	std::swap(this->entries[i], this->entries[j]);
-
-	tmp_vec.rule_vfree();
 }
 
 void
@@ -648,8 +637,6 @@ Ruleset::ruleset_swap_any(int i, int j, std::vector<Rule> & rules)
 	}
 	assert(temp == 0);
 	assert(cnt == cnt_check);
-
-	caught.rule_vfree();
 }
 
 /*
@@ -720,7 +707,6 @@ rule_vandnot(BitVec &dest, BitVec &src1, BitVec &src2, int nsamples, int &ret_cn
 	mpz_and(dest.vec, src1.vec, tmp.vec);
 	ret_cnt = 0;
 	ret_cnt = mpz_popcount(dest.vec);
-	tmp.rule_vfree();
 #else
 	int i, count, nentries;
 
