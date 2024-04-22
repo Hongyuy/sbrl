@@ -385,7 +385,7 @@ get_theta(Ruleset * rs, std::vector<Rule> & rules, std::vector<Rule> & labels, c
 		int n0, n1;
 
 		rule_vand(v0, rs->entries[j].captures,
-		    labels[0].truthtable, rs->n_samples, &n0);
+		    labels[0].truthtable, rs->n_samples, n0);
 		n1 = rs->entries[j].ncaptured - n0;
 		theta[j] = (n1 + params.alpha[1]) * 1.0 /
 		    (n1 + n0 + params.alpha[0] + params.alpha[1]);
@@ -629,7 +629,7 @@ compute_log_posterior(Ruleset *rs, std::vector<Rule> &rules, int nrules, std::ve
 		int n0, n1;	 // Count of 0's; count of 1's
 
 		rule_vand(v0, rs->entries[j].captures,
-		    labels[0].truthtable, rs->n_samples, &n0);
+		    labels[0].truthtable, rs->n_samples, n0);
 		n1 = rs->entries[j].ncaptured - n0;
 		log_likelihood += log_gammas[n0 + a0] +
 		    log_gammas[n1 + a1] - 

@@ -344,10 +344,10 @@ ruleset_init(int nrs_rules,
 			goto err1;
 		rs->n_rules++;
 		rule_vand(cur_re->captures, not_captured,
-		    cur_rule->truthtable, nsamples, &cur_re->ncaptured);
+		    cur_rule->truthtable, nsamples, cur_re->ncaptured);
 
 		rule_vandnot(not_captured, not_captured,
-		    rs->entries[i].captures, nsamples, &cnt);
+		    rs->entries[i].captures, nsamples, cnt);
 	}
 	assert(cnt==0);
 
@@ -444,7 +444,7 @@ ruleset_add(std::vector<Rule> &rules, int nrules, Ruleset **rsp, int newrule, in
 	rule_vinit(rs->n_samples, &not_caught);
 	for (i = ndx; i < rs->n_rules; i++)
 	    rule_vor(not_caught,
-	        not_caught, rs->entries[i].captures, rs->n_samples, &cnt);
+	        not_caught, rs->entries[i].captures, rs->n_samples, cnt);
 
 
 	/*
@@ -476,10 +476,10 @@ ruleset_add(std::vector<Rule> &rules, int nrules, Ruleset **rsp, int newrule, in
 		 */
 		rule_vand(cur_re->captures,
 		    not_caught, rules[cur_re->rule_id].truthtable,
-		    rs->n_samples, &cur_re->ncaptured);
+		    rs->n_samples, cur_re->ncaptured);
 
 		rule_vandnot(not_caught,
-		    not_caught, cur_re->captures, rs->n_samples, &cnt);
+		    not_caught, cur_re->captures, rs->n_samples, cnt);
 	}
 	assert(cnt == 0);
 	rule_vfree(&not_caught);
@@ -509,16 +509,16 @@ ruleset_delete(std::vector<Rule> &rules, int nrules, Ruleset *rs, int ndx)
 		 */
 		auto cur_re = &rs->entries[i];
 		rule_vand(tmp_vec, rules[cur_re->rule_id].truthtable,
-		    old_re->captures, rs->n_samples, &nset);
+		    old_re->captures, rs->n_samples, nset);
 		rule_vor(cur_re->captures, cur_re->captures,
-		    tmp_vec, rs->n_samples, &rs->entries[i].ncaptured);
+		    tmp_vec, rs->n_samples, rs->entries[i].ncaptured);
 
 		/*
 		 * Now remove the ones from old_re->captures that just got set
 		 * for rule i because they should not be captured later.
 		 */
 		rule_vandnot(old_re->captures, old_re->captures,
-		    cur_re->captures, rs->n_samples, &nset);
+		    cur_re->captures, rs->n_samples, nset);
 	}
 
 	/* Now remove alloc'd data for rule at ndx and for tmp_vec. */
@@ -625,14 +625,14 @@ ruleset_swap(Ruleset *rs, int i, int j, std::vector<Rule> &rules)
 
 	/* tmp_vec =  i.captures & j.tt */
 	rule_vand(tmp_vec, rs->entries[i].captures,
-	    rules[rs->entries[j].rule_id].truthtable, rs->n_samples, &nset);
+	    rules[rs->entries[j].rule_id].truthtable, rs->n_samples, nset);
 	/* j.captures = j.captures | tmp_vec */
 	rule_vor(rs->entries[j].captures, rs->entries[j].captures,
-	    tmp_vec, rs->n_samples, &rs->entries[j].ncaptured);
+	    tmp_vec, rs->n_samples, rs->entries[j].ncaptured);
 
 	/* i.captures = i.captures & ~j.captures */
 	rule_vandnot(rs->entries[i].captures, rs->entries[i].captures,
-	    rs->entries[j].captures, rs->n_samples, &rs->entries[i].ncaptured);
+	    rs->entries[j].captures, rs->n_samples, rs->entries[i].ncaptured);
 
 	/* Now swap the two entries */
 	re = rs->entries[i];
@@ -671,7 +671,7 @@ ruleset_swap_any(Ruleset * rs, int i, int j, std::vector<Rule> & rules)
 
 	for (k = i; k <= j; k++)
 		rule_vor(caught,
-		    caught, rs->entries[k].captures, rs->n_samples, &cnt);
+		    caught, rs->entries[k].captures, rs->n_samples, cnt);
 
 	/* Now swap the rules in the ruleset. */
 	temp = rs->entries[i].rule_id;
@@ -686,12 +686,12 @@ ruleset_swap_any(Ruleset * rs, int i, int j, std::vector<Rule> & rules)
 		 */
 		rule_vand(rs->entries[k].captures, caught,
 		    rules[rs->entries[k].rule_id].truthtable,
-		    rs->n_samples, &rs->entries[k].ncaptured);
+		    rs->n_samples, rs->entries[k].ncaptured);
 		cnt_check += rs->entries[k].ncaptured;
 
 		/* Now remove the caught items from the caught vector. */
 		rule_vandnot(caught,
-		    caught, rs->entries[k].captures, rs->n_samples, &temp);
+		    caught, rs->entries[k].captures, rs->n_samples, temp);
 	}
 	assert(temp == 0);
 	assert(cnt == cnt_check);
@@ -703,12 +703,12 @@ ruleset_swap_any(Ruleset * rs, int i, int j, std::vector<Rule> & rules)
  * Dest must have been created.
  */
 void
-rule_vand(VECTOR dest, VECTOR src1, VECTOR src2, int nsamples, int *cnt)
+rule_vand(VECTOR dest, VECTOR src1, VECTOR src2, int nsamples, int &cnt)
 {
 #ifdef GMP
 	mpz_and(dest, src1, src2);
-	*cnt = 0;
-	*cnt = mpz_popcount(dest);
+	cnt = 0;
+	cnt = mpz_popcount(dest);
 #else
 	int i, count, nentries;
 
@@ -719,19 +719,19 @@ rule_vand(VECTOR dest, VECTOR src1, VECTOR src2, int nsamples, int *cnt)
 		dest[i] = src1[i] & src2[i];
 		count += count_ones(dest[i]);
 	}
-	*cnt = count;
+	cnt = count;
 	return;
 #endif
 }
 
 /* Dest must have been created. */
 void
-rule_vor(VECTOR dest, VECTOR src1, VECTOR src2, int nsamples, int *cnt)
+rule_vor(VECTOR dest, VECTOR src1, VECTOR src2, int nsamples, int &cnt)
 {
 #ifdef GMP
 	mpz_ior(dest, src1, src2);
-	*cnt = 0;
-	*cnt = mpz_popcount(dest);
+	cnt = 0;
+	cnt = mpz_popcount(dest);
 #else
 	int i, count, nentries;
 
@@ -742,7 +742,7 @@ rule_vor(VECTOR dest, VECTOR src1, VECTOR src2, int nsamples, int *cnt)
 		dest[i] = src1[i] | src2[i];
 		count += count_ones(dest[i]);
 	}
-	*cnt = count;
+	cnt = count;
 
 	return;
 #endif
@@ -758,7 +758,7 @@ rule_vor(VECTOR dest, VECTOR src1, VECTOR src2, int nsamples, int *cnt)
  */
 void
 rule_vandnot(VECTOR dest,
-    VECTOR src1, VECTOR src2, int nsamples, int *ret_cnt)
+    VECTOR src1, VECTOR src2, int nsamples, int &ret_cnt)
 {
 #ifdef GMP
 	mpz_t tmp;
@@ -766,8 +766,8 @@ rule_vandnot(VECTOR dest,
 	rule_vinit(nsamples, &tmp);
 	mpz_com(tmp, src2);
 	mpz_and(dest, src1, tmp);
-	*ret_cnt = 0;
-	*ret_cnt = mpz_popcount(dest);
+	ret_cnt = 0;
+	ret_cnt = mpz_popcount(dest);
 	rule_vfree(&tmp);
 #else
 	int i, count, nentries;
@@ -780,7 +780,7 @@ rule_vandnot(VECTOR dest,
 		count += count_ones(dest[i]);
 	}
 
-	*ret_cnt = count;
+	ret_cnt = count;
     return;
 #endif
 }

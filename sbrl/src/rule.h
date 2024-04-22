@@ -172,9 +172,9 @@ int rule_isset(VECTOR, int);
 int rule_vinit(int, VECTOR *);
 int rule_vfree(VECTOR *);
 int make_default(VECTOR *, int);
-void rule_vand(VECTOR, VECTOR, VECTOR, int, int *);
-void rule_vandnot(VECTOR, VECTOR, VECTOR, int, int *);
-void rule_vor(VECTOR, VECTOR, VECTOR, int, int *);
+void rule_vand(VECTOR, VECTOR, VECTOR, int, int &);
+void rule_vandnot(VECTOR, VECTOR, VECTOR, int, int &);
+void rule_vor(VECTOR, VECTOR, VECTOR, int, int &);
 int count_ones(v_entry);
 int count_ones_vector(VECTOR, int);
 
