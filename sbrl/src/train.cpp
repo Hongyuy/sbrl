@@ -105,7 +105,7 @@ sa_accepts(double new_log_post, double old_log_post,
  * 3. Compute the log_posterior
  * 4. Call the appropriate function to determine acceptance criteria
  */
-Ruleset
+void
 propose(Ruleset &rs, std::vector<Rule> &rules, std::vector<Rule> &labels, int nrules,
     double &jump_prob, double &ret_log_post, double max_log_post,
     int &cnt, double &extra, const Params &params, gsl_rng *RAND_GSL,
@@ -162,11 +162,12 @@ propose(Ruleset &rs, std::vector<Rule> &rules, std::vector<Rule> &labels, int nr
 //	    	if (debug > 10)
 //			printf("Accepted\n");
 		ret_log_post = new_log_post;
-		return rs_new;
+		// return rs_new;
+		rs = rs_new;
 	} else {
 //	    	if (debug > 10)
 //			printf("Rejected\n");
-		return rs;
+		// return rs;
 	}
 }
 
@@ -385,7 +386,7 @@ run_mcmc(int iters, int nsamples, int nrules,
 	max_log_posterior = log_post_rs;
 
 	for (i = 0; i < iters; i++) {
-		rs = propose(rs, rules, labels, nrules, jump_prob,
+		propose(rs, rules, labels, nrules, jump_prob,
 		    log_post_rs, max_log_posterior, nsuccessful_rej,
 		    jump_prob, params, RAND_GSL, mcmc_accepts);
 
@@ -453,7 +454,7 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 	for (k = 0; k < ntimepoints; k++) {
 		double tk = T[k];
 		for (iter = 0; iter < iters_per_step; iter++) {
-    		rs = propose(rs, rules, labels, nrules, jump_prob,
+    		propose(rs, rules, labels, nrules, jump_prob,
 			    log_post_rs, max_log_posterior, dummy, tk,
 			    params, RAND_GSL, sa_accepts);
 
