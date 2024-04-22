@@ -92,6 +92,7 @@ struct BitVec {
 	int rule_vinit(int);
 	int rule_vfree();
 	int count_ones_vector(int);
+	void rule_copy(BitVec &, int);
 };
 
 struct Rule {
@@ -179,7 +180,6 @@ void rules_free(std::vector<Rule> &, const int, int);
 //void rule_print(Rule *, int, int, int);
 //void rule_print_all(Rule *, int, int);
 //void rule_vector_print(BitVec &, int);
-void rule_copy(BitVec &, BitVec &, int);
 
 int make_default(BitVec &, int);
 int ascii_to_vector(const char *, size_t, int &, int &, BitVec &);

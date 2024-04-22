@@ -397,8 +397,7 @@ ruleset_copy(Ruleset **ret_dest, Ruleset *src)
 		dest->entries[i].rule_id = src->entries[i].rule_id;
 		dest->entries[i].ncaptured = src->entries[i].ncaptured;
 		dest->entries[i].captures.rule_vinit(src->n_samples);
-		rule_copy(dest->entries[i].captures,
-		    src->entries[i].captures, src->n_samples);
+		src->entries[i].captures.rule_copy(dest->entries[i].captures, src->n_samples);
 	}
 	*ret_dest = dest;
 
@@ -593,17 +592,17 @@ pickrule:
 
 /* dest must exist */
 void
-rule_copy(BitVec &dest, BitVec &src, int len)
+BitVec::rule_copy(BitVec &dest, int len)
 {
 #ifdef GMP
-	mpz_set(dest.vec, src.vec);
+	mpz_set(dest.vec, this->vec);
 #else
 	int i, nentries;
 
-	assert(dest != NULL);
+	assert(dest.vec != NULL);
 	nentries = (len + BITS_PER_ENTRY - 1)/BITS_PER_ENTRY;
 	for (i = 0; i < nentries; i++)
-		dest[i] = src[i];
+		dest.vec[i] = this->vec[i];
 #endif
 }
 
