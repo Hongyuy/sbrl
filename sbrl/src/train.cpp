@@ -352,7 +352,7 @@ get_theta(Ruleset * rs, std::vector<Rule> & rules, std::vector<Rule> & labels, c
 	std::vector<double> theta;
 	int j;
 
-	rule_vinit(rs->n_samples, v0);
+	v0.rule_vinit(rs->n_samples);
 	theta.reserve(rs->n_rules);
 
 	for (j = 0; j < rs->n_rules; j++) {
@@ -375,7 +375,7 @@ get_theta(Ruleset * rs, std::vector<Rule> & rules, std::vector<Rule> & labels, c
 //			printf("theta[%d] = %.8f\n", j, theta[j]);
 //		}
 	}
-	rule_vfree(v0);
+	v0.rule_vfree();
 	return (theta);
 }
 
@@ -594,7 +594,7 @@ compute_log_posterior(Ruleset *rs, std::vector<Rule> &rules, int nrules, std::ve
 	double prefix_log_likelihood = 0.0;
 	int left0 = labels[0].support, left1 = labels[1].support;
 
-	rule_vinit(rs->n_samples, v0);
+	v0.rule_vinit(rs->n_samples);
 	for (j = 0; j < rs->n_rules; j++) {
 		int n0, n1;	 // Count of 0's; count of 1's
 
@@ -624,7 +624,7 @@ compute_log_posterior(Ruleset *rs, std::vector<Rule> &rules, int nrules, std::ve
 //	if (debug > 20)
 //		printf("log_prior = %6f\t log_likelihood = %6f\n",
 //		    log_prior, log_likelihood);
-	rule_vfree(v0);
+	v0.rule_vfree();
 	return (log_prior + log_likelihood);
 }
 

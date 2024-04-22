@@ -89,6 +89,8 @@ struct BitVec {
 	BitVec() {};
 	int rule_ff1(int, int);
 	int rule_isset(int);
+	int rule_vinit(int);
+	int rule_vfree();
 };
 
 struct Rule {
@@ -178,8 +180,6 @@ void rules_free(std::vector<Rule> &, const int, int);
 //void rule_vector_print(BitVec &, int);
 void rule_copy(BitVec &, BitVec &, int);
 
-int rule_vinit(int, BitVec &);
-int rule_vfree(BitVec &);
 int make_default(BitVec &, int);
 int ascii_to_vector(const char *, size_t, int &, int &, BitVec &);
 void rule_vand(BitVec &, BitVec &, BitVec &, int, int &);
