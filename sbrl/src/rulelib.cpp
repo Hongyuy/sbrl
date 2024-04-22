@@ -610,33 +610,33 @@ BitVec::rule_copy(BitVec &dest, int len)
  * 	then swap positions i and j
  */
 void
-ruleset_swap(Ruleset *rs, int i, int j, std::vector<Rule> &rules)
+Ruleset::ruleset_swap(int i, int j, std::vector<Rule> &rules)
 {
 	int nset;
 	BitVec tmp_vec;
 	RulesetEntry re;
 
-	assert(i < (rs->n_rules - 1));
-	assert(j < (rs->n_rules - 1));
+	assert(i < (this->n_rules - 1));
+	assert(j < (this->n_rules - 1));
 	assert(i + 1 == j);
 
-	tmp_vec.rule_vinit(rs->n_samples);
+	tmp_vec.rule_vinit(this->n_samples);
 
 	/* tmp_vec =  i.captures & j.tt */
-	rule_vand(tmp_vec, rs->entries[i].captures,
-	    rules[rs->entries[j].rule_id].truthtable, rs->n_samples, nset);
+	rule_vand(tmp_vec, this->entries[i].captures,
+	    rules[this->entries[j].rule_id].truthtable, this->n_samples, nset);
 	/* j.captures = j.captures | tmp_vec */
-	rule_vor(rs->entries[j].captures, rs->entries[j].captures,
-	    tmp_vec, rs->n_samples, rs->entries[j].ncaptured);
+	rule_vor(this->entries[j].captures, this->entries[j].captures,
+	    tmp_vec, this->n_samples, this->entries[j].ncaptured);
 
 	/* i.captures = i.captures & ~j.captures */
-	rule_vandnot(rs->entries[i].captures, rs->entries[i].captures,
-	    rs->entries[j].captures, rs->n_samples, rs->entries[i].ncaptured);
+	rule_vandnot(this->entries[i].captures, this->entries[i].captures,
+	    this->entries[j].captures, this->n_samples, this->entries[i].ncaptured);
 
 	/* Now swap the two entries */
-	re = rs->entries[i];
-	rs->entries[i] = rs->entries[j];
-	rs->entries[j] = re;
+	re = this->entries[i];
+	this->entries[i] = this->entries[j];
+	this->entries[j] = re;
 
 	tmp_vec.rule_vfree();
 }

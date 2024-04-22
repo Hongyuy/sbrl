@@ -124,6 +124,7 @@ struct Ruleset {
 	int pick_random_rule(int, gsl_rng *) const;
 	int ruleset_add(std::vector<Rule> &, int, int, int);
 	void ruleset_delete(std::vector<Rule> &, int, int);
+	void ruleset_swap(int, int, std::vector<Rule> &);
 	void ruleset_swap_any(int, int, std::vector<Rule> &);
 	void ruleset_destroy();
 };
@@ -169,7 +170,6 @@ struct PredModel
 // char* strsep_portable(char **, const char *);
 int ruleset_init(int, int, const std::vector<int> &, std::vector<Rule> &, Ruleset **);
 int ruleset_copy(Ruleset **, Ruleset *);
-void ruleset_swap(Ruleset *, int, int, std::vector<Rule> &);
 
 //void ruleset_print(Ruleset *, Rule *, int);
 //void ruleset_entry_print(RulesetEntry *, int, int);
