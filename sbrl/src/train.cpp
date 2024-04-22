@@ -246,7 +246,6 @@ compute_cardinality(std::vector<Rule> &rules, int nrules)
 PredModel
 train(Data &train_data, int initialization, int method, const Params &params)
 {
-	PredModel pred_model;
 	int chain;
 	double max_pos, pos_temp, null_bound;
 	std::vector<int> default_rule(1, 0);
@@ -279,21 +278,9 @@ train(Data &train_data, int initialization, int method, const Params &params)
 			max_pos = pos_temp;
 		}
 	}
-
-	pred_model.theta =
-	    get_theta(rs, train_data.rules, train_data.labels, params);
-	pred_model.rs = std::move(rs);
-
-	/*
-	 * THIS IS INTENTIONAL -- makes error handling localized.
-	 * If we branch to err, then we want to free an allocated model;
-	 * if we fall through naturally, then we don't.
-	 */
-err:
-	/* Free allocated memory. */
+	const auto thetas = get_theta(rs, train_data.rules, train_data.labels, params);
     gsl_rng_free(RAND_GSL);
-    
-	return (pred_model);
+	return { rs.backup(), thetas, {} };
 }
 
 std::vector<double>

@@ -96,6 +96,8 @@ struct Permutations {
 	int permute_ndx;
 	Permutations(int nrules, gsl_rng *RAND_GSL);
 	~Permutations() { if (ptr) free(ptr); }
+	Permutations(const Permutations&) = delete;
+	Permutations& operator=(const Permutations&) = delete;
 	permute_t & operator [](int i) {return ptr[i];}
 };
 
@@ -168,7 +170,7 @@ struct Ruleset {
 	int n_samples;
 	std::vector<RulesetEntry> entries;	/* Array of rules. */
 	Ruleset() = default;
-	Ruleset(int nsamp): n_samples{nsamp} {}
+	Ruleset(int nsamp): n_samples{nsamp}, entries{} {}
     Ruleset(const Ruleset &other) = delete;
 	Ruleset& operator= (const Ruleset &other) = delete;
 	Ruleset(Ruleset &&other) = default;
@@ -215,15 +217,9 @@ typedef struct interval {
 // } pred_model_t;
 struct PredModel
 {
-	Ruleset rs;							/* best ruleset. */
-	std::vector<double> theta;
+	std::vector<int> ids;							/* best ruleset. */
+	std::vector<double> thetas;
 	std::vector<interval_t>confIntervals;
-
-	PredModel() = default;
-    PredModel(const PredModel &other) = delete;
-	PredModel& operator= (const PredModel &other) = delete;
-	PredModel(PredModel &&other) = default;
-	PredModel& operator= (PredModel &&other) = default;
 };
 
 /*
