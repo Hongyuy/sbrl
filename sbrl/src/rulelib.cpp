@@ -517,15 +517,19 @@ Ruleset::create_random_ruleset(int size,
     int nsamples, int nrules, std::vector<Rule> &rules, gsl_rng *RAND_GSL)
 {
 	int i, j, next, ret;
-	std::vector<int> ids(size, 0);
+	std::vector<int> ids;
 
 	for (i = 0; i < (size - 1); i++) {
-try_again:	next = RANDOM_RANGE(1, (nrules - 1), RAND_GSL);
-		/* Check for duplicates. */
-		for (j = 0; j < i; j++)
-			if (ids[j] == next)
-				goto try_again;
-		ids[i] = next;
+		next = RANDOM_RANGE(1, (nrules - 1), RAND_GSL);
+		do {
+			next = RANDOM_RANGE(1, (nrules - 1), RAND_GSL);
+			/* Check for duplicates. */
+			for (j = 0; j < i; j++)
+				if (ids[j] == next)
+					break;
+		}
+		while (j != i);
+		ids.push_back(next);
 	}
 
 	/* Always put rule 0 (the default) as the last rule. */
