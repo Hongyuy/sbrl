@@ -180,19 +180,15 @@ void R_init_sbrl(DllInfo *dll)
 int
 load_data(std::string &data_file, std::string &label_file, Data &data)
 {
-        int ret, add_default_rule;
+        int add_default_rule;
 
         /* Load data. */
         add_default_rule = 1;
         data.nrules++;
-        if ((ret = rules_init(data_file, data.rules, data.nrules, data.nsamples, add_default_rule)) != 0)
-                return (ret);
+        rules_init(data_file, data.rules, data.nrules, data.nsamples, add_default_rule);
 
         /* Load labels. */
         add_default_rule = 0;
-        if ((ret = rules_init(label_file, data.labels, 2, data.nsamples, add_default_rule)) != 0) {
-                // free (*rules);
-                return (ret);
-        }
+        rules_init(label_file, data.labels, 2, data.nsamples, add_default_rule);
         return (0);
 }

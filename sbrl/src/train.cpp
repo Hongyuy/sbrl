@@ -64,7 +64,7 @@ struct Permutations {
 	permute_t * ptr;
 	~Permutations() { if (ptr) free(ptr); }
 	permute_t & operator [](int i) {return ptr[i];}
-	int permute_rules(int nrules, gsl_rng *RAND_GSL);
+	void permute_rules(int nrules, gsl_rng *RAND_GSL);
 };
 static Permutations rule_permutation;
 static int permute_ndx;
@@ -187,7 +187,7 @@ propose(Ruleset &rs, std::vector<Rule> &rules, std::vector<Rule> &labels, int nr
 }
 
 /********** End of proposal routines *******/
-int
+void
 compute_log_gammas(int nsamples, const Params &params)
 {
 	int i, max;
@@ -204,10 +204,9 @@ compute_log_gammas(int nsamples, const Params &params)
 	log_gammas = std::vector<double>(max);
 	for (i = 1; i < max; i++)
 		log_gammas[i] = gsl_sf_lngamma((double)i);
-	return (0);
 }
 
-int
+void
 compute_pmf(int nrules, const Params &params)
 {
 	int i;
@@ -238,8 +237,6 @@ compute_pmf(int nrules, const Params &params)
 
 //	if (debug > 10)
 //		printf("eta_norm(Beta_Z) = %6f\n", eta_norm);
-
-	return (0);
 }
 
 void
@@ -274,17 +271,14 @@ train(Data &train_data, int initialization, int method, const Params &params)
     /* initialize random number generator for some distributions. */
     init_gsl_rand_gen(&RAND_GSL);
     
-	if (compute_pmf(train_data.nrules, params) != 0)
-		goto err;
+	compute_pmf(train_data.nrules, params);
 	compute_cardinality(train_data.rules, train_data.nrules);
 
-	if (compute_log_gammas(train_data.nsamples, params) != 0)
-		goto err;
+	compute_log_gammas(train_data.nsamples, params);
 
 	max_pos = compute_log_posterior(rs, train_data.rules,
 	    train_data.nrules, train_data.labels, params, 1, -1, null_bound);
-	if (rule_permutation.permute_rules(train_data.nrules, RAND_GSL) != 0)
-		goto err;
+	rule_permutation.permute_rules(train_data.nrules, RAND_GSL);
 
 	for (chain = 0; chain < params.nchain; chain++) {
 		auto rs_temp = run_mcmc(params.iters,
@@ -692,18 +686,17 @@ unsigned RANDOM_RANGE(int lo, int hi, gsl_rng *RAND_GSL) { return (unsigned)(lo 
 
 int permute_cmp(const void *v1, const void *v2) { return ((permute_t *)v1)->val - ((permute_t *)v2)->val; }
 
-int Permutations::permute_rules(int nrules, gsl_rng *RAND_GSL)
+void Permutations::permute_rules(int nrules, gsl_rng *RAND_GSL)
 {
 	int i;
 	if (ptr != NULL)
-		return (-1);
+		throw std::runtime_error("Permutations: double initialization");
 	if ((ptr = (permute_t*)malloc(sizeof(permute_t) * nrules)) == NULL)
-		return (-1);
+		throw std::runtime_error("Permutations: malloc failed");
 	for (i = 0; i < nrules; i++) {
 		ptr[i].val = my_rng(RAND_GSL);
 		ptr[i].ndx = i;
 	}
 	qsort(ptr+1, nrules-1, sizeof(permute_t), permute_cmp);
 	permute_ndx = 1;
-	return (0);
 }

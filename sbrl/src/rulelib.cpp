@@ -71,7 +71,7 @@ int byte_ones[] = {
  * OUTPUTS: an array of Rule's
  */
 
-int
+void
 rules_init(const std::string &infile, std::vector<Rule> &rules_ret,
            const int nrules_expected, const int nsamples_expected, const int add_default_rule)
 {
@@ -89,7 +89,7 @@ rules_init(const std::string &infile, std::vector<Rule> &rules_ret,
 		/* Get the rule string; line will contain the bits. */
 		const auto pos = linestr.find(' ');
 		if (pos == std::string::npos)
-			goto err;
+			throw std::runtime_error("failed to parse rule name and truethtable");
 		rules_ret.push_back({});
 		auto &rule = rules_ret.back();
 		rule.features = linestr.substr(0, pos);
@@ -102,7 +102,7 @@ rules_init(const std::string &infile, std::vector<Rule> &rules_ret,
 		 * by one.
 		 */
 		if (ascii_to_vector(truthTable, truthTableLen, sample_cnt, ones, rule.truthtable) != 0)
-		    	goto err;
+			throw std::runtime_error("failed to parse rule name and truethtable");
 		rule.support = ones;
 
 		/* Now compute the number of clauses in the rule. */
@@ -118,22 +118,12 @@ rules_init(const std::string &infile, std::vector<Rule> &rules_ret,
 		rules_ret[0].features = (char*)"default";
 		rules_ret[0].cardinality = 0;
 		if (rules_ret[0].truthtable.make_default(sample_cnt) != 0)
-		    goto err;
+			throw std::runtime_error("failed to make_default: default rule");
 	}
 	if (nrules_expected != rules_ret.size())
-	{
-		Rprintf("fatal: (nrules_expected) %d != %d", nrules_expected, rules_ret.size());
-		return (-1);
-	}
+		throw std::runtime_error("nrules does not match expected");
 	if (nsamples_expected != sample_cnt)
-	{
-		Rprintf("fatal: (nsamples_expected) %d != %d", nsamples_expected, sample_cnt);
-		return (-1);
-	}
-	return (0);
-
-err:
-	return (errno);
+		throw std::runtime_error("sample_cnt does not match expected");
 }
 
 void
@@ -337,7 +327,7 @@ Ruleset::ruleset_init(int nrs_rules,
 		cur_re->rule_id = idarray[i];
 
 		if (cur_re->captures.rule_vinit(nsamples) != 0)
-			goto err1;
+			throw std::runtime_error("failed to rule_vinit");
 		rs.n_rules++;
 		rule_vand(cur_re->captures, not_captured,
 		    cur_rule->truthtable, nsamples, cur_re->ncaptured);
@@ -349,11 +339,6 @@ Ruleset::ruleset_init(int nrs_rules,
 
 	(void)not_captured.rule_vfree();
 	return rs;
-
-err1:
-	(void)not_captured.rule_vfree();
-	rs.ruleset_destroy();
-	return (ENOMEM);
 }
 
 /*
