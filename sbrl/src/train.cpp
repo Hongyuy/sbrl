@@ -163,7 +163,7 @@ propose(Ruleset &rs, std::vector<Rule> &rules, std::vector<Rule> &labels, int nr
 //			printf("Accepted\n");
 		ret_log_post = new_log_post;
 		// return rs_new;
-		rs = rs_new;
+		rs = std::move(rs_new);
 	} else {
 //	    	if (debug > 10)
 //			printf("Rejected\n");
@@ -275,14 +275,14 @@ train(Data &train_data, int initialization, int method, const Params &params)
 		    null_bound);
 
 		if (pos_temp >= max_pos) {
-			rs = rs_temp;
+			rs = std::move(rs_temp);
 			max_pos = pos_temp;
 		}
 	}
 
 	pred_model.theta =
 	    get_theta(rs, train_data.rules, train_data.labels, params);
-	pred_model.rs = rs;
+	pred_model.rs = std::move(rs);
 
 	/*
 	 * THIS IS INTENTIONAL -- makes error handling localized.
@@ -300,11 +300,9 @@ std::vector<double>
 get_theta(Ruleset &rs, std::vector<Rule> & rules, std::vector<Rule> & labels, const Params &params)
 {
 	/* calculate captured 0's and 1's */
-	BitVec v0;
+	BitVec v0(rs.n_samples);
 	std::vector<double> theta;
 	int j;
-
-	v0.rule_vinit(rs.n_samples);
 
 	for (j = 0; j < rs.length(); j++) {
 		int n0, n1;
@@ -518,11 +516,10 @@ compute_log_posterior(Ruleset &rs, const std::vector<Rule> &rules, const int nru
 			norm_constant -= exp(log_eta_pmf[li]);
 	}
 	/* Calculate log_likelihood */
-	BitVec v0;
+	BitVec v0(rs.n_samples);
 	double prefix_log_likelihood = 0.0;
 	int left0 = labels[0].support, left1 = labels[1].support;
 
-	v0.rule_vinit(rs.n_samples);
 	for (j = 0; j < rs.length(); j++) {
 		int n0, n1;	 // Count of 0's; count of 1's
 

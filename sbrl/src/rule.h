@@ -101,14 +101,31 @@ struct Permutations {
 
 struct BitVec {
 	VECTOR vec;
-	BitVec() = default;
 	int rule_ff1(int, int);
 	int rule_isset(int);
-	int rule_vinit(int);
 	int count_ones_vector(int);
 	void rule_copy(BitVec &, int);
 	int make_default(int);
+	BitVec(int n) { rule_vinit(n); };
+	BitVec() = delete;
+    BitVec(const BitVec &other) = delete;
+	BitVec& operator= (const BitVec &other) = delete;
+    BitVec(BitVec &&other) {
+		vec->_mp_alloc = other.vec->_mp_alloc;
+		vec->_mp_size = other.vec->_mp_size;
+		vec->_mp_d = other.vec->_mp_d;
+		other.vec->_mp_d = nullptr;
+	}
+	BitVec& operator= (BitVec &&other) {
+		if (this == &other) return *this;
+		this->vec->_mp_alloc = other.vec->_mp_alloc;
+		this->vec->_mp_size = other.vec->_mp_size;
+		this->vec->_mp_d = other.vec->_mp_d;
+		other.vec->_mp_d = nullptr;
+	}
+	~BitVec() { rule_vfree(); }
 private:
+	int rule_vinit(int);
 	int rule_vfree();
 };
 
@@ -117,17 +134,32 @@ struct Rule {
 	int support;			/* Number of 1's in truth table. */
 	int cardinality;
 	BitVec truthtable;		/* Truth table; one bit per sample. */
-	Rule() = default;
-	Rule(const std::string &feat, int supp, int card): features{feat}, support{supp}, cardinality{card} {}
-	Rule& operator= (const Rule&) = delete;
+	Rule(const std::string &feat, int supp, int card, int len): features{feat}, support{supp}, cardinality{card}, truthtable{len} {}
+	Rule() = delete;
+    Rule(const Rule &other) = delete;
+	Rule& operator= (const Rule &other) = delete;
+    Rule(Rule &&other): features{std::move(other.features)}, support{other.support}, cardinality{other.cardinality}, truthtable{std::move(other.truthtable)} {}
+	Rule& operator= (Rule &&other) = delete;
 };
 
 struct RulesetEntry {
 	unsigned rule_id;
 	int ncaptured;			/* Number of 1's in bit vector. */
 	BitVec captures;		/* Bit vector. */
-	RulesetEntry() = default;
-	RulesetEntry(unsigned id, int ncap): rule_id{id}, ncaptured{ncap} {}
+	RulesetEntry(unsigned id, int ncap, int len): rule_id{id}, ncaptured{ncap}, captures{len} {}
+	RulesetEntry() = delete;
+    RulesetEntry(const RulesetEntry &other) = delete;
+	RulesetEntry& operator= (const RulesetEntry &other) = delete;
+    RulesetEntry(RulesetEntry &&other): rule_id{other.rule_id}, ncaptured{other.ncaptured}, captures{std::move(other.captures)} {
+		other.rule_id = -1;
+	}
+	RulesetEntry& operator= (RulesetEntry &&other) {
+		if (this == &other) return *this;
+		this->rule_id = other.rule_id;
+		this->ncaptured = other.ncaptured;
+		this->captures = std::move(other.captures);
+		other.rule_id = -1;
+	}
 };
 
 struct Ruleset {
@@ -135,6 +167,11 @@ struct Ruleset {
 	std::vector<RulesetEntry> entries;	/* Array of rules. */
 	Ruleset() = default;
 	Ruleset(int nsamp): n_samples{nsamp} {}
+    Ruleset(const Ruleset &other) = delete;
+	Ruleset& operator= (const Ruleset &other) = delete;
+	Ruleset(Ruleset &&other) = default;
+	Ruleset& operator= (Ruleset &&other) = default;
+
 	int length() const { return static_cast<int>(entries.size()); }
 	std::vector<int> backup() const;
 	int pick_random_rule(int, gsl_rng *) const;
@@ -180,7 +217,11 @@ struct PredModel
 	std::vector<double> theta;
 	std::vector<interval_t>confIntervals;
 
-	PredModel() {};
+	PredModel() = default;
+    PredModel(const PredModel &other) = delete;
+	PredModel& operator= (const PredModel &other) = delete;
+	PredModel(PredModel &&other) = default;
+	PredModel& operator= (PredModel &&other) = default;
 };
 
 /*

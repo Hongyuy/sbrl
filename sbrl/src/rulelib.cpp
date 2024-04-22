@@ -84,15 +84,14 @@ rules_init(const std::string &infile, std::vector<Rule> &rules_ret,
 	 * the end.
 	 */
 	if (add_default_rule)
-		rules_ret.emplace_back();
+		rules_ret.emplace_back("default", 0, 0, nsamples_expected);
 	while (std::getline(fi, linestr) && linestr.size()) {
 		/* Get the rule string; line will contain the bits. */
 		const auto pos = linestr.find(' ');
 		if (pos == std::string::npos)
 			throw std::runtime_error("failed to parse rule name and truethtable");
-		rules_ret.emplace_back();
+		rules_ret.emplace_back(linestr.substr(0, pos), 0, 0, nsamples_expected);
 		auto &rule = rules_ret.back();
-		rule.features = linestr.substr(0, pos);
 		auto truthTable = linestr.data() + pos;
 		auto truthTableLen = linestr.size() - pos - 1;
 		/*
@@ -276,7 +275,7 @@ int
 BitVec::make_default(int len)
 {
 #ifdef GMP
-	mpz_init2(this->vec, len);
+	// mpz_init2(this->vec, len);	// must be initialized already
 	mpz_ui_pow_ui(this->vec, 2, (unsigned long)len);
 	mpz_sub_ui (this->vec, this->vec, 1);
 	return (0);
@@ -312,18 +311,15 @@ Ruleset::ruleset_init(
 {
 	Ruleset rs(nsamples);
 
-	BitVec not_captured;
+	BitVec not_captured(nsamples);
 	not_captured.make_default(nsamples);
 
 	int cnt = nsamples;
 	for (int i = 0; i < idarray.size(); i++) {
-		rs.entries.emplace_back();
+		rs.entries.emplace_back(idarray[i], 0, nsamples);
 		auto cur_re = &rs.entries.back();
 		auto cur_rule = &rules[idarray[i]];
-		cur_re->rule_id = idarray[i];
 
-		if (cur_re->captures.rule_vinit(nsamples) != 0)
-			throw std::runtime_error("failed to rule_vinit");
 		rule_vand(cur_re->captures, not_captured,
 		    cur_rule->truthtable, nsamples, cur_re->ncaptured);
 
@@ -357,10 +353,7 @@ Ruleset::ruleset_copy()
 {
 	Ruleset dest(this->n_samples);
 	for (auto &entry : this->entries) {
-		dest.entries.emplace_back();
-		dest.entries.back().rule_id = entry.rule_id;
-		dest.entries.back().ncaptured = entry.ncaptured;
-		dest.entries.back().captures.rule_vinit(this->n_samples);
+		dest.entries.emplace_back(entry.rule_id, entry.ncaptured, this->n_samples);
 		entry.captures.rule_copy(dest.entries.back().captures, this->n_samples);
 	}
 	return dest;
@@ -387,16 +380,15 @@ Ruleset::ruleset_add(std::vector<Rule> &rules, int nrules, int newrule, int ndx)
 {
 	int i, cnt;
 	// RulesetEntry *expand, *cur_re;
-	BitVec not_caught;
+	BitVec not_caught(this->n_samples);
 
 	const auto n_rules = this->length();
-	this->entries.emplace_back();
+	this->entries.emplace_back(0, 0, this->n_samples);
 	/*
 	 * Compute all the samples that are caught by rules AFTER the
 	 * rule we are inserting. Then we'll recompute all the captures
 	 * from the new rule to the end.
 	 */
-	not_caught.rule_vinit(this->n_samples);
 	for (i = ndx; i < n_rules; i++)
 	    rule_vor(not_caught,
 	        not_caught, this->entries[i].captures, this->n_samples, cnt);
@@ -410,12 +402,11 @@ Ruleset::ruleset_add(std::vector<Rule> &rules, int nrules, int newrule, int ndx)
 		// memmove(rs->entries + (ndx + 1), rs->entries + ndx,
 		//     sizeof(RulesetEntry) * (rs->n_rules - ndx));
 		for (int i = n_rules; i > ndx; --i)
-			this->entries[i] = this->entries[i-1];
+			std::swap(this->entries[i], this->entries[i-1]);
 	}
 
 	/* Insert and initialize the new rule. */
 	this->entries[ndx].rule_id = newrule;
-	this->entries[ndx].captures.rule_vinit(this->n_samples);
 
 	/*
 	 * Now, recompute all the captures entries for the new rule and
@@ -446,15 +437,13 @@ void
 Ruleset::ruleset_delete(std::vector<Rule> &rules, int nrules, int ndx)
 {
 	int i, nset;
-	BitVec tmp_vec;
+	BitVec tmp_vec(this->n_samples);
 	// RulesetEntry *old_re, *cur_re;
 	const auto n_rules = this->length();
 
 	/* Compute new captures for all rules following the one at ndx.  */
 	auto old_re = &this->entries[ndx];
 
-	if (tmp_vec.rule_vinit(this->n_samples) != 0)
-		return;
 	for (i = ndx + 1; i < n_rules; i++) {
 		/*
 		 * My new captures is my old captures or'd with anything that
@@ -479,7 +468,7 @@ Ruleset::ruleset_delete(std::vector<Rule> &rules, int nrules, int ndx)
 		// memmove(rs->entries + ndx, rs->entries + ndx + 1,
 		//     sizeof(RulesetEntry) * (rs->n_rules - 1 - ndx));
 		for (int i = ndx; i < n_rules-1; ++i)
-			this->entries[i] = this->entries[i+1];
+			std::swap(this->entries[i], this->entries[i+1]);
 
 	this->entries.pop_back();
 	return;
@@ -566,14 +555,11 @@ void
 Ruleset::ruleset_swap(int i, int j, std::vector<Rule> &rules)
 {
 	int nset;
-	BitVec tmp_vec;
-	RulesetEntry re;
+	BitVec tmp_vec(this->n_samples);
 
 	assert(i < (this->length() - 1));
 	assert(j < (this->length() - 1));
 	assert(i + 1 == j);
-
-	tmp_vec.rule_vinit(this->n_samples);
 
 	/* tmp_vec =  i.captures & j.tt */
 	rule_vand(tmp_vec, this->entries[i].captures,
@@ -594,7 +580,7 @@ void
 Ruleset::ruleset_swap_any(int i, int j, std::vector<Rule> & rules)
 {
 	int cnt, cnt_check, k, temp;
-	BitVec caught;
+	BitVec caught(this->n_samples);
 
 	if (i == j)
 		return;
@@ -611,7 +597,6 @@ Ruleset::ruleset_swap_any(int i, int j, std::vector<Rule> & rules)
 	 * (inclusive) and then compute the captures array from scratch
 	 * rules between rule i and rule j, both * inclusive.
 	 */
-	caught.rule_vinit(this->n_samples);
 
 	for (k = i; k <= j; k++)
 		rule_vor(caught,
@@ -700,9 +685,7 @@ void
 rule_vandnot(BitVec &dest, BitVec &src1, BitVec &src2, int nsamples, int &ret_cnt)
 {
 #ifdef GMP
-	BitVec tmp;
-
-	tmp.rule_vinit(nsamples);
+	BitVec tmp(nsamples);
 	mpz_com(tmp.vec, src2.vec);
 	mpz_and(dest.vec, src1.vec, tmp.vec);
 	ret_cnt = 0;
