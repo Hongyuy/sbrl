@@ -609,9 +609,7 @@ Ruleset::ruleset_swap(int i, int j, std::vector<Rule> &rules)
 	    this->entries[j].captures, this->n_samples, this->entries[i].ncaptured);
 
 	/* Now swap the two entries */
-	re = this->entries[i];
-	this->entries[i] = this->entries[j];
-	this->entries[j] = re;
+	std::swap(this->entries[i], this->entries[j]);
 
 	tmp_vec.rule_vfree();
 }
@@ -629,11 +627,7 @@ Ruleset::ruleset_swap_any(int i, int j, std::vector<Rule> & rules)
 	assert(j < this->n_rules);
 
 	/* Ensure that i < j. */
-	if (i > j) {
-		temp = i;
-		i = j;
-		j = temp;
-	}
+	if (i > j) std::swap(i, j);
 
 	/*
 	 * The captured arrays before i and after j need not change.
@@ -648,9 +642,7 @@ Ruleset::ruleset_swap_any(int i, int j, std::vector<Rule> & rules)
 		    caught, this->entries[k].captures, this->n_samples, cnt);
 
 	/* Now swap the rules in the ruleset. */
-	temp = this->entries[i].rule_id;
-	this->entries[i].rule_id = this->entries[j].rule_id;
-	this->entries[j].rule_id = temp;
+	std::swap(this->entries[i].rule_id, this->entries[j].rule_id);
 
 	cnt_check = 0;
 	for (k = i; k <= j; k++) {
