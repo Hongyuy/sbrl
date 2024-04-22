@@ -362,7 +362,7 @@ ruleset_init(int nrs_rules,
 
 err1:
 	(void)not_captured.rule_vfree();
-	ruleset_destroy(rs);
+	rs->ruleset_destroy();
 	return (ENOMEM);
 }
 
@@ -406,11 +406,11 @@ ruleset_copy(Ruleset **ret_dest, Ruleset *src)
 
 /* Reclaim resources associated with a ruleset. */
 void
-ruleset_destroy(Ruleset *rs)
+Ruleset::ruleset_destroy()
 {
 	int j;
-	for (j = 0; j < rs->n_rules; j++)
-		rs->entries[j].captures.rule_vfree();
+	for (j = 0; j < this->n_rules; j++)
+		this->entries[j].captures.rule_vfree();
 	// free(rs);
 }
 

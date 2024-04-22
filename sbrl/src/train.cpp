@@ -185,19 +185,19 @@ propose(Ruleset *rs, std::vector<Rule> &rules, std::vector<Rule> &labels, int nr
 //			printf("Accepted\n");
 		rs_ret = rs_new;
 		ret_log_post = new_log_post;
-		ruleset_destroy(rs);
+		rs->ruleset_destroy();
 	} else {
 //	    	if (debug > 10)
 //			printf("Rejected\n");
 		rs_ret = rs;
-		ruleset_destroy(rs_new);
+		rs_new->ruleset_destroy();
 	}
 
 	return (rs_ret);
 err:
 	if (rs_new != NULL)
-		ruleset_destroy(rs_new);
-	ruleset_destroy(rs);
+		rs_new->ruleset_destroy();
+	rs->ruleset_destroy();
 	return (NULL);
 }
 
@@ -316,11 +316,11 @@ train(Data &train_data, int initialization, int method, const Params &params)
 		    null_bound);
 
 		if (pos_temp >= max_pos) {
-			ruleset_destroy(rs);
+			rs->ruleset_destroy();
 			rs = rs_temp;
 			max_pos = pos_temp;
 		} else {
-			ruleset_destroy(rs_temp);
+			rs_temp->ruleset_destroy();
 		}
 	}
 
@@ -337,7 +337,7 @@ train(Data &train_data, int initialization, int method, const Params &params)
 err:
 	/* Free allocated memory. */
 	if (rs != NULL)
-		ruleset_destroy(rs);
+		rs->ruleset_destroy();
     
     gsl_rng_free(RAND_GSL);
     
@@ -410,7 +410,7 @@ run_mcmc(int iters, int nsamples, int nrules,
 	while (prefix_bound < v_star) {
 		// TODO Gather some stats on how much we loop in here.
 		if (rs != NULL) {
-			ruleset_destroy(rs);
+			rs->ruleset_destroy();
 			count++;
 			if (count == (nrules - 1))
 				return (NULL);
@@ -451,7 +451,7 @@ run_mcmc(int iters, int nsamples, int nrules,
 	}
 
 	/* Regenerate the best rule list */
-	ruleset_destroy(rs);
+	rs->ruleset_destroy();
 	ruleset_init(len, nsamples, rs_idarray, rules, &rs);
 
 //	if (debug) {
@@ -469,7 +469,7 @@ run_mcmc(int iters, int nsamples, int nrules,
 
 err:
 	if (rs != NULL)
-		ruleset_destroy(rs);
+		rs->ruleset_destroy();
 	return (NULL);
 }
 
@@ -532,7 +532,7 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 		}
 	}
 	/* Regenerate the best rule list. */
-	ruleset_destroy(rs);
+	rs->ruleset_destroy();
 //	printf("\n\n/*----The best rule list is: */\n");
 //	ruleset_init(len, nsamples, rs_idarray, rules, &rs);
 //	printf("max_log_posterior = %6f\n\n", max_log_posterior);
@@ -545,7 +545,7 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 	return (rs);
 err:
 	if (rs != NULL)
-		ruleset_destroy(rs);
+		rs->ruleset_destroy();
 	return (NULL);
 }
 

@@ -125,6 +125,7 @@ struct Ruleset {
 	int ruleset_add(std::vector<Rule> &, int, int, int);
 	void ruleset_delete(std::vector<Rule> &, int, int);
 	void ruleset_swap_any(int, int, std::vector<Rule> &);
+	void ruleset_destroy();
 };
 
 struct Params {
@@ -170,7 +171,6 @@ int ruleset_init(int, int, const std::vector<int> &, std::vector<Rule> &, Rulese
 int ruleset_copy(Ruleset **, Ruleset *);
 void ruleset_swap(Ruleset *, int, int, std::vector<Rule> &);
 
-void ruleset_destroy(Ruleset *);
 //void ruleset_print(Ruleset *, Rule *, int);
 //void ruleset_entry_print(RulesetEntry *, int, int);
 int create_random_ruleset(int, int, int, std::vector<Rule> &, Ruleset **, gsl_rng *);
