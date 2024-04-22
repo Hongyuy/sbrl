@@ -281,12 +281,12 @@ permute_rules(int nrules, gsl_rng *RAND_GSL)
 	int i;
 	if ((rule_permutation = (permute_t*)malloc(sizeof(permute_t) * nrules)) == NULL)
 		return (-1);
-	for (i = 1; i < nrules; i++) {
+	for (i = 0; i < nrules; i++) {
 		rule_permutation[i].val = my_rng(RAND_GSL);
 		rule_permutation[i].ndx = i;
 	}
 //    _quicksort(rule_permutation, nrules, sizeof(permute_t), permute_cmp);
-    qsort(rule_permutation, nrules, sizeof(permute_t), permute_cmp);
+    qsort(rule_permutation+1, nrules-1, sizeof(permute_t), permute_cmp);
 	permute_ndx = 1;
 	return (0);
 
