@@ -659,7 +659,7 @@ unsigned RANDOM_RANGE(int lo, int hi, gsl_rng *RAND_GSL) { return (unsigned)(lo 
 
 int permute_cmp(const void *v1, const void *v2) { return ((permute_t *)v1)->val - ((permute_t *)v2)->val; }
 
-Permutations::Permutations(int nrules, gsl_rng *RAND_GSL)
+Permutations::Permutations(int nrules, gsl_rng *RAND_GSL): ptr{nullptr}, permute_ndx{0}
 {
 	if (ptr != NULL)
 		throw std::runtime_error("Permutations: double initialization");
