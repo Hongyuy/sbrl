@@ -309,16 +309,15 @@ get_theta(Ruleset &rs, std::vector<Rule> & rules, std::vector<Rule> & labels, co
 	int j;
 
 	v0.rule_vinit(rs.n_samples);
-	theta.reserve(rs.n_rules);
 
-	for (j = 0; j < rs.n_rules; j++) {
+	for (j = 0; j < rs.length(); j++) {
 		int n0, n1;
 
 		rule_vand(v0, rs.entries[j].captures,
 		    labels[0].truthtable, rs.n_samples, n0);
 		n1 = rs.entries[j].ncaptured - n0;
-		theta[j] = (n1 + params.alpha[1]) * 1.0 /
-		    (n1 + n0 + params.alpha[0] + params.alpha[1]);
+		theta.push_back((n1 + params.alpha[1]) * 1.0 /
+		    (n1 + n0 + params.alpha[0] + params.alpha[1]));
 //		if (debug) {
 //			printf("n0=%d, n1=%d, captured=%d, training accuracy =",
 //			    n0, n1, rs->rules[j].ncaptured);
@@ -427,7 +426,7 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 {
 	Ruleset rs = Ruleset::create_random_ruleset(init_size, nsamples, nrules, rules, RAND_GSL);
 	double jump_prob;
-	int dummy, i, j, k, iter, iters_per_step, len;
+	int dummy, i, j, k, iter, iters_per_step;
 	double log_post_rs, max_log_posterior = -1e9, prefix_bound = 0.0;
 	double T[100000], tmp[50];
 	int ntimepoints = 0;
@@ -440,7 +439,6 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 	    rules, nrules, labels, params, 0, -1, prefix_bound);
 	rs_idarray = rs.backup();
 	max_log_posterior = log_post_rs;
-	len = rs.n_rules;
 
 //	if (debug > 10) {
 //		printf("Initial ruleset: \n");
@@ -470,7 +468,6 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 			if (log_post_rs > max_log_posterior) {
 				rs_idarray = rs.backup();
 				max_log_posterior = log_post_rs;
-				len = rs.n_rules;
 			}
 		}
 	}
@@ -504,15 +501,15 @@ compute_log_posterior(Ruleset &rs, std::vector<Rule> &rules, int nrules, std::ve
 
 	/* Calculate log_prior. */
 	norm_constant = eta_norm;
-	log_prior = log_lambda_pmf[rs.n_rules - 1];
+	log_prior = log_lambda_pmf[rs.length() - 1];
 
-	if (rs.n_rules - 1 > params.lambda)
-		prefix_prior += log_lambda_pmf[rs.n_rules - 1];
+	if (rs.length() - 1 > params.lambda)
+		prefix_prior += log_lambda_pmf[rs.length() - 1];
 	else
 		prefix_prior += log_lambda_pmf[(int)params.lambda];
 
 	// Don't compute the last (default) rule.
-	for (i = 0; i < rs.n_rules - 1; i++) {
+	for (i = 0; i < rs.length() - 1; i++) {
 		li = rules[rs.entries[i].rule_id].cardinality;
 		log_prior += log_eta_pmf[li] - log(norm_constant);
 
@@ -533,7 +530,7 @@ compute_log_posterior(Ruleset &rs, std::vector<Rule> &rules, int nrules, std::ve
 	int left0 = labels[0].support, left1 = labels[1].support;
 
 	v0.rule_vinit(rs.n_samples);
-	for (j = 0; j < rs.n_rules; j++) {
+	for (j = 0; j < rs.length(); j++) {
 		int n0, n1;	 // Count of 0's; count of 1's
 
 		rule_vand(v0, rs.entries[j].captures,
@@ -586,13 +583,13 @@ Ruleset::ruleset_proposal(int nrules,
 
 	double moveProbs[3], jumpRatios[3];
 	int offset = 0;
-	if (this->n_rules == 1) {
+	if (this->length() == 1) {
 		offset = 0;
-	} else if (this->n_rules == 2) {
+	} else if (this->length() == 2) {
 		offset = 3;
-	} else if (this->n_rules == nrules - 1) {
+	} else if (this->length() == nrules - 1) {
 		offset = 6;
-	} else if (this->n_rules == nrules - 2) {
+	} else if (this->length() == nrules - 2) {
 		offset = 9;
 	} else {
 		offset = 12;
@@ -605,11 +602,11 @@ Ruleset::ruleset_proposal(int nrules,
 
 	if (u < moveProbs[0]) {
 		// Swap rules: cannot swap with the default rule
-		index1 = my_rng(RAND_GSL) % (this->n_rules - 1);
+		index1 = my_rng(RAND_GSL) % (this->length() - 1);
 
 		// Make sure we do not swap with ourselves
 		do {
-			index2 = my_rng(RAND_GSL) % (this->n_rules - 1);
+			index2 = my_rng(RAND_GSL) % (this->length() - 1);
 		} while (index2 == index1);
 
 		jumpRatio = jumpRatios[0];
@@ -617,16 +614,16 @@ Ruleset::ruleset_proposal(int nrules,
 	} else if (u < moveProbs[0] + moveProbs[1]) {
 		/* Add a new rule */
 		index1 = this->pick_random_rule(nrules, RAND_GSL);
-		index2 = my_rng(RAND_GSL) % this->n_rules;
-		jumpRatio = jumpRatios[1] * (nrules - 1 - this->n_rules);
+		index2 = my_rng(RAND_GSL) % this->length();
+		jumpRatio = jumpRatios[1] * (nrules - 1 - this->length());
 		stepchar = Step::Add;
 	} else if (u < moveProbs[0] + moveProbs[1] + moveProbs[2]) {
 		/* delete an existing rule */
-		index1 = my_rng(RAND_GSL) % (this->n_rules - 1);
+		index1 = my_rng(RAND_GSL) % (this->length() - 1);
 		//cannot delete the default rule
 			index2 = 0;
 		//index2 doesn 't matter in this case
-			jumpRatio = jumpRatios[2] * (nrules - this->n_rules);
+			jumpRatio = jumpRatios[2] * (nrules - this->length());
 		stepchar = Step::Delete;
 	} else {
 		//should raise exception here.

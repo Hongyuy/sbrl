@@ -312,23 +312,20 @@ Ruleset
 Ruleset::ruleset_init(
     int nsamples, const std::vector<int> &idarray, std::vector<Rule> &rules)
 {
-	Ruleset rs(idarray.size());
-	rs.n_rules = 0;
-	rs.n_alloc = idarray.size();
-	rs.n_samples = nsamples;
+	Ruleset rs(nsamples);
 
 	BitVec not_captured;
 	not_captured.make_default(nsamples);
 
 	int cnt = nsamples;
 	for (int i = 0; i < idarray.size(); i++) {
+		rs.entries.emplace_back();
+		auto cur_re = &rs.entries.back();
 		auto cur_rule = &rules[idarray[i]];
-		auto cur_re = &rs.entries[i];
 		cur_re->rule_id = idarray[i];
 
 		if (cur_re->captures.rule_vinit(nsamples) != 0)
 			throw std::runtime_error("failed to rule_vinit");
-		rs.n_rules++;
 		rule_vand(cur_re->captures, not_captured,
 		    cur_rule->truthtable, nsamples, cur_re->ncaptured);
 
@@ -349,8 +346,8 @@ Ruleset::ruleset_init(
 std::vector<int> Ruleset::backup() const
 {
 	std::vector<int> ids;
-	for (int i = 0; i < this->n_rules; i++)
-		ids.push_back(this->entries[i].rule_id);
+	for (auto &entry : this->entries)
+		ids.push_back(entry.rule_id);
 	return ids;
 }
 
@@ -362,17 +359,13 @@ std::vector<int> Ruleset::backup() const
 Ruleset
 Ruleset::ruleset_copy()
 {
-	int i;
-	Ruleset dest(this->n_rules);
-	dest.n_alloc = this->n_rules;
-	dest.n_rules = this->n_rules;
-	dest.n_samples = this->n_samples;
-    
-	for (i = 0; i < this->n_rules; i++) {
-		dest.entries[i].rule_id = this->entries[i].rule_id;
-		dest.entries[i].ncaptured = this->entries[i].ncaptured;
-		dest.entries[i].captures.rule_vinit(this->n_samples);
-		this->entries[i].captures.rule_copy(dest.entries[i].captures, this->n_samples);
+	Ruleset dest(this->n_samples);
+	for (auto &entry : this->entries) {
+		dest.entries.emplace_back();
+		dest.entries.back().rule_id = entry.rule_id;
+		dest.entries.back().ncaptured = entry.ncaptured;
+		dest.entries.back().captures.rule_vinit(this->n_samples);
+		entry.captures.rule_copy(dest.entries.back().captures, this->n_samples);
 	}
 	return dest;
 }
@@ -382,8 +375,8 @@ void
 Ruleset::ruleset_destroy()
 {
 	int j;
-	for (j = 0; j < this->n_rules; j++)
-		this->entries[j].captures.rule_vfree();
+	for (auto &entry : this->entries)
+		entry.captures.rule_vfree();
 	// free(rs);
 }
 
@@ -398,23 +391,15 @@ Ruleset::ruleset_add(std::vector<Rule> &rules, int nrules, int newrule, int ndx)
 	// RulesetEntry *expand, *cur_re;
 	BitVec not_caught;
 
-	/* Check for space. */
-	if (this->n_alloc < this->n_rules + 1) {
-		// expand = (RulesetEntry*)realloc(rs->entries, (rs->n_rules + 1) * sizeof(RulesetEntry));
-		// if (expand == NULL)
-		// 	return (errno);
-		// rs->entries = expand;
-		this->entries.emplace_back();
-		this->n_alloc = this->n_rules + 1;
-	}
-
+	const auto n_rules = this->length();
+	this->entries.emplace_back();
 	/*
 	 * Compute all the samples that are caught by rules AFTER the
 	 * rule we are inserting. Then we'll recompute all the captures
 	 * from the new rule to the end.
 	 */
 	not_caught.rule_vinit(this->n_samples);
-	for (i = ndx; i < this->n_rules; i++)
+	for (i = ndx; i < n_rules; i++)
 	    rule_vor(not_caught,
 	        not_caught, this->entries[i].captures, this->n_samples, cnt);
 
@@ -423,15 +408,14 @@ Ruleset::ruleset_add(std::vector<Rule> &rules, int nrules, int newrule, int ndx)
 	 * Shift later rules down by 1 if necessary. For GMP, what we're
 	 * doing may be a little sketchy -- we're copying the mpz_t's around.
 	 */
-	if (ndx != this->n_rules) {
+	if (ndx != n_rules) {
 		// memmove(rs->entries + (ndx + 1), rs->entries + ndx,
 		//     sizeof(RulesetEntry) * (rs->n_rules - ndx));
-		for (int i = this->n_rules; i > ndx; --i)
+		for (int i = n_rules; i > ndx; --i)
 			this->entries[i] = this->entries[i-1];
 	}
 
 	/* Insert and initialize the new rule. */
-	this->n_rules++;
 	this->entries[ndx].rule_id = newrule;
 	this->entries[ndx].captures.rule_vinit(this->n_samples);
 
@@ -440,7 +424,7 @@ Ruleset::ruleset_add(std::vector<Rule> &rules, int nrules, int newrule, int ndx)
 	 * all rules following it.
 	 */
     
-	for (i = ndx; i < this->n_rules; i++) {
+	for (i = ndx; i < this->length(); i++) {
 		auto cur_re = &this->entries[i];
 		/*
 		 * Captures for this rule gets anything in not_caught
@@ -467,13 +451,14 @@ Ruleset::ruleset_delete(std::vector<Rule> &rules, int nrules, int ndx)
 	int i, nset;
 	BitVec tmp_vec;
 	// RulesetEntry *old_re, *cur_re;
+	const auto n_rules = this->length();
 
 	/* Compute new captures for all rules following the one at ndx.  */
 	auto old_re = &this->entries[ndx];
 
 	if (tmp_vec.rule_vinit(this->n_samples) != 0)
 		return;
-	for (i = ndx + 1; i < this->n_rules; i++) {
+	for (i = ndx + 1; i < n_rules; i++) {
 		/*
 		 * My new captures is my old captures or'd with anything that
 		 * was captured by ndx and is captured by my rule.
@@ -497,13 +482,13 @@ Ruleset::ruleset_delete(std::vector<Rule> &rules, int nrules, int ndx)
 	this->entries[ndx].captures.rule_vfree();
 
 	/* Shift up cells if necessary. */
-	if (ndx != this->n_rules - 1)
+	if (ndx != n_rules - 1)
 		// memmove(rs->entries + ndx, rs->entries + ndx + 1,
 		//     sizeof(RulesetEntry) * (rs->n_rules - 1 - ndx));
-		for (int i = ndx; i < this->n_rules; ++i)
+		for (int i = ndx; i < n_rules; ++i)
 			this->entries[i] = this->entries[i+1];
 
-	this->n_rules--;
+	this->entries.pop_back();
 	return;
 }
 
@@ -553,8 +538,8 @@ pickrule:
 	else
 		new_rule = 1 + (new_rule % (nrules-2));
 		
-	for (j = 0; j < this->n_rules; j++) {
-		if (this->entries[j].rule_id == new_rule) {
+	for (auto &entry : this->entries) {
+		if (entry.rule_id == new_rule) {
 			cnt++;
 			goto pickrule;
 		}
@@ -591,8 +576,8 @@ Ruleset::ruleset_swap(int i, int j, std::vector<Rule> &rules)
 	BitVec tmp_vec;
 	RulesetEntry re;
 
-	assert(i < (this->n_rules - 1));
-	assert(j < (this->n_rules - 1));
+	assert(i < (this->length() - 1));
+	assert(j < (this->length() - 1));
 	assert(i + 1 == j);
 
 	tmp_vec.rule_vinit(this->n_samples);
@@ -623,8 +608,8 @@ Ruleset::ruleset_swap_any(int i, int j, std::vector<Rule> & rules)
 	if (i == j)
 		return;
 
-	assert(i < this->n_rules);
-	assert(j < this->n_rules);
+	assert(i < this->length());
+	assert(j < this->length());
 
 	/* Ensure that i < j. */
 	if (i > j) std::swap(i, j);

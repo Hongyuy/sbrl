@@ -107,11 +107,11 @@ int load_data2(Data &data, Rcpp::StringVector ruleNames, Rcpp::StringVector labe
         REPORT_TIME("Time to train", "", tv_end, 1);
 
         Rcpp::IntegerVector id;
-	for (int i=0; i<pred_model_sbrl.rs.n_rules; i++)
+	for (int i=0; i<pred_model_sbrl.rs.length(); i++)
                 id.push_back(pred_model_sbrl.rs.entries[i].rule_id);
 	
         Rcpp::NumericVector prob;
-	for (int i=0; i<pred_model_sbrl.rs.n_rules; i++)
+	for (int i=0; i<pred_model_sbrl.rs.length(); i++)
                 prob.push_back(pred_model_sbrl.theta[i]);
 
 #if 0

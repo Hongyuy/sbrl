@@ -130,12 +130,11 @@ struct RulesetEntry {
 };
 
 struct Ruleset {
-	int n_rules;			/* Number of actual rules. */
-	int n_alloc;			/* Spaces allocated for rules. */
 	int n_samples;
 	std::vector<RulesetEntry> entries;	/* Array of rules. */
-	Ruleset(int n=0): entries(n) {}
-	Ruleset(int n0, int n1, int n2): n_rules{n0}, n_alloc{n1}, n_samples{n2} {}
+	Ruleset() = default;
+	Ruleset(int nsamp): n_samples{nsamp} {}
+	int length() const { return static_cast<int>(entries.size()); }
 	std::vector<int> backup() const;
 	int pick_random_rule(int, gsl_rng *) const;
 	void ruleset_proposal(int, int &, int &, Step &, double &, gsl_rng *) const;
