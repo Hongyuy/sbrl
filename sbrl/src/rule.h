@@ -96,12 +96,16 @@ struct Rule {
 	int support;			/* Number of 1's in truth table. */
 	int cardinality;
 	VECTOR truthtable;		/* Truth table; one bit per sample. */
+	Rule() = default;
+	Rule(const std::string &feat, int supp, int card): features{feat}, support{supp}, cardinality{card} {}
 };
 
 struct RulesetEntry {
 	unsigned rule_id;
 	int ncaptured;			/* Number of 1's in bit vector. */
 	VECTOR captures;		/* Bit vector. */
+	RulesetEntry() = default;
+	RulesetEntry(unsigned id, int ncap): rule_id{id}, ncaptured{ncap} {}
 };
 
 struct Ruleset {
@@ -110,6 +114,7 @@ struct Ruleset {
 	int n_samples;
 	std::vector<RulesetEntry> entries;	/* Array of rules. */
 	Ruleset(int n=0): entries(n) {}
+	Ruleset(int n0, int n1, int n2): n_rules{n0}, n_alloc{n1}, n_samples{n2} {}
 };
 
 struct Params {
