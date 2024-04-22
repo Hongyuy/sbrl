@@ -57,6 +57,7 @@
  */
 
 #include <vector>
+#include <string>
 /*
  * Define types for bit vectors.
  */
@@ -152,7 +153,7 @@ void ruleset_destroy(Ruleset *);
 //void ruleset_entry_print(RulesetEntry *, int, int);
 int create_random_ruleset(int, int, int, std::vector<Rule> &, Ruleset **, gsl_rng *);
 
-int rules_init(const char *, int &, int &, std::vector<Rule> &, int);
+int rules_init(std::string &, int &, int &, std::vector<Rule> &, int);
 void rules_free(std::vector<Rule> &, const int, int);
 
 //void rule_print(Rule *, int, int, int);

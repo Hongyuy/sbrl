@@ -73,7 +73,7 @@ int byte_ones[] = {
  */
 
 int
-rules_init(const char *infile, int &nrules,
+rules_init(std::string &infile, int &nrules,
     int &nsamples, std::vector<Rule> &rules_ret, int add_default_rule)
 {
 	FILE *fi;
@@ -86,7 +86,7 @@ rules_init(const char *infile, int &nrules,
 
 	sample_cnt = rsize = 0;
 
-	if ((fi = fopen(infile, "r")) == NULL)
+	if ((fi = fopen(infile.c_str(), "r")) == NULL)
         return (errno);
 
 	/*
