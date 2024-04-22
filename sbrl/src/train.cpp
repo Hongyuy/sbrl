@@ -59,7 +59,7 @@ int debug;
 
 // void _quicksort (void *const, size_t, size_t, int (const void *, const void *));
 double compute_log_posterior(Ruleset &,
-    std::vector<Rule> &, int, std::vector<Rule> &, const Params &, int, int, double &);
+    const std::vector<Rule> &, const int, std::vector<Rule> &, const Params &, const int, const int, double &);
 int gen_poission(double);
 std::vector<double> get_theta(Ruleset &, std::vector<Rule> &, std::vector<Rule> &, const Params &);
 void gsl_ran_poisson_test(void);
@@ -478,8 +478,8 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 }
 
 double
-compute_log_posterior(Ruleset &rs, std::vector<Rule> &rules, int nrules, std::vector<Rule> &labels,
-    const Params &params, int ifPrint, int length4bound, double &prefix_bound)
+compute_log_posterior(Ruleset &rs, const std::vector<Rule> &rules, const int nrules, std::vector<Rule> &labels,
+    const Params &params, const int ifPrint, const int length4bound, double &prefix_bound)
 {
 
 	double log_prior;
