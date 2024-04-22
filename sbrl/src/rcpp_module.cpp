@@ -50,12 +50,12 @@ void load_data2(Data &data, Rcpp::StringVector ruleNames, Rcpp::StringVector lab
 	Data	data, data2;
 	int	ret;
 	struct timeval tv_acc, tv_start, tv_end;
-	std::string df = Rcpp::as<std::string>(dataFile[0]);
-	std::string lf = Rcpp::as<std::string>(labelFile[0]);
-        Rcpp::IntegerVector id;
-        Rcpp::NumericVector prob;
 
         try {
+                std::string df = Rcpp::as<std::string>(dataFile[0]);
+                std::string lf = Rcpp::as<std::string>(labelFile[0]);
+                Rcpp::IntegerVector id;
+                Rcpp::NumericVector prob;
                 /*
                 * We treat the label file as a separate ruleset, since it has
                 * a similar format.
@@ -121,6 +121,9 @@ void load_data2(Data &data, Rcpp::StringVector ruleNames, Rcpp::StringVector lab
                 for (int i=0; i<pred_model_brl->rs->n_rules; i++)
                         ci_high.push_back(pred_model_brl->confIntervals->b);
         #endif
+                // Rcpp::DataFrame brl =  Rcpp::DataFrame::create(Rcpp::Named("clause")=clause, Rcpp::Named("prob")=prob, Rcpp::Named("ci_low")=ci_low, Rcpp::Named("ci_high")=ci_high);
+                Rcpp::DataFrame rs =  Rcpp::DataFrame::create(Rcpp::Named("V1")=id, Rcpp::Named("V2")=prob);
+                return(Rcpp::List::create(Rcpp::Named("rs")=rs));
         }
         catch (const std::overflow_error& e) {
                 Rprintf("overflow_error: %s\n", e.what());
@@ -134,10 +137,7 @@ void load_data2(Data &data, Rcpp::StringVector ruleNames, Rcpp::StringVector lab
         catch (...) {
                 Rprintf("unknown error. please investigate or contact the maintainer of the package.\n");
         }
-        // Rcpp::DataFrame brl =  Rcpp::DataFrame::create(Rcpp::Named("clause")=clause, Rcpp::Named("prob")=prob, Rcpp::Named("ci_low")=ci_low, Rcpp::Named("ci_high")=ci_high);
-        Rcpp::DataFrame rs =  Rcpp::DataFrame::create(Rcpp::Named("V1")=id, Rcpp::Named("V2")=prob);
-
-        return(Rcpp::List::create(Rcpp::Named("rs")=rs));
+        return Rcpp::List::create();
     }
 
 //using namespace Rcpp;
