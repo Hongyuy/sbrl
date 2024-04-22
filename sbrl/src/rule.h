@@ -56,6 +56,7 @@
  * a rule set stores captures(N, S, RS).
  */
 
+#include <vector>
 /*
  * Define types for bit vectors.
  */
@@ -118,12 +119,19 @@ typedef struct interval {
 	double a, b;
 } interval_t;
 
-typedef struct pred_model {
-	ruleset_t *rs;		/* best ruleset. */
-	double *theta;
-	interval_t *confIntervals;
-} pred_model_t;
+// typedef struct pred_model {
+//        ruleset_t *rs;          /* best ruleset. */
+//        double *theta;
+//        interval_t *confIntervals;
+// } pred_model_t;
+struct PredModel
+{
+	ruleset_t rs;							/* best ruleset. */
+	std::vector<double> theta;
+	std::vector<interval_t>confIntervals;
 
+	PredModel() {};
+};
 
 /*
  * Functions in the library
@@ -164,9 +172,9 @@ int count_ones(v_entry);
 int count_ones_vector(VECTOR, int);
 
 /* Functions for the Scalable Baysian Rule Lists */
-double *predict(pred_model_t *, rule_t *labels, params_t *);
+double *predict(PredModel&, rule_t *labels, params_t *);
 int ruleset_proposal(ruleset_t *, int, int *, int *, char *, double *, gsl_rng *);
 ruleset_t *run_mcmc(int, int, int, rule_t *, rule_t *, params_t *, double, gsl_rng *);
 ruleset_t *run_simulated_annealing(int,
     int, int, int, rule_t *, rule_t *, params_t *, gsl_rng *);
-pred_model_t *train(data_t *, int, int, params_t *);
+PredModel train(data_t *, int, int, params_t *);

@@ -67,7 +67,7 @@ int debug;
 double compute_log_posterior(ruleset_t *,
     rule_t *, int, rule_t *, params_t *, int, int, double *);
 int gen_poission(double);
-double *get_theta(ruleset_t *, rule_t *, rule_t *, params_t *);
+std::vector<double> get_theta(ruleset_t *, rule_t *, rule_t *, params_t *);
 void gsl_ran_poisson_test(void);
 void init_gsl_rand_gen(gsl_rng**);
 
@@ -294,11 +294,11 @@ permute_rules(int nrules, gsl_rng *RAND_GSL)
 
 }
 
-pred_model_t   *
+PredModel
 train(data_t *train_data, int initialization, int method, params_t *params)
 {
+	PredModel pred_model;
 	int chain, default_rule;
-	pred_model_t *pred_model;
 	ruleset_t *rs, *rs_temp;
 	double max_pos, pos_temp, null_bound;
     
@@ -306,7 +306,6 @@ train(data_t *train_data, int initialization, int method, params_t *params)
     /* initialize random number generator for some distributions. */
     init_gsl_rand_gen(&RAND_GSL);
     
-	pred_model = NULL;
 	rs = NULL;
 	if (compute_pmf(train_data->nrules, params) != 0)
 		goto err;
@@ -315,8 +314,6 @@ train(data_t *train_data, int initialization, int method, params_t *params)
 	if (compute_log_gammas(train_data->nsamples, params) != 0)
 		goto err;
 
-	if ((pred_model = (pred_model_t*)calloc(1, sizeof(pred_model_t))) == NULL)
-		goto err;
 
 	default_rule = 0;
 	if (ruleset_init(1,
@@ -345,9 +342,9 @@ train(data_t *train_data, int initialization, int method, params_t *params)
 		}
 	}
 
-	pred_model->theta =
+	pred_model.theta =
 	    get_theta(rs, train_data->rules, train_data->labels, params);
-	pred_model->rs = rs;
+	pred_model.rs = *rs;
 	rs = NULL;
 
 	/*
@@ -355,11 +352,7 @@ train(data_t *train_data, int initialization, int method, params_t *params)
 	 * If we branch to err, then we want to free an allocated model;
 	 * if we fall through naturally, then we don't.
 	 */
-	if (0) {
 err:
-		if (pred_model != NULL)
-			free (pred_model);
-	}
 	/* Free allocated memory. */
 	if (log_lambda_pmf != NULL)
 		free(log_lambda_pmf);
@@ -377,18 +370,16 @@ err:
 	return (pred_model);
 }
 
-double *
+std::vector<double>
 get_theta(ruleset_t * rs, rule_t * rules, rule_t * labels, params_t *params)
 {
 	/* calculate captured 0's and 1's */
 	VECTOR v0;
-	double *theta;
+	std::vector<double> theta;
 	int j;
 
 	rule_vinit(rs->n_samples, &v0);
-	theta = (double*)malloc(rs->n_rules * sizeof(double));
-	if (theta == NULL)
-		return (NULL);
+	theta.reserve(rs->n_rules);
 
 	for (j = 0; j < rs->n_rules; j++) {
 		int n0, n1;

@@ -33,7 +33,7 @@ gsl_rng *RAND_GSL;
 // #define __cplusplus
 // #pragma pop_macro("__cplusplus")
 
-pred_model_t *train(data_t *, int, int, params_t *);
+PredModel train(data_t *, int, int, params_t *);
 int load_data(const char *, const char *, int *, int *, rule_t **, rule_t **);
 
 // #if 0
@@ -75,7 +75,6 @@ int load_data(const char *, const char *, int *, int *, rule_t **, rule_t **);
 //        }
 //#endif
  
-	pred_model_t *pred_model_sbrl;
 	params_t params;
         Rcpp::NumericVector nv;
         Rcpp::IntegerVector iv;
@@ -95,17 +94,17 @@ int load_data(const char *, const char *, int *, int *, rule_t **, rule_t **);
 
         INIT_TIME(tv_acc);
         START_TIME(tv_start);
-	pred_model_sbrl = train(&data, initialization, method, &params);
+	PredModel pred_model_sbrl = train(&data, initialization, method, &params);
         END_TIME(tv_start, tv_end, tv_acc);
         REPORT_TIME("Time to train", "", tv_end, 1);
 
         Rcpp::IntegerVector id;
-	for (int i=0; i<pred_model_sbrl->rs->n_rules; i++)
-        	id.push_back(pred_model_sbrl->rs->rules[i].rule_id);
+	for (int i=0; i<pred_model_sbrl.rs.n_rules; i++)
+                id.push_back(pred_model_sbrl.rs.rules[i].rule_id);
 	
         Rcpp::NumericVector prob;
-	for (int i=0; i<pred_model_sbrl->rs->n_rules; i++)
-        	prob.push_back(pred_model_sbrl->theta[i]);
+	for (int i=0; i<pred_model_sbrl.rs.n_rules; i++)
+                prob.push_back(pred_model_sbrl.theta[i]);
 
 #if 0
         Rcpp::NumericVector ci_low;
