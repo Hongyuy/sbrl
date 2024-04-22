@@ -205,7 +205,7 @@ compute_log_gammas(int nsamples, params_t *params)
 	a01 = a0 + a1;
 
 	max = nsamples + 2 * (1 + a01);
-	log_gammas = malloc(sizeof(double) * max);
+	log_gammas = (double*)malloc(sizeof(double) * max);
 	if (log_gammas == NULL)
 		return (-1);
 
@@ -218,7 +218,7 @@ int
 compute_pmf(int nrules, params_t *params)
 {
 	int i;
-	if ((log_lambda_pmf = malloc(nrules * sizeof(double))) == NULL)
+	if ((log_lambda_pmf = (double*)malloc(nrules * sizeof(double))) == NULL)
 		return (errno);
 	for (i = 0; i < nrules; i++) {
 		log_lambda_pmf[i] =
@@ -229,7 +229,7 @@ compute_pmf(int nrules, params_t *params)
 	}
 
 	if ((log_eta_pmf =
-	    malloc((1 + MAX_RULE_CARDINALITY) * sizeof(double))) == NULL)
+	    (double*)malloc((1 + MAX_RULE_CARDINALITY) * sizeof(double))) == NULL)
 		return (errno);
 	for (i = 0; i <= MAX_RULE_CARDINALITY; i++) {
 		log_eta_pmf[i] =
@@ -281,7 +281,7 @@ int
 permute_rules(int nrules, gsl_rng *RAND_GSL)
 {
 	int i;
-	if ((rule_permutation = malloc(sizeof(permute_t) * nrules)) == NULL)
+	if ((rule_permutation = (permute_t*)malloc(sizeof(permute_t) * nrules)) == NULL)
 		return (-1);
 	for (i = 1; i < nrules; i++) {
 		rule_permutation[i].val = my_rng(RAND_GSL);
@@ -315,7 +315,7 @@ train(data_t *train_data, int initialization, int method, params_t *params)
 	if (compute_log_gammas(train_data->nsamples, params) != 0)
 		goto err;
 
-	if ((pred_model = calloc(1, sizeof(pred_model_t))) == NULL)
+	if ((pred_model = (pred_model_t*)calloc(1, sizeof(pred_model_t))) == NULL)
 		goto err;
 
 	default_rule = 0;
@@ -386,7 +386,7 @@ get_theta(ruleset_t * rs, rule_t * rules, rule_t * labels, params_t *params)
 	int j;
 
 	rule_vinit(rs->n_samples, &v0);
-	theta = malloc(rs->n_rules * sizeof(double));
+	theta = (double*)malloc(rs->n_rules * sizeof(double));
 	if (theta == NULL)
 		return (NULL);
 
@@ -520,6 +520,8 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 	double jump_prob;
 	int dummy, i, j, k, iter, iters_per_step, *rs_idarray = NULL, len;
 	double log_post_rs, max_log_posterior = -1e9, prefix_bound = 0.0;
+	double T[100000], tmp[50];
+	int ntimepoints = 0;
 
 	log_post_rs = 0.0;
 	iters_per_step = 200;
@@ -541,8 +543,6 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 //	}
 
 	/* Pre-compute the cooling schedule. */
-	double T[100000], tmp[50];
-	int ntimepoints = 0;
 
 	tmp[0] = 1;
 	for (i = 1; i < 28; i++) {
