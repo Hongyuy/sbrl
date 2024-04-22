@@ -31,7 +31,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "rule.h"
-
+#include "Rcpp.h"
 
 /* Function declarations. */
 int ascii_to_vector(char *, size_t, int *, int *, VECTOR *);
@@ -78,13 +78,11 @@ rules_init(std::string &infile, int &nrules,
 {
 	FILE *fi;
 	char *cp, *features, *line, *rulestr;
-	int rule_cnt, sample_cnt, rsize;
+	int sample_cnt = 0;
 	int i, ones, ret;
-	Rule *rules=NULL;
+	Rule rule;
 	size_t linelen, rulelen;
 	ssize_t len;
-
-	sample_cnt = rsize = 0;
 
 	if ((fi = fopen(infile.c_str(), "r")) == NULL)
         return (errno);
@@ -93,17 +91,11 @@ rules_init(std::string &infile, int &nrules,
 	 * Leave a space for the 0th (default) rule, which we'll add at
 	 * the end.
 	 */
-	rule_cnt = add_default_rule != 0 ? 1 : 0;
+	if (add_default_rule)
+		rules_ret.push_back(rule);
 	line = NULL;
 	linelen = 0;
 	while ((len = getline_portable(&line, &linelen, fi)) > 0) {
-		if (rule_cnt >= rsize) {
-			rsize += RULE_INC;
-			rules = (Rule *)realloc(rules, rsize * sizeof(Rule));
-			if (rules == NULL)
-				goto err;
-		}
-
 		/* Get the rule string; line will contain the bits. */
 		features = line;
 		if ((rulestr = strsep_portable(&features, " ")) == NULL) 
@@ -112,8 +104,7 @@ rules_init(std::string &infile, int &nrules,
 		rulelen = strlen(rulestr) + 1;
 		len -= rulelen;
 
-		if ((rules[rule_cnt].features = strdup(rulestr)) == NULL)
-			goto err;
+		rule.features = std::string(rulestr);
 
 		/*
 		 * At this point features is (probably) a line terminated by a
@@ -126,49 +117,34 @@ rules_init(std::string &infile, int &nrules,
 			len--;
 		}
 		if (ascii_to_vector(features, len, &sample_cnt, &ones,
-		    &rules[rule_cnt].truthtable) != 0)
+		    &rule.truthtable) != 0)
 		    	goto err;
-		rules[rule_cnt].support = ones;
+		rule.support = ones;
 
 		/* Now compute the number of clauses in the rule. */
-		rules[rule_cnt].cardinality = 1;
+		rule.cardinality = 1;
 		for (cp = rulestr; *cp != '\0'; cp++)
 			if (*cp == ',')
-				rules[rule_cnt].cardinality++;
-		rule_cnt++;
+				rule.cardinality++;
+		rules_ret.push_back(rule);
 	}
 	fclose(fi);
 
 	/* Now create the 0'th (default) rule. */
 	if (add_default_rule) {
-		rules[0].support = sample_cnt;
-		rules[0].features = (char*)"default";
-		rules[0].cardinality = 0;
-		if (make_default(&rules[0].truthtable, sample_cnt) != 0)
+		rules_ret[0].support = sample_cnt;
+		rules_ret[0].features = (char*)"default";
+		rules_ret[0].cardinality = 0;
+		if (make_default(&rules_ret[0].truthtable, sample_cnt) != 0)
 		    goto err;
 	}
 
 	nsamples = sample_cnt;
-	nrules = rule_cnt;
-	for (int i = 0; i < rule_cnt; ++i)
-		rules_ret.push_back(rules[i]);
+	nrules = rules_ret.size();
 	return (0);
 
 err:
 	ret = errno;
-
-	/* Reclaim space. */
-	if (rules != NULL) {
-		for (i = 1; i < rule_cnt; i++) {
-			free(rules[i].features);
-#ifdef GMP
-			mpz_clear(rules[i].truthtable);
-#else
-			free(rules[i].truthtable);
-#endif
-		}	
-		free(rules);
-	}
 	(void)fclose(fi);
 	return (ret);
 }
@@ -186,7 +162,6 @@ rules_free(std::vector<Rule> &rules, const int nrules, int add_default) {
 
 	for (i = start; i < nrules; i++) {
 		rule_vfree(&rules[i].truthtable);
-		free(rules[i].features);
 	}
 	// free(rules);
 }

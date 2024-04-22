@@ -86,7 +86,7 @@ enum class Step
 };
 
 struct Rule {
-	char *features;			/* Representation of the rule. */
+	std::string features;	/* Representation of the rule. */
 	int support;			/* Number of 1's in truth table. */
 	int cardinality;
 	VECTOR truthtable;		/* Truth table; one bit per sample. */
