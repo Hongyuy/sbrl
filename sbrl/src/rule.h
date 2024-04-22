@@ -102,7 +102,8 @@ struct Ruleset {
 	int n_rules;			/* Number of actual rules. */
 	int n_alloc;			/* Spaces allocated for rules. */
 	int n_samples;
-	RulesetEntry * entries;	/* Array of rules. */
+	std::vector<RulesetEntry> entries;	/* Array of rules. */
+	Ruleset(int n=0): entries(n) {}
 };
 
 struct Params {

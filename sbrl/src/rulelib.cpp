@@ -318,22 +318,13 @@ ruleset_init(int nrs_rules,
     int nsamples, int *idarray, std::vector<Rule> &rules, Ruleset **retruleset)
 {
 	int cnt, i;
-	// Rule *cur_rule;
 	Ruleset *rs;
-	RulesetEntry *cur_re;
 	VECTOR not_captured;
 
 	/*
 	 * Allocate space for the ruleset structure and the ruleset entries.
 	 */
-	rs = (Ruleset*)malloc(sizeof(Ruleset));
-	if (rs == NULL)
-		return (errno);
-    else {
-        rs->entries = (RulesetEntry*)malloc(nrs_rules * sizeof(RulesetEntry));
-        if (rs->entries == NULL)
-            return (errno);
-    }
+	rs = new Ruleset(nrs_rules);
 	/*
 	 * Allocate the ruleset at the front of the structure and then
 	 * the RulesetEntry array at the end.
@@ -346,7 +337,7 @@ ruleset_init(int nrs_rules,
 	cnt = nsamples;
 	for (i = 0; i < nrs_rules; i++) {
 		auto cur_rule = &rules[idarray[i]];
-		cur_re = rs->entries + i;
+		auto cur_re = &rs->entries[i];
 		cur_re->rule_id = idarray[i];
 
 		if (rule_vinit(nsamples, &cur_re->captures) != 0)
@@ -402,12 +393,7 @@ int
 ruleset_copy(Ruleset **ret_dest, Ruleset *src)
 {
 	int i;
-	Ruleset *dest;
-
-	if ((dest = (Ruleset*)malloc(sizeof(Ruleset))) == NULL)
-		return (errno);
-    else if ((dest->entries = (RulesetEntry*)malloc(src->n_rules * sizeof(RulesetEntry)))==NULL)
-        return (errno);
+	Ruleset *dest = new Ruleset(src->n_rules);
 	dest->n_alloc = src->n_rules;
 	dest->n_rules = src->n_rules;
 	dest->n_samples = src->n_samples;
@@ -431,7 +417,7 @@ ruleset_destroy(Ruleset *rs)
 	int j;
 	for (j = 0; j < rs->n_rules; j++)
 		rule_vfree(&rs->entries[j].captures);
-	free(rs);
+	// free(rs);
 }
 
 /*
@@ -443,16 +429,17 @@ ruleset_add(std::vector<Rule> &rules, int nrules, Ruleset **rsp, int newrule, in
 {
 	int i, cnt;
 	Ruleset *rs;
-	RulesetEntry *expand, *cur_re;
+	// RulesetEntry *expand, *cur_re;
 	VECTOR not_caught;
 
 	rs = *rsp;
 	/* Check for space. */
 	if (rs->n_alloc < rs->n_rules + 1) {
-		expand = (RulesetEntry*)realloc(rs->entries, (rs->n_rules + 1) * sizeof(RulesetEntry));
-		if (expand == NULL)
-			return (errno);
-		rs->entries = expand;
+		// expand = (RulesetEntry*)realloc(rs->entries, (rs->n_rules + 1) * sizeof(RulesetEntry));
+		// if (expand == NULL)
+		// 	return (errno);
+		// rs->entries = expand;
+		rs->entries.push_back({});
 		rs->n_alloc = rs->n_rules + 1;
 		*rsp = rs;
 	}
@@ -473,8 +460,10 @@ ruleset_add(std::vector<Rule> &rules, int nrules, Ruleset **rsp, int newrule, in
 	 * doing may be a little sketchy -- we're copying the mpz_t's around.
 	 */
 	if (ndx != rs->n_rules) {
-		memmove(rs->entries + (ndx + 1), rs->entries + ndx,
-		    sizeof(RulesetEntry) * (rs->n_rules - ndx));
+		// memmove(rs->entries + (ndx + 1), rs->entries + ndx,
+		//     sizeof(RulesetEntry) * (rs->n_rules - ndx));
+		for (int i = rs->n_rules; i > ndx; --i)
+			rs->entries[i] = rs->entries[i-1];
 	}
 
 	/* Insert and initialize the new rule. */
@@ -488,7 +477,7 @@ ruleset_add(std::vector<Rule> &rules, int nrules, Ruleset **rsp, int newrule, in
 	 */
     
 	for (i = ndx; i < rs->n_rules; i++) {
-		cur_re = rs->entries + i;
+		auto cur_re = &rs->entries[i];
 		/*
 		 * Captures for this rule gets anything in not_caught
 		 * that is also in the rule's truthtable.
@@ -514,10 +503,10 @@ ruleset_delete(std::vector<Rule> &rules, int nrules, Ruleset *rs, int ndx)
 {
 	int i, nset;
 	VECTOR tmp_vec;
-	RulesetEntry *old_re, *cur_re;
+	// RulesetEntry *old_re, *cur_re;
 
 	/* Compute new captures for all rules following the one at ndx.  */
-	old_re = rs->entries + ndx;
+	auto old_re = &rs->entries[ndx];
 
 	if (rule_vinit(rs->n_samples, &tmp_vec) != 0)
 		return;
@@ -526,7 +515,7 @@ ruleset_delete(std::vector<Rule> &rules, int nrules, Ruleset *rs, int ndx)
 		 * My new captures is my old captures or'd with anything that
 		 * was captured by ndx and is captured by my rule.
 		 */
-		cur_re = rs->entries + i;
+		auto cur_re = &rs->entries[i];
 		rule_vand(tmp_vec, rules[cur_re->rule_id].truthtable,
 		    old_re->captures, rs->n_samples, &nset);
 		rule_vor(cur_re->captures, cur_re->captures,
@@ -546,8 +535,10 @@ ruleset_delete(std::vector<Rule> &rules, int nrules, Ruleset *rs, int ndx)
 
 	/* Shift up cells if necessary. */
 	if (ndx != rs->n_rules - 1)
-		memmove(rs->entries + ndx, rs->entries + ndx + 1,
-		    sizeof(RulesetEntry) * (rs->n_rules - 1 - ndx));
+		// memmove(rs->entries + ndx, rs->entries + ndx + 1,
+		//     sizeof(RulesetEntry) * (rs->n_rules - 1 - ndx));
+		for (int i = ndx; i < rs->n_rules; ++i)
+			rs->entries[i] = rs->entries[i+1];
 
 	rs->n_rules--;
 	return;
