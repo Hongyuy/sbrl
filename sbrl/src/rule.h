@@ -121,7 +121,7 @@ struct Ruleset {
 	Ruleset(int n=0): entries(n) {}
 	Ruleset(int n0, int n1, int n2): n_rules{n0}, n_alloc{n1}, n_samples{n2} {}
 	std::vector<int> backup();
-	int pick_random_rule(int, gsl_rng *);
+	int pick_random_rule(int, gsl_rng *) const;
 };
 
 struct Params {
