@@ -747,6 +747,7 @@ init_gsl_rand_gen(gsl_rng **p_RAND_GSL)
     if (*p_RAND_GSL == NULL) {
         gsl_rng_env_setup();
         *p_RAND_GSL = gsl_rng_alloc(gsl_rng_default);
+        gsl_rng_set(*p_RAND_GSL, 0);
     }
 }
 
