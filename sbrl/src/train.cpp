@@ -265,8 +265,7 @@ train(Data &train_data, int initialization, int method, const Params &params)
 	max_pos = compute_log_posterior(rs, train_data.rules,
 	    train_data.nrules, train_data.labels, params, 1, -1, null_bound);
 
-	Permutations rule_permutation;
-	rule_permutation.permute_rules(train_data.nrules, RAND_GSL);
+	Permutations rule_permutation(train_data.nrules, RAND_GSL);
 
 	for (chain = 0; chain < params.nchain; chain++) {
 		auto rs_temp = run_mcmc(params.iters,
@@ -674,14 +673,13 @@ unsigned RANDOM_RANGE(int lo, int hi, gsl_rng *RAND_GSL) { return (unsigned)(lo 
 
 int permute_cmp(const void *v1, const void *v2) { return ((permute_t *)v1)->val - ((permute_t *)v2)->val; }
 
-void Permutations::permute_rules(int nrules, gsl_rng *RAND_GSL)
+Permutations::Permutations(int nrules, gsl_rng *RAND_GSL)
 {
-	int i;
 	if (ptr != NULL)
 		throw std::runtime_error("Permutations: double initialization");
 	if ((ptr = (permute_t*)malloc(sizeof(permute_t) * nrules)) == NULL)
 		throw std::runtime_error("Permutations: malloc failed");
-	for (i = 0; i < nrules; i++) {
+	for (int i = 0; i < nrules; i++) {
 		ptr[i].val = my_rng(RAND_GSL);
 		ptr[i].ndx = i;
 	}

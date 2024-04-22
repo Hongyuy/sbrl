@@ -94,10 +94,9 @@ typedef struct _permute {
 struct Permutations {
 	permute_t * ptr;
 	int permute_ndx;
-	Permutations(): ptr{nullptr}, permute_ndx{0} {}
+	Permutations(int nrules, gsl_rng *RAND_GSL);
 	~Permutations() { if (ptr) free(ptr); }
 	permute_t & operator [](int i) {return ptr[i];}
-	void permute_rules(int nrules, gsl_rng *RAND_GSL);
 };
 
 struct BitVec {
