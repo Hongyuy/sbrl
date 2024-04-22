@@ -371,14 +371,12 @@ err1:
  * We don't know how long the idarray currently is so always call
  * realloc, which will do the right thing.
  */
-int
-ruleset_backup(Ruleset *rs, std::vector<int> &ids_ret)
+std::vector<int> Ruleset::backup()
 {
 	std::vector<int> ids;
-	for (int i = 0; i < rs->n_rules; i++)
-		ids.push_back(rs->entries[i].rule_id);
-	ids_ret = ids;
-	return (0);
+	for (int i = 0; i < this->n_rules; i++)
+		ids.push_back(this->entries[i].rule_id);
+	return ids;
 }
 
 /*

@@ -433,8 +433,7 @@ run_mcmc(int iters, int nsamples, int nrules,
 	 * The initial ruleset is our best ruleset so far, so keep a
 	 * list of the rules it contains.
 	 */
-	if (ruleset_backup(rs, rs_idarray) != 0)
-		goto err;
+	rs_idarray = rs->backup();
 	max_log_posterior = log_post_rs;
 	len = rs->n_rules;
 
@@ -445,8 +444,7 @@ run_mcmc(int iters, int nsamples, int nrules,
 		    	goto err;
 
 		if (log_post_rs > max_log_posterior) {
-			if (ruleset_backup(rs, rs_idarray) != 0)
-				goto err;
+			rs_idarray = rs->backup();
 			max_log_posterior = log_post_rs;
 			len = rs->n_rules;
 		}
@@ -496,8 +494,7 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 
 	log_post_rs = compute_log_posterior(rs,
 	    rules, nrules, labels, params, 0, -1, prefix_bound);
-	if (ruleset_backup(rs, rs_idarray) != 0)
-		goto err;
+	rs_idarray = rs->backup();
 	max_log_posterior = log_post_rs;
 	len = rs->n_rules;
 
@@ -528,8 +525,7 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
 			    	goto err;
 
 			if (log_post_rs > max_log_posterior) {
-				if (ruleset_backup(rs, rs_idarray) != 0)
-					goto err;
+				rs_idarray = rs->backup();
 				max_log_posterior = log_post_rs;
 				len = rs->n_rules;
 			}

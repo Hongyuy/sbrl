@@ -115,6 +115,7 @@ struct Ruleset {
 	std::vector<RulesetEntry> entries;	/* Array of rules. */
 	Ruleset(int n=0): entries(n) {}
 	Ruleset(int n0, int n1, int n2): n_rules{n0}, n_alloc{n1}, n_samples{n2} {}
+	std::vector<int> backup();
 };
 
 struct Params {
@@ -158,7 +159,6 @@ struct PredModel
 // char* strsep_portable(char **, const char *);
 int ruleset_init(int, int, const std::vector<int> &, std::vector<Rule> &, Ruleset **);
 int ruleset_add(std::vector<Rule> &, int, Ruleset **, int, int);
-int ruleset_backup(Ruleset *, std::vector<int> &);
 int ruleset_copy(Ruleset **, Ruleset *);
 void ruleset_delete(std::vector<Rule> &, int, Ruleset *, int);
 void ruleset_swap(Ruleset *, int, int, std::vector<Rule> &);
