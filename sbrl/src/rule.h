@@ -91,6 +91,7 @@ struct BitVec {
 	int rule_isset(int);
 	int rule_vinit(int);
 	int rule_vfree();
+	int count_ones_vector(int);
 };
 
 struct Rule {
@@ -186,7 +187,6 @@ void rule_vand(BitVec &, BitVec &, BitVec &, int, int &);
 void rule_vandnot(BitVec &, BitVec &, BitVec &, int, int &);
 void rule_vor(BitVec &, BitVec &, BitVec &, int, int &);
 int count_ones(v_entry);
-int count_ones_vector(BitVec &, int);
 
 /* Functions for the Scalable Baysian Rule Lists */
 // double *predict(PredModel&, std::vector<Rule> &labels, const Params &);

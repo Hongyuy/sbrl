@@ -788,13 +788,13 @@ rule_vandnot(BitVec &dest, BitVec &src1, BitVec &src2, int nsamples, int &ret_cn
 }
 
 int
-count_ones_vector(BitVec &v, int len) {
+BitVec::count_ones_vector(int len) {
 #ifdef GMP
-	return mpz_popcount(v.vec);
+	return mpz_popcount(this->vec);
 #else
 	int cnt = 0, i;
 	for (i = 0; i < (len+BITS_PER_ENTRY-1)/BITS_PER_ENTRY; i++) {
-		cnt += count_ones(v[i]);
+		cnt += count_ones(this->vec[i]);
 	}
 	return cnt;
 #endif
