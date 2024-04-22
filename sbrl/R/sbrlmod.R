@@ -35,6 +35,7 @@ sbrl <- function(tdata, iters=30000, pos_sign="1", neg_sign="0", rule_minlen=1, 
     rulenames <- c(as.character(pos_rulenames), as.character(neg_rulenames))
     idx <- order(rulenames)[!duplicated(sort(rulenames))]
     rulenames <- rulenames[idx]
+    labelnames <- c("{label=0}", "{label=1}")
     # get the columns correct for feature_rule matrix
     mat <- as.matrix(cbind(pos_mat3, neg_mat3)[, idx])
     
@@ -53,10 +54,11 @@ sbrl <- function(tdata, iters=30000, pos_sign="1", neg_sign="0", rule_minlen=1, 
     #cat(sprintf("[debug] created label_file=%s, size=%s\n", label_file, file.size(label_file)))
     write.table(as.matrix(t(mat_data_rules)), file=out_file, sep=' ', row.names=rulenames, col.names=FALSE, quote=FALSE)
     label <- t(cbind((tdata$label==neg_sign) +0, (tdata$label==pos_sign) +0))
-    write.table(as.matrix(label), file=label_file, sep=' ', row.names=c("{label=0}", "{label=1}"), col.names=FALSE, quote=FALSE)
+    write.table(as.matrix(label), file=label_file, sep=' ', row.names=labelnames, col.names=FALSE, quote=FALSE)
     
     # call the C functions through Rcpp wrapper function sbrl_train
-    rs<-.Call('sbrl_train', PACKAGE = 'sbrl', 0, 0, list(lambda, eta, 0.5, alpha, iters, nchain), out_file, label_file)$rs
+    rs<-.Call('sbrl_train', PACKAGE = 'sbrl', 0, 0, list(lambda, eta, 0.5, alpha, iters, nchain), out_file, label_file,
+              rulenames, labelnames, as.matrix(t(mat_data_rules)), as.matrix(label))$rs
     #cat(sprintf("[debug] written out_file=%s, size=%s\n", out_file, file.size(out_file)))
     #cat(sprintf("[debug] written label_file=%s, size=%s\n", label_file, file.size(label_file)))
     unlink(out_file)

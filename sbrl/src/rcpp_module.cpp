@@ -41,7 +41,8 @@ int load_data(const char *, const char *, int *, int *, rule_t **, rule_t **);
 // #endif
 // }
 
-    Rcpp::List _train(int initialization, int method, Rcpp::List paramList, Rcpp::CharacterVector dataFile, Rcpp::CharacterVector labelFile) {
+    Rcpp::List _train(int initialization, int method, Rcpp::List paramList, Rcpp::CharacterVector dataFile, Rcpp::CharacterVector labelFile,
+                      Rcpp::StringVector ruleNames, Rcpp::StringVector labelNames, Rcpp::IntegerMatrix ruleTruthTables, Rcpp::IntegerMatrix labelTruthTables) {
 //        Rprintf("training!\n");
 
 	data_t	data;
@@ -127,16 +128,21 @@ int load_data(const char *, const char *, int *, int *, rule_t **, rule_t **);
 // Rcpp::List _train(int initialization, int method, Rcpp::List paramList, Rcpp::CharacterVector dataFile, Rcpp::CharacterVector labelFile)
 // fastLR_
 // Rcpp::List fastLR_(Rcpp::NumericMatrix x, Rcpp::NumericVector y, Rcpp::NumericVector start, double eps_f, double eps_g, int maxit);
-RcppExport SEXP sbrl_train(SEXP initSEXP, SEXP methodSEXP, SEXP paramListSEXP, SEXP dataFileSEXP, SEXP labelFileSEXP) {
+RcppExport SEXP sbrl_train(SEXP initSEXP, SEXP methodSEXP, SEXP paramListSEXP, SEXP dataFileSEXP, SEXP labelFileSEXP,
+                           SEXP ruleNamesSEXP, SEXP labelNamesSEXP, SEXP ruleTruthTablesSEXP, SEXP labelTruthTablesSEXP) {
     BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type init(initSEXP);
     Rcpp::traits::input_parameter< int >::type method(methodSEXP);
     Rcpp::traits::input_parameter< Rcpp::List >::type params(paramListSEXP);
     Rcpp::traits::input_parameter< Rcpp::CharacterVector >::type dataFile(dataFileSEXP);
     Rcpp::traits::input_parameter< Rcpp::CharacterVector >::type labelFile(labelFileSEXP);
+    Rcpp::traits::input_parameter< Rcpp::StringVector >::type ruleNames(ruleNamesSEXP);
+    Rcpp::traits::input_parameter< Rcpp::StringVector >::type labelNames(labelNamesSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type ruleTruthTables(ruleTruthTablesSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type labelTruthTables(labelTruthTablesSEXP);
     //__result = Rcpp::wrap(_train(x, y, start, eps_f, eps_g, maxit));
     //return __result;
-    return Rcpp::wrap(_train(init, method, params, dataFile, labelFile));
+    return Rcpp::wrap(_train(init, method, params, dataFile, labelFile, ruleNames, labelNames, ruleTruthTables, labelTruthTables));
     END_RCPP
 }
 // Fortran code and Found no calls to: 'R_registerRoutines', 'R_useDynamicSymbols'
