@@ -195,9 +195,11 @@ load_data(std::string &data_file, std::string &label_file, Data &data)
         /* Load data. */
         add_default_rule = 1;
         data.nrules++;
+        data.rules.reserve(data.nrules);
         rules_init(data_file, data.rules, data.nrules, data.nsamples, add_default_rule);
 
         /* Load labels. */
         add_default_rule = 0;
+        data.labels.reserve(2);
         rules_init(label_file, data.labels, 2, data.nsamples, add_default_rule);
 }

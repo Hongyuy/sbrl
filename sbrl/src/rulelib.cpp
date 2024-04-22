@@ -73,7 +73,7 @@ int byte_ones[] = {
 
 void
 rules_init(const std::string &infile, std::vector<Rule> &rules_ret,
-           const int nrules_expected, const int nsamples_expected, const int add_default_rule)
+           const size_t nrules_expected, const size_t nsamples_expected, const int add_default_rule)
 {
 	std::fstream fi(infile.c_str());
 	std::string linestr;
@@ -89,6 +89,7 @@ rules_init(const std::string &infile, std::vector<Rule> &rules_ret,
 		/* Get the rule string; line will contain the bits. */
 		const auto pos = linestr.find(' ');
 		if (pos == std::string::npos)
+			// break;
 			throw std::runtime_error("failed to parse rule name and truethtable");
 		rules_ret.emplace_back(linestr.substr(0, pos), 0, 0, nsamples_expected);
 		auto &rule = rules_ret.back();
@@ -100,15 +101,13 @@ rules_init(const std::string &infile, std::vector<Rule> &rules_ret,
 		 * let's make it NUL-terminated and shorten the line length
 		 * by one.
 		 */
-		if (rule.truthtable.set_vector_from_ascii(truthTable, truthTableLen, sample_cnt, ones) != 0)
-			throw std::runtime_error("failed to parse rule name and truethtable");
+		rule.truthtable.set_vector_from_ascii(truthTable, truthTableLen, sample_cnt, ones);
 		rule.support = ones;
 
 		/* Now compute the number of clauses in the rule. */
 		rule.cardinality = 1;
 		for (char &c : rule.features)
 			rule.cardinality += (c == ',');
-		// Rprintf("%s\n", mpz_class(rules_ret.back().truthtable).get_str(2).c_str());
 	}
 
 	/* Now create the 0'th (default) rule. */
@@ -116,8 +115,7 @@ rules_init(const std::string &infile, std::vector<Rule> &rules_ret,
 		rules_ret[0].support = sample_cnt;
 		rules_ret[0].features = (char*)"default";
 		rules_ret[0].cardinality = 0;
-		if (rules_ret[0].truthtable.make_default(sample_cnt) != 0)
-			throw std::runtime_error("failed to make_default: default rule");
+		rules_ret[0].truthtable.make_default(sample_cnt);
 	}
 	if (nrules_expected != rules_ret.size())
 		throw std::runtime_error("nrules does not match expected");
@@ -142,7 +140,7 @@ rules_free(std::vector<Rule> &rules, const int nrules, int add_default) {
 
 /* Malloc a vector to contain nsamples bits. */
 int
-BitVec::rule_vinit(int len)
+BitVec::rule_vinit(size_t len)
 {
 	if (len <= 0)
 		throw std::runtime_error("invalid len");

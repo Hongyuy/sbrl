@@ -109,7 +109,7 @@ struct BitVec {
 	void rule_copy(BitVec &, int);
 	int make_default(int);
 	int set_vector_from_ascii(const char *, size_t, int &, int &);
-	BitVec(int n) { rule_vinit(n); };
+	BitVec(size_t n) { rule_vinit(n); };
 	BitVec() = delete;
     BitVec(const BitVec &other) = delete;
 	BitVec& operator= (const BitVec &other) = delete;
@@ -129,7 +129,7 @@ struct BitVec {
 	}
 	~BitVec() { if (vec->_mp_d) rule_vfree(); }
 private:
-	int rule_vinit(int);
+	int rule_vinit(size_t);
 	int rule_vfree();
 };
 
@@ -138,7 +138,7 @@ struct Rule {
 	int support;			/* Number of 1's in truth table. */
 	int cardinality;
 	BitVec truthtable;		/* Truth table; one bit per sample. */
-	Rule(const std::string &feat, int supp, int card, int len): features{feat}, support{supp}, cardinality{card}, truthtable{len} {}
+	Rule(const std::string &feat, int supp, int card, size_t len): features{feat}, support{supp}, cardinality{card}, truthtable{len} {}
 	Rule() = delete;
     Rule(const Rule &other) = delete;
 	Rule& operator= (const Rule &other) = delete;
@@ -150,7 +150,7 @@ struct RulesetEntry {
 	unsigned rule_id;
 	int ncaptured;			/* Number of 1's in bit vector. */
 	BitVec captures;		/* Bit vector. */
-	RulesetEntry(unsigned id, int ncap, int len): rule_id{id}, ncaptured{ncap}, captures{len} {}
+	RulesetEntry(unsigned id, int ncap, size_t len): rule_id{id}, ncaptured{ncap}, captures{len} {}
 	RulesetEntry() = delete;
     RulesetEntry(const RulesetEntry &other) = delete;
 	RulesetEntry& operator= (const RulesetEntry &other) = delete;
@@ -205,6 +205,7 @@ struct Data {
 	std::vector<Rule> labels;	/* labels in BitVector form in the data */
 	int nrules;		/* number of rules */
 	int nsamples;		/* number of samples in the data. */
+	Data(): rules{}, labels{}, nrules{0}, nsamples{0} {}
 };
 
 typedef struct interval {
@@ -232,7 +233,7 @@ struct PredModel
 //void ruleset_print(Ruleset *, Rule *, int);
 //void ruleset_entry_print(RulesetEntry *, int, int);
 
-void rules_init(const std::string &, std::vector<Rule> &, const int, const int, const int);
+void rules_init(const std::string &, std::vector<Rule> &, const size_t, const size_t, const int);
 void rules_free(std::vector<Rule> &, const int, int);
 
 //void rule_print(Rule *, int, int, int);
