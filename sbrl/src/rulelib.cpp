@@ -478,7 +478,7 @@ Ruleset::ruleset_delete(std::vector<Rule> &rules, int nrules, int ndx)
 	if (ndx != n_rules - 1)
 		// memmove(rs->entries + ndx, rs->entries + ndx + 1,
 		//     sizeof(RulesetEntry) * (rs->n_rules - 1 - ndx));
-		for (int i = ndx; i < n_rules; ++i)
+		for (int i = ndx; i < n_rules-1; ++i)
 			this->entries[i] = this->entries[i+1];
 
 	this->entries.pop_back();
