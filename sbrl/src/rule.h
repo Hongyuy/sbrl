@@ -248,7 +248,6 @@ struct PredModel
  * Functions in the library
  */
 void rules_init(const std::string &, std::vector<Rule> &, const size_t, const size_t, const int);
-void rules_free(std::vector<Rule> &, const int, int);
 
 void rule_vand(BitVec &, BitVec &, BitVec &, int, int &);
 void rule_vandnot(BitVec &, BitVec &, BitVec &, int, int &);

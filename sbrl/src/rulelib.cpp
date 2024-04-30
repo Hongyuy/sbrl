@@ -88,7 +88,6 @@ void rules_init(const std::string &infile, std::vector<Rule> &rules_ret,
         /* Get the rule string; line will contain the bits. */
         const auto pos = linestr.find(' ');
         if (pos == std::string::npos)
-            // break;
             throw std::runtime_error("failed to parse rule name and truethtable");
         rules_ret.emplace_back(linestr.substr(0, pos), 0, 0, nsamples_expected);
         auto &rule = rules_ret.back();
@@ -121,23 +120,6 @@ void rules_init(const std::string &infile, std::vector<Rule> &rules_ret,
         throw std::runtime_error("nrules does not match expected");
     if (nsamples_expected != sample_cnt)
         throw std::runtime_error("sample_cnt does not match expected");
-}
-
-void rules_free(std::vector<Rule> &rules, const int nrules, int add_default)
-{
-    int i, start;
-
-    /* Cannot free features for default rule. */
-    start = 0;
-    if (add_default)
-    {
-        start = 1;
-    }
-
-    for (i = start; i < nrules; i++)
-    {
-    }
-    // free(rules);
 }
 
 /* Malloc a vector to contain nsamples bits. */
@@ -364,18 +346,6 @@ Ruleset::ruleset_copy()
     return dest;
 }
 
-/* Reclaim resources associated with a ruleset. */
-/*
-void
-Ruleset::ruleset_destroy()
-{
-    int j;
-    for (auto &entry : this->entries)
-        entry.captures.rule_vfree();
-    // free(rs);
-}
-*/
-
 /*
  * Add the specified rule to the ruleset at position ndx (shifting
  * all rules after ndx down by one).
@@ -470,8 +440,6 @@ void Ruleset::ruleset_delete(std::vector<Rule> &rules, int nrules, int ndx)
 
     /* Shift up cells if necessary. */
     if (ndx != n_rules - 1)
-        // memmove(rs->entries + ndx, rs->entries + ndx + 1,
-        //     sizeof(RulesetEntry) * (rs->n_rules - 1 - ndx));
         for (int i = ndx; i < n_rules - 1; ++i)
             std::swap(this->entries[i], this->entries[i + 1]);
 
