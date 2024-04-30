@@ -208,7 +208,6 @@ struct Ruleset
     void ruleset_delete(std::vector<Rule> &, int, int);
     void ruleset_swap(int, int, std::vector<Rule> &);
     void ruleset_swap_any(int, int, std::vector<Rule> &);
-    // void ruleset_destroy();
     static Ruleset ruleset_init(int, const std::vector<int> &, std::vector<Rule> &);
     static Ruleset create_random_ruleset(int, int, int, std::vector<Rule> &, gsl_rng *);
     Ruleset ruleset_copy();
@@ -238,11 +237,6 @@ typedef struct interval
     double a, b;
 } interval_t;
 
-// typedef struct pred_model {
-//        Ruleset *rs;          /* best ruleset. */
-//        double *theta;
-//        interval_t *confIntervals;
-// } pred_model_t;
 struct PredModel
 {
     std::vector<int> ids; /* best ruleset. */
@@ -253,18 +247,8 @@ struct PredModel
 /*
  * Functions in the library
  */
-// size_t getline_portable(char **, size_t *, FILE *);
-// char* strsep_portable(char **, const char *);
-
-// void ruleset_print(Ruleset *, Rule *, int);
-// void ruleset_entry_print(RulesetEntry *, int, int);
-
 void rules_init(const std::string &, std::vector<Rule> &, const size_t, const size_t, const int);
 void rules_free(std::vector<Rule> &, const int, int);
-
-// void rule_print(Rule *, int, int, int);
-// void rule_print_all(Rule *, int, int);
-// void rule_vector_print(BitVec &, int);
 
 void rule_vand(BitVec &, BitVec &, BitVec &, int, int &);
 void rule_vandnot(BitVec &, BitVec &, BitVec &, int, int &);
@@ -272,8 +256,6 @@ void rule_vor(BitVec &, BitVec &, BitVec &, int, int &);
 int count_ones(v_entry);
 
 /* Functions for the Scalable Baysian Rule Lists */
-// double *predict(PredModel&, std::vector<Rule> &labels, const Params &);
 Ruleset run_mcmc(int, int, int, std::vector<Rule> &, std::vector<Rule> &, const Params &, Permutations &, double, gsl_rng *);
-Ruleset run_simulated_annealing(int,
-                                int, int, int, std::vector<Rule> &, std::vector<Rule> &, const Params &, gsl_rng *);
+Ruleset run_simulated_annealing(int, int, int, int, std::vector<Rule> &, std::vector<Rule> &, const Params &, gsl_rng *);
 PredModel train(Data &, int, int, const Params &);
