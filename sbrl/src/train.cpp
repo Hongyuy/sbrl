@@ -57,7 +57,6 @@ static int a0, a1, a01;
 
 int debug;
 
-// void _quicksort (void *const, size_t, size_t, int (const void *, const void *));
 double compute_log_posterior(Ruleset &,
                              const std::vector<Rule> &, const int, std::vector<Rule> &, const Params &, const int, const int, double &);
 int gen_poission(double);
@@ -79,7 +78,6 @@ int my_rng(gsl_rng *RAND_GSL)
 int mcmc_accepts(double new_log_post, double old_log_post,
                  double prefix_bound, double max_log_post, double &extra, gsl_rng *RAND_GSL)
 {
-    /* Extra = jump_prob */
     return (prefix_bound > max_log_post &&
             log((my_rng(RAND_GSL) / (float)RAND_MAX)) <
                 (new_log_post - old_log_post + log(extra)));
@@ -88,7 +86,6 @@ int mcmc_accepts(double new_log_post, double old_log_post,
 int sa_accepts(double new_log_post, double old_log_post,
                double prefix_bound, double max_log_post, double &extra, gsl_rng *RAND_GSL)
 {
-    /* Extra = tk */
     return (prefix_bound > max_log_post &&
             (new_log_post > old_log_post ||
              (log((my_rng(RAND_GSL) / (float)RAND_MAX)) <
@@ -114,12 +111,6 @@ void propose(Ruleset &rs, std::vector<Rule> &rules, std::vector<Rule> &labels, i
 
     rs_new.ruleset_proposal(nrules, ndx1, ndx2, stepchar, jump_prob, RAND_GSL);
 
-    //	if (debug > 10) {
-    //		printf("Given ruleset: \n");
-    //		ruleset_print(rs, rules, (debug > 100));
-    //		printf("Operation %c(%d)(%d) produced proposal:\n",
-    //		    stepchar, ndx1, ndx2);
-    //	}
     switch (stepchar)
     {
     case Step::Add:
@@ -147,27 +138,14 @@ void propose(Ruleset &rs, std::vector<Rule> &rules, std::vector<Rule> &labels, i
     new_log_post = compute_log_posterior(rs_new,
                                          rules, nrules, labels, params, 0, change_ndx, prefix_bound);
 
-    //	if (debug > 10) {
-    //		ruleset_print(rs_new, rules, (debug > 100));
-    //		printf("With new log_posterior = %0.6f\n", new_log_post);
-    //	}
     if (prefix_bound < max_log_post)
         cnt++;
 
     if (accept_func(new_log_post,
                     ret_log_post, prefix_bound, max_log_post, extra, RAND_GSL))
     {
-        //	    	if (debug > 10)
-        //			printf("Accepted\n");
         ret_log_post = new_log_post;
-        // return rs_new;
         rs = std::move(rs_new);
-    }
-    else
-    {
-        //	    	if (debug > 10)
-        //			printf("Rejected\n");
-        // return rs;
     }
 }
 
@@ -182,9 +160,6 @@ void compute_log_gammas(int nsamples, const Params &params)
     a01 = a0 + a1;
 
     max = nsamples + 2 * (1 + a01);
-    // log_gammas = (double*)malloc(sizeof(double) * max);
-    // if (log_gammas == NULL)
-    // 	return (-1);
     log_gammas = std::vector<double>(max);
     for (i = 1; i < max; i++)
         log_gammas[i] = gsl_sf_lngamma((double)i);
@@ -198,9 +173,6 @@ void compute_pmf(int nrules, const Params &params)
     {
         log_lambda_pmf[i] =
             log(gsl_ran_poisson_pdf(i, params.lambda));
-        //		if (debug > 100)
-        //			printf("log_lambda_pmf[ %d ] = %6f\n",
-        //			    i, log_lambda_pmf[i]);
     }
 
     log_eta_pmf = std::vector<double>(1 + MAX_RULE_CARDINALITY);
@@ -208,9 +180,6 @@ void compute_pmf(int nrules, const Params &params)
     {
         log_eta_pmf[i] =
             log(gsl_ran_poisson_pdf(i, params.eta));
-        //		if (debug > 100)
-        //			printf("log_eta_pmf[ %d ] = %6f\n",
-        //			    i, log_eta_pmf[i]);
     }
 
     /*
@@ -218,9 +187,6 @@ void compute_pmf(int nrules, const Params &params)
      * <= MAX_RULE_CARDINALITY appear in the mined rules
      */
     eta_norm = gsl_cdf_poisson_P(MAX_RULE_CARDINALITY, params.eta) - gsl_ran_poisson_pdf(0, params.eta);
-
-    //	if (debug > 10)
-    //		printf("eta_norm(Beta_Z) = %6f\n", eta_norm);
 }
 
 void compute_cardinality(std::vector<Rule> &rules, int nrules)
@@ -235,11 +201,6 @@ void compute_cardinality(std::vector<Rule> &rules, int nrules)
         if (rules[i].cardinality > maxcard)
             maxcard = rules[i].cardinality;
     }
-
-    //	if (debug > 10)
-    //		for (i = 0; i <= MAX_RULE_CARDINALITY; i++)
-    //			printf("There are %d rules with cardinality %d.\n",
-    //			    card_count[i], i);
 }
 
 PredModel
@@ -301,17 +262,6 @@ get_theta(Ruleset &rs, std::vector<Rule> &rules, std::vector<Rule> &labels, cons
         n1 = rs.entries[j].ncaptured - n0;
         theta.push_back((n1 + params.alpha[1]) * 1.0 /
                         (n1 + n0 + params.alpha[0] + params.alpha[1]));
-        //		if (debug) {
-        //			printf("n0=%d, n1=%d, captured=%d, training accuracy =",
-        //			    n0, n1, rs->rules[j].ncaptured);
-        //			if (theta[j] >= params.threshold)
-        //				printf(" %.8f\n",
-        //				    n1 * 1.0 / rs->rules[j].ncaptured);
-        //			else
-        //				printf(" %.8f\n",
-        //				    n0 * 1.0 / rs->rules[j].ncaptured);
-        //			printf("theta[%d] = %.8f\n", j, theta[j]);
-        //		}
     }
     return (theta);
 }
@@ -334,9 +284,6 @@ run_mcmc(int iters, int nsamples, int nrules,
     n_add = n_delete = n_swap = 0;
 
     /* Initialize the ruleset. */
-    //	if (debug > 10)
-    //		printf("Prefix bound = %10f v_star = %f\n",
-    //		    prefix_bound, v_star);
     /*
      * Construct rulesets with exactly 2 rules -- one drawn from
      * the permutation and the default rule.
@@ -346,7 +293,6 @@ run_mcmc(int iters, int nsamples, int nrules,
     while (prefix_bound < v_star)
     {
         // TODO Gather some stats on how much we loop in here.
-        // if (rs != NULL) {
         if (rs.entries.size())
         {
             count++;
@@ -359,12 +305,6 @@ run_mcmc(int iters, int nsamples, int nrules,
         rs = Ruleset::ruleset_init(nsamples, rarray, rules);
         log_post_rs = compute_log_posterior(rs, rules,
                                             nrules, labels, params, 0, 1, prefix_bound);
-        //		if (debug > 10) {
-        //			printf("Initial random ruleset\n");
-        //			ruleset_print(rs, rules, 1);
-        //			printf("Prefix bound = %f v_star = %f\n",
-        //			    prefix_bound, v_star);
-        //		}
     }
 
     /*
@@ -389,18 +329,6 @@ run_mcmc(int iters, int nsamples, int nrules,
 
     /* Regenerate the best rule list */
     rs = Ruleset::ruleset_init(nsamples, rs_idarray, rules);
-
-    //	if (debug) {
-    //		printf("\n%s%d #add=%d #delete=%d #swap=%d):\n",
-    //		    "The best rule list is (#reject=", nsuccessful_rej,
-    //		    n_add, n_delete, n_swap);
-    //
-    //		printf("max_log_posterior = %6f\n", max_log_posterior);
-    //		printf("max_log_posterior = %6f\n",
-    //		    compute_log_posterior(rs, rules,
-    //		    nrules, labels, params, 1, -1, &prefix_bound));
-    //		ruleset_print(rs, rules, (debug > 100));
-    //	}
     return (rs);
 }
 
@@ -424,11 +352,6 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
     rs_idarray = rs.backup();
     max_log_posterior = log_post_rs;
 
-    //	if (debug > 10) {
-    //		printf("Initial ruleset: \n");
-    //		ruleset_print(rs, rules, (debug > 100));
-    //	}
-
     /* Pre-compute the cooling schedule. */
 
     tmp[0] = 1;
@@ -438,10 +361,6 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
         for (j = (int)tmp[i - 1]; j < (int)tmp[i]; j++)
             T[ntimepoints++] = 1.0 / (i + 1);
     }
-
-    //	if (debug > 0)
-    //		printf("iters_per_step = %d, #timepoints = %d\n",
-    //		    iters_per_step, ntimepoints);
 
     for (k = 0; k < ntimepoints; k++)
     {
@@ -460,15 +379,6 @@ run_simulated_annealing(int iters, int init_size, int nsamples,
         }
     }
     /* Regenerate the best rule list. */
-    //	printf("\n\n/*----The best rule list is: */\n");
-    //	ruleset_init(len, nsamples, rs_idarray, rules, &rs);
-    //	printf("max_log_posterior = %6f\n\n", max_log_posterior);
-    //	printf("max_log_posterior = %6f\n\n",
-    //	    compute_log_posterior(rs, rules,
-    //	    nrules, labels, params, 1, -1, &prefix_bound));
-    //	free(rs_idarray);
-    //	ruleset_print(rs, rules, (debug > 100));
-
     return (rs);
 }
 
@@ -548,9 +458,6 @@ compute_log_posterior(Ruleset &rs, const std::vector<Rule> &rules, const int nru
         }
     }
     prefix_bound = prefix_prior + prefix_log_likelihood;
-    //	if (debug > 20)
-    //		printf("log_prior = %6f\t log_likelihood = %6f\n",
-    //		    log_prior, log_likelihood);
     return (log_prior + log_likelihood);
 }
 
@@ -648,26 +555,6 @@ void init_gsl_rand_gen(gsl_rng **p_RAND_GSL)
         gsl_rng_set(*p_RAND_GSL, 0);
     }
 }
-
-// int
-// gen_poisson(double mu)
-//{
-//	return ((int)gsl_ran_poisson(RAND_GSL, mu));
-// }
-
-/*
-double
-gen_poission_pdf(int k, double mu)
-{
-    return (gsl_ran_poisson_pdf(k, mu));
-}
-
-double
-gen_gamma_pdf (double x, double a, double b)
-{
-    return (gsl_ran_gamma_pdf(x, a, b));
-}
-*/
 
 unsigned RANDOM_RANGE(int lo, int hi, gsl_rng *RAND_GSL) { return (unsigned)(lo + (unsigned)((my_rng(RAND_GSL) / (float)RAND_MAX) * (hi - lo + 1))); }
 
