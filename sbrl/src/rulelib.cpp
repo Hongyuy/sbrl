@@ -31,7 +31,6 @@
 #include <string.h>
 #include <unistd.h>
 #include "rule.h"
-#include "Rcpp.h"
 #include <fstream>
 
 /* Function declarations. */
