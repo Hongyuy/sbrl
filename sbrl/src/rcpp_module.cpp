@@ -9,6 +9,7 @@
 #endif
 
 #include "mytime.h"
+#include "rule.h"
 #if 0
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
@@ -23,13 +24,6 @@ gsl_rng *RAND_GSL;
 #define NLABELS 2
 #endif
 
-// extern "C" {
-// // https://stackoverflow.com/questions/1793800/can-i-redefine-a-c-macro-then-define-it-back
-// #pragma push_macro("__cplusplus")
-// #undef __cplusplus
-#include "rule.h"
-// #define __cplusplus
-// #pragma pop_macro("__cplusplus")
 
 PredModel train(Data &, int, int, const Params &);
 void load_data(std::string &, std::string &, Data &);
@@ -39,15 +33,9 @@ void load_data2(Data &data, Rcpp::StringVector ruleNames, Rcpp::StringVector lab
     data.nsamples = ruleTruthTables.ncol();
 }
 
-// #if 0
-// int debug;
-// #endif
-// }
-
 Rcpp::List _train(int initialization, int method, Rcpp::List paramList, Rcpp::CharacterVector dataFile, Rcpp::CharacterVector labelFile,
                   Rcpp::StringVector ruleNames, Rcpp::StringVector labelNames, Rcpp::IntegerMatrix ruleTruthTables, Rcpp::IntegerMatrix labelTruthTables)
 {
-    //        Rprintf("training!\n");
     Data data, data2;
     struct timeval tv_acc, tv_start, tv_end;
     std::string df = Rcpp::as<std::string>(dataFile[0]);
@@ -70,18 +58,6 @@ Rcpp::List _train(int initialization, int method, Rcpp::List paramList, Rcpp::Ch
         REPORT_TIME("Initialize time", "per rule", tv_end, data.nrules);
 
         load_data2(data2, ruleNames, labelNames, ruleTruthTables, labelTruthTables);
-        // #if 0
-        //         if (debug)
-        //                 printf("%d rules %d samples\n\n", nrules, nsamples);
-        //
-        //         if (debug > 100)
-        //                 rule_print_all(rules, nrules, nsamples);
-        //
-        //         if (debug > 100) {
-        //                 printf("Labels for %d samples\n\n", nsamples);
-        //                 rule_print_all(labels, nsamples, nsamples);
-        //         }
-        // #endif
 
         Params params;
         Rcpp::NumericVector nv;
@@ -138,17 +114,11 @@ Rcpp::List _train(int initialization, int method, Rcpp::List paramList, Rcpp::Ch
     {
         Rprintf("unknown error. please investigate or contact the maintainer of the package.\n");
     }
-    // Rcpp::DataFrame brl =  Rcpp::DataFrame::create(Rcpp::Named("clause")=clause, Rcpp::Named("prob")=prob, Rcpp::Named("ci_low")=ci_low, Rcpp::Named("ci_high")=ci_high);
     Rcpp::DataFrame rs = Rcpp::DataFrame::create(Rcpp::Named("V1") = id, Rcpp::Named("V2") = prob);
 
     return (Rcpp::List::create(Rcpp::Named("rs") = rs));
 }
 
-// using namespace Rcpp;
-
-// Rcpp::List _train(int initialization, int method, Rcpp::List paramList, Rcpp::CharacterVector dataFile, Rcpp::CharacterVector labelFile)
-// fastLR_
-// Rcpp::List fastLR_(Rcpp::NumericMatrix x, Rcpp::NumericVector y, Rcpp::NumericVector start, double eps_f, double eps_g, int maxit);
 RcppExport SEXP sbrl_train(SEXP initSEXP, SEXP methodSEXP, SEXP paramListSEXP, SEXP dataFileSEXP, SEXP labelFileSEXP,
                            SEXP ruleNamesSEXP, SEXP labelNamesSEXP, SEXP ruleTruthTablesSEXP, SEXP labelTruthTablesSEXP)
 {
@@ -162,8 +132,6 @@ RcppExport SEXP sbrl_train(SEXP initSEXP, SEXP methodSEXP, SEXP paramListSEXP, S
     Rcpp::traits::input_parameter<Rcpp::StringVector>::type labelNames(labelNamesSEXP);
     Rcpp::traits::input_parameter<Rcpp::IntegerMatrix>::type ruleTruthTables(ruleTruthTablesSEXP);
     Rcpp::traits::input_parameter<Rcpp::IntegerMatrix>::type labelTruthTables(labelTruthTablesSEXP);
-    //__result = Rcpp::wrap(_train(x, y, start, eps_f, eps_g, maxit));
-    // return __result;
     return Rcpp::wrap(_train(init, method, params, dataFile, labelFile, ruleNames, labelNames, ruleTruthTables, labelTruthTables));
     END_RCPP
 }
