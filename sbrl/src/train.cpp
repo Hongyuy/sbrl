@@ -79,20 +79,20 @@ int my_rng(gsl_rng *RAND_GSL)
  * of the memory management nicely constrained in this routine.
  */
 
-int mcmc_accepts(double new_log_post, double old_log_post,
-                 double prefix_bound, double max_log_post, double &extra, gsl_rng *RAND_GSL)
+bool mcmc_accepts(double new_log_post, double old_log_post,
+                  double prefix_bound, double max_log_post, double &extra, gsl_rng *RAND_GSL)
 {
     return (prefix_bound > max_log_post &&
-            log((my_rng(RAND_GSL) / (float)RAND_MAX)) <
+            log((my_rng(RAND_GSL) / (double)RAND_MAX)) <
                 (new_log_post - old_log_post + log(extra)));
 }
 
-int sa_accepts(double new_log_post, double old_log_post,
-               double prefix_bound, double max_log_post, double &extra, gsl_rng *RAND_GSL)
+bool sa_accepts(double new_log_post, double old_log_post,
+                double prefix_bound, double max_log_post, double &extra, gsl_rng *RAND_GSL)
 {
     return (prefix_bound > max_log_post &&
             (new_log_post > old_log_post ||
-             (log((my_rng(RAND_GSL) / (float)RAND_MAX)) <
+             (log((my_rng(RAND_GSL) / (double)RAND_MAX)) <
               (new_log_post - old_log_post) / extra)));
 }
 
@@ -103,10 +103,11 @@ int sa_accepts(double new_log_post, double old_log_post,
  * 3. Compute the log_posterior
  * 4. Call the appropriate function to determine acceptance criteria
  */
+template <typename Func>
 void propose(Ruleset &rs, std::vector<Rule> &rules, std::vector<Rule> &labels, int nrules,
              double &jump_prob, double &ret_log_post, double max_log_post,
              int &cnt, double &extra, const Params &params, gsl_rng *RAND_GSL,
-             int (*accept_func)(double, double, double, double, double &, gsl_rng *))
+             Func accept_func)
 {
     Step stepchar;
     double new_log_post, prefix_bound;
@@ -207,7 +208,7 @@ void compute_cardinality(std::vector<Rule> &rules, int nrules)
         card_count[rules[i].cardinality]++;
         if (rules[i].cardinality > maxcard)
             maxcard = rules[i].cardinality;
-        log_card_count.push_back(log(i+1));
+        log_card_count.push_back(log(i + 1));
     }
 }
 
