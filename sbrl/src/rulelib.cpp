@@ -66,6 +66,7 @@ std::unique_ptr<BitVec> g_tmp_vec;
 std::unique_ptr<BitVec> g_caught;
 std::unique_ptr<BitVec> g_not_caught;
 std::unique_ptr<BitVec> g_vandnot_tmp;
+std::unique_ptr<BitVec> g_v0;
 void init_globals(int nsamples)
 {
     g_tmp = std::unique_ptr<BitVec>(new BitVec(nsamples));
@@ -73,6 +74,7 @@ void init_globals(int nsamples)
     g_caught = std::unique_ptr<BitVec>(new BitVec(nsamples));
     g_not_caught = std::unique_ptr<BitVec>(new BitVec(nsamples));
     g_vandnot_tmp = std::unique_ptr<BitVec>(new BitVec(nsamples));
+    g_v0 = std::unique_ptr<BitVec>(new BitVec(nsamples));
 }
 
 /*

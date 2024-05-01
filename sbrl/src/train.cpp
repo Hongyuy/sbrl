@@ -35,6 +35,7 @@
 #include <unistd.h>
 #include "mytime.h"
 #include "rule.h"
+#include <memory>
 
 #define EPSILON 1e-9
 #define MAX_RULE_CARDINALITY 10
@@ -44,6 +45,7 @@
  * These make the library not thread safe. If we want to be thread safe during
  * training, then we should reference count these global tables.
  */
+extern std::unique_ptr<BitVec> g_v0;
 static std::vector<double> log_lambda_pmf;
 static std::vector<double> log_eta_pmf;
 static std::vector<double> log_gammas;
@@ -249,7 +251,6 @@ std::vector<double>
 get_theta(Ruleset &rs, std::vector<Rule> &rules, std::vector<Rule> &labels, const Params &params)
 {
     /* calculate captured 0's and 1's */
-    BitVec v0(rs.n_samples);
     std::vector<double> theta;
     int j;
 
@@ -257,7 +258,7 @@ get_theta(Ruleset &rs, std::vector<Rule> &rules, std::vector<Rule> &labels, cons
     {
         int n0, n1;
 
-        rule_vand(v0, rs.entries[j].captures,
+        rule_vand(*g_v0, rs.entries[j].captures,
                   labels[0].truthtable, rs.n_samples, n0);
         n1 = rs.entries[j].ncaptured - n0;
         theta.push_back((n1 + params.alpha[1]) * 1.0 /
@@ -425,7 +426,6 @@ compute_log_posterior(Ruleset &rs, const std::vector<Rule> &rules, const int nru
             norm_constant -= exp(log_eta_pmf[li]);
     }
     /* Calculate log_likelihood */
-    BitVec v0(rs.n_samples);
     double prefix_log_likelihood = 0.0;
     int left0 = labels[0].support, left1 = labels[1].support;
 
@@ -433,7 +433,7 @@ compute_log_posterior(Ruleset &rs, const std::vector<Rule> &rules, const int nru
     {
         int n0, n1; // Count of 0's; count of 1's
 
-        rule_vand(v0, rs.entries[j].captures,
+        rule_vand(*g_v0, rs.entries[j].captures,
                   labels[0].truthtable, rs.n_samples, n0);
         n1 = rs.entries[j].ncaptured - n0;
         log_likelihood += log_gammas[n0 + a0] +
