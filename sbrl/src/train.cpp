@@ -49,10 +49,12 @@ extern std::unique_ptr<BitVec> g_v0;
 static std::vector<double> log_lambda_pmf;
 static std::vector<double> log_eta_pmf;
 static std::vector<double> log_gammas;
+static std::vector<double> eta_pmf;
 static double eta_norm;
 static int n_add, n_delete, n_swap;
 static int maxcard;
 static int card_count[1 + MAX_RULE_CARDINALITY];
+static std::vector<double> log_card_count;
 
 /* These hold the alpha parameter values to speed up log_gamma lookup. */
 static int a0, a1, a01;
@@ -178,10 +180,12 @@ void compute_pmf(int nrules, const Params &params)
     }
 
     log_eta_pmf = std::vector<double>(1 + MAX_RULE_CARDINALITY);
+    eta_pmf = std::vector<double>(1 + MAX_RULE_CARDINALITY);
     for (i = 0; i <= MAX_RULE_CARDINALITY; i++)
     {
-        log_eta_pmf[i] =
-            log(gsl_ran_poisson_pdf(i, params.eta));
+        const auto pmf = gsl_ran_poisson_pdf(i, params.eta);
+        eta_pmf[i] = pmf;
+        log_eta_pmf[i] = log(pmf);
     }
 
     /*
@@ -197,11 +201,13 @@ void compute_cardinality(std::vector<Rule> &rules, int nrules)
     for (i = 0; i <= MAX_RULE_CARDINALITY; i++)
         card_count[i] = 0;
 
+    log_card_count.push_back(0);
     for (i = 0; i < nrules; i++)
     {
         card_count[rules[i].cardinality]++;
         if (rules[i].cardinality > maxcard)
             maxcard = rules[i].cardinality;
+        log_card_count.push_back(log(i+1));
     }
 }
 
@@ -391,7 +397,7 @@ compute_log_posterior(Ruleset &rs, const std::vector<Rule> &rules, const int nru
     double log_prior;
     double log_likelihood = 0.0;
     double prefix_prior = 0.0;
-    double norm_constant;
+    double norm_constant, log_norm_constant;
     int i, j, li;
     int local_cards[1 + MAX_RULE_CARDINALITY];
 
@@ -400,6 +406,7 @@ compute_log_posterior(Ruleset &rs, const std::vector<Rule> &rules, const int nru
 
     /* Calculate log_prior. */
     norm_constant = eta_norm;
+    log_norm_constant = log(norm_constant);
     log_prior = log_lambda_pmf[rs.length() - 1];
 
     if (rs.length() - 1 > params.lambda)
@@ -411,19 +418,22 @@ compute_log_posterior(Ruleset &rs, const std::vector<Rule> &rules, const int nru
     for (i = 0; i < rs.length() - 1; i++)
     {
         li = rules[rs.entries[i].rule_id].cardinality;
-        log_prior += log_eta_pmf[li] - log(norm_constant);
+        log_prior += log_eta_pmf[li] - log_norm_constant;
 
-        log_prior -= log(local_cards[li]);
+        log_prior -= log_card_count[local_cards[li]];
         if (i < length4bound)
         {
             // added for prefix_bound
             prefix_prior += log_eta_pmf[li] -
-                            log(norm_constant) - log(local_cards[li]);
+                            log_norm_constant - log_card_count[local_cards[li]];
         }
 
         local_cards[li]--;
         if (local_cards[li] == 0)
-            norm_constant -= exp(log_eta_pmf[li]);
+        {
+            norm_constant -= eta_pmf[li];
+            log_norm_constant = log(norm_constant);
+        }
     }
     /* Calculate log_likelihood */
     double prefix_log_likelihood = 0.0;
