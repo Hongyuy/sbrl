@@ -138,7 +138,7 @@ void rules_init(const std::string &infile, std::vector<Rule> &rules_ret,
     }
     if (nrules_expected != rules_ret.size())
         throw std::runtime_error("nrules does not match expected");
-    if (nsamples_expected != sample_cnt)
+    if (nsamples_expected != static_cast<std::size_t>(sample_cnt))
         throw std::runtime_error("sample_cnt does not match expected");
 }
 
@@ -319,7 +319,7 @@ Ruleset::ruleset_init(
     g_not_caught->make_default(nsamples);
 
     int cnt = nsamples;
-    for (int i = 0; i < idarray.size(); i++)
+    for (std::size_t i = 0; i < idarray.size(); i++)
     {
         rs.entries.emplace_back(idarray[i], 0, nsamples);
         auto cur_re = &rs.entries.back();
@@ -532,7 +532,7 @@ pickrule:
 
     for (auto &entry : this->entries)
     {
-        if (entry.rule_id == new_rule)
+        if (entry.rule_id == static_cast<unsigned int>(new_rule))
         {
             cnt++;
             goto pickrule;
@@ -731,10 +731,8 @@ int BitVec::count_ones_vector(int len)
 
 int count_ones(v_entry val)
 {
-    int count, i;
-
-    count = 0;
-    for (i = 0; i < sizeof(v_entry); i++)
+    int count = 0;
+    for (std::size_t i = 0; i < sizeof(v_entry); i++)
     {
         count += byte_ones[val & BYTE_MASK];
         val >>= 8;

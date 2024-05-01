@@ -82,10 +82,10 @@ Rcpp::List _train(int initialization, int method, Rcpp::List paramList, Rcpp::Ch
         END_TIME(tv_start, tv_end, tv_acc);
         REPORT_TIME("Time to train", "", tv_end, 1);
 
-        for (int i = 0; i < pred_model_sbrl.ids.size(); i++)
+        for (std::size_t i = 0; i < pred_model_sbrl.ids.size(); i++)
             id.push_back(pred_model_sbrl.ids[i]);
 
-        for (int i = 0; i < pred_model_sbrl.thetas.size(); i++)
+        for (std::size_t i = 0; i < pred_model_sbrl.thetas.size(); i++)
             prob.push_back(pred_model_sbrl.thetas[i]);
 
 #if 0
