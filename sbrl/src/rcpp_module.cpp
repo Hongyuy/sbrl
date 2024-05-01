@@ -54,6 +54,7 @@ Rcpp::List _train(int initialization, int method, Rcpp::List paramList, Rcpp::Ch
         data.nrules = ruleNames.size(); // will increment to add the default rule that's not included in the matrix
         data.nsamples = ruleTruthTables.ncol();
         load_data(df, lf, data);
+        init_globals(data.nsamples);
         END_TIME(tv_start, tv_end, tv_acc);
         REPORT_TIME("Initialize time", "per rule", tv_end, data.nrules);
 
