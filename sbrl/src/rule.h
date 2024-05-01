@@ -118,6 +118,7 @@ struct BitVec
     void rule_copy(BitVec &, int);
     int make_default(int);
     int set_vector_from_ascii(const char *, size_t, int &, int &);
+    void zero_myself() { mpz_set_ui(vec, 0); }
     BitVec(size_t n) { rule_vinit(n); };
     BitVec() = delete;
     BitVec(const BitVec &other) = delete;
@@ -247,6 +248,7 @@ struct PredModel
 /*
  * Functions in the library
  */
+void init_globals(int);
 void rules_init(const std::string &, std::vector<Rule> &, const size_t, const size_t, const int);
 
 void rule_vand(BitVec &, BitVec &, BitVec &, int, int &);

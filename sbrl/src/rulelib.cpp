@@ -32,6 +32,7 @@
 #include <unistd.h>
 #include "rule.h"
 #include <fstream>
+#include <memory>
 
 /* Function declarations. */
 #define RULE_INC 100
@@ -59,6 +60,20 @@ int byte_ones[] = {
     /* 240 */ 4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8};
 
 #define BYTE_MASK 0xFF
+
+std::unique_ptr<BitVec> g_tmp;
+std::unique_ptr<BitVec> g_tmp_vec;
+std::unique_ptr<BitVec> g_caught;
+std::unique_ptr<BitVec> g_not_caught;
+std::unique_ptr<BitVec> g_vandnot_tmp;
+void init_globals(int nsamples)
+{
+    g_tmp = std::unique_ptr<BitVec>(new BitVec(nsamples));
+    g_tmp_vec = std::unique_ptr<BitVec>(new BitVec(nsamples));
+    g_caught = std::unique_ptr<BitVec>(new BitVec(nsamples));
+    g_not_caught = std::unique_ptr<BitVec>(new BitVec(nsamples));
+    g_vandnot_tmp = std::unique_ptr<BitVec>(new BitVec(nsamples));
+}
 
 /*
  * Preprocessing step.
@@ -295,8 +310,7 @@ Ruleset::ruleset_init(
 {
     Ruleset rs(nsamples);
 
-    BitVec not_captured(nsamples);
-    not_captured.make_default(nsamples);
+    g_not_caught->make_default(nsamples);
 
     int cnt = nsamples;
     for (int i = 0; i < idarray.size(); i++)
@@ -305,10 +319,10 @@ Ruleset::ruleset_init(
         auto cur_re = &rs.entries.back();
         auto cur_rule = &rules[idarray[i]];
 
-        rule_vand(cur_re->captures, not_captured,
+        rule_vand(cur_re->captures, *g_not_caught,
                   cur_rule->truthtable, nsamples, cur_re->ncaptured);
 
-        rule_vandnot(not_captured, not_captured,
+        rule_vandnot(*g_not_caught, *g_not_caught,
                      rs.entries[i].captures, nsamples, cnt);
     }
     assert(cnt == 0);
@@ -353,7 +367,7 @@ void Ruleset::ruleset_add(std::vector<Rule> &rules, int nrules, int newrule, int
 {
     int i, cnt;
     // RulesetEntry *expand, *cur_re;
-    BitVec not_caught(this->n_samples);
+    g_not_caught->zero_myself();
 
     const auto n_rules = this->length();
     this->entries.emplace_back(0, 0, this->n_samples);
@@ -363,8 +377,8 @@ void Ruleset::ruleset_add(std::vector<Rule> &rules, int nrules, int newrule, int
      * from the new rule to the end.
      */
     for (i = ndx; i < n_rules; i++)
-        rule_vor(not_caught,
-                 not_caught, this->entries[i].captures, this->n_samples, cnt);
+        rule_vor(*g_not_caught,
+                 *g_not_caught, this->entries[i].captures, this->n_samples, cnt);
 
     /*
      * Shift later rules down by 1 if necessary. For GMP, what we're
@@ -394,11 +408,11 @@ void Ruleset::ruleset_add(std::vector<Rule> &rules, int nrules, int newrule, int
          * that is also in the rule's truthtable.
          */
         rule_vand(cur_re->captures,
-                  not_caught, rules[cur_re->rule_id].truthtable,
+                  *g_not_caught, rules[cur_re->rule_id].truthtable,
                   this->n_samples, cur_re->ncaptured);
 
-        rule_vandnot(not_caught,
-                     not_caught, cur_re->captures, this->n_samples, cnt);
+        rule_vandnot(*g_not_caught,
+                     *g_not_caught, cur_re->captures, this->n_samples, cnt);
     }
     if (cnt != 0)
         throw std::runtime_error("ruleset_add failed");
@@ -410,7 +424,7 @@ void Ruleset::ruleset_add(std::vector<Rule> &rules, int nrules, int newrule, int
 void Ruleset::ruleset_delete(std::vector<Rule> &rules, int nrules, int ndx)
 {
     int i, nset;
-    BitVec tmp_vec(this->n_samples);
+    // BitVec tmp_vec(this->n_samples);
     // RulesetEntry *old_re, *cur_re;
     const auto n_rules = this->length();
 
@@ -424,10 +438,10 @@ void Ruleset::ruleset_delete(std::vector<Rule> &rules, int nrules, int ndx)
          * was captured by ndx and is captured by my rule.
          */
         auto cur_re = &this->entries[i];
-        rule_vand(tmp_vec, rules[cur_re->rule_id].truthtable,
+        rule_vand(*g_tmp_vec, rules[cur_re->rule_id].truthtable,
                   old_re->captures, this->n_samples, nset);
         rule_vor(cur_re->captures, cur_re->captures,
-                 tmp_vec, this->n_samples, this->entries[i].ncaptured);
+                 *g_tmp_vec, this->n_samples, this->entries[i].ncaptured);
 
         /*
          * Now remove the ones from old_re->captures that just got set
@@ -527,18 +541,17 @@ void BitVec::rule_copy(BitVec &dest, int len)
 void Ruleset::ruleset_swap(int i, int j, std::vector<Rule> &rules)
 {
     int nset;
-    BitVec tmp_vec(this->n_samples);
 
     assert(i < (this->length() - 1));
     assert(j < (this->length() - 1));
     assert(i + 1 == j);
 
     /* tmp_vec =  i.captures & j.tt */
-    rule_vand(tmp_vec, this->entries[i].captures,
+    rule_vand(*g_tmp_vec, this->entries[i].captures,
               rules[this->entries[j].rule_id].truthtable, this->n_samples, nset);
     /* j.captures = j.captures | tmp_vec */
     rule_vor(this->entries[j].captures, this->entries[j].captures,
-             tmp_vec, this->n_samples, this->entries[j].ncaptured);
+             *g_tmp_vec, this->n_samples, this->entries[j].ncaptured);
 
     /* i.captures = i.captures & ~j.captures */
     rule_vandnot(this->entries[i].captures, this->entries[i].captures,
@@ -551,7 +564,7 @@ void Ruleset::ruleset_swap(int i, int j, std::vector<Rule> &rules)
 void Ruleset::ruleset_swap_any(int i, int j, std::vector<Rule> &rules)
 {
     int cnt, cnt_check, k, temp;
-    BitVec caught(this->n_samples);
+    g_caught->zero_myself();
 
     if (i == j)
         return;
@@ -571,8 +584,8 @@ void Ruleset::ruleset_swap_any(int i, int j, std::vector<Rule> &rules)
      */
 
     for (k = i; k <= j; k++)
-        rule_vor(caught,
-                 caught, this->entries[k].captures, this->n_samples, cnt);
+        rule_vor(*g_caught,
+                 *g_caught, this->entries[k].captures, this->n_samples, cnt);
 
     /* Now swap the rules in the ruleset. */
     std::swap(this->entries[i].rule_id, this->entries[j].rule_id);
@@ -584,14 +597,14 @@ void Ruleset::ruleset_swap_any(int i, int j, std::vector<Rule> &rules)
          * Compute the items captured by rule k by anding the caught
          * vector with the truthtable of the kth rule.
          */
-        rule_vand(this->entries[k].captures, caught,
+        rule_vand(this->entries[k].captures, *g_caught,
                   rules[this->entries[k].rule_id].truthtable,
                   this->n_samples, this->entries[k].ncaptured);
         cnt_check += this->entries[k].ncaptured;
 
         /* Now remove the caught items from the caught vector. */
-        rule_vandnot(caught,
-                     caught, this->entries[k].captures, this->n_samples, temp);
+        rule_vandnot(*g_caught,
+                     *g_caught, this->entries[k].captures, this->n_samples, temp);
     }
     assert(temp == 0);
     assert(cnt == cnt_check);
@@ -657,9 +670,8 @@ void rule_vor(BitVec &dest, BitVec &src1, BitVec &src2, int nsamples, int &cnt)
 void rule_vandnot(BitVec &dest, BitVec &src1, BitVec &src2, int nsamples, int &ret_cnt)
 {
 #ifdef GMP
-    BitVec tmp(nsamples);
-    mpz_com(tmp.vec, src2.vec);
-    mpz_and(dest.vec, src1.vec, tmp.vec);
+    mpz_com(g_vandnot_tmp->vec, src2.vec);
+    mpz_and(dest.vec, src1.vec, g_vandnot_tmp->vec);
     ret_cnt = 0;
     ret_cnt = mpz_popcount(dest.vec);
 #else
