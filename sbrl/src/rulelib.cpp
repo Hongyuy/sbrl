@@ -67,6 +67,8 @@ std::unique_ptr<BitVec> g_caught;
 std::unique_ptr<BitVec> g_not_caught;
 std::unique_ptr<BitVec> g_vandnot_tmp;
 std::unique_ptr<BitVec> g_v0;
+std::vector<RulesetEntry> g_ruleset_entry_pool;
+Ruleset g_rs_new;
 void init_globals(int nsamples)
 {
     g_tmp = std::unique_ptr<BitVec>(new BitVec(nsamples));
@@ -75,6 +77,8 @@ void init_globals(int nsamples)
     g_not_caught = std::unique_ptr<BitVec>(new BitVec(nsamples));
     g_vandnot_tmp = std::unique_ptr<BitVec>(new BitVec(nsamples));
     g_v0 = std::unique_ptr<BitVec>(new BitVec(nsamples));
+    g_ruleset_entry_pool.push_back(std::move(RulesetEntry(0, 0, nsamples)));
+    g_rs_new = Ruleset(nsamples);
 }
 
 /*
@@ -344,21 +348,39 @@ std::vector<int> Ruleset::backup() const
     return ids;
 }
 
+void Ruleset::alloc_from_pool(unsigned id, int ncap)
+{
+    if (!g_ruleset_entry_pool.empty())
+    {
+        this->entries.push_back(std::move(g_ruleset_entry_pool.back()));
+        this->entries.back().rule_id = id;
+        this->entries.back().ncaptured = ncap;
+        g_ruleset_entry_pool.pop_back();
+    }
+    else
+        this->entries.push_back(std::move(RulesetEntry(id, ncap, this->n_samples)));
+}
+
+void Ruleset::recycle_to_pool()
+{
+    g_ruleset_entry_pool.push_back(std::move(this->entries.back()));
+    this->entries.pop_back();
+}
+
 /*
  * When we copy rulesets, we always allocate new structures; this isn't
  * terribly efficient, but it's simpler. If the allocation and frees become
  * too expensive, we can make this smarter.
  */
-Ruleset
-Ruleset::ruleset_copy()
+void Ruleset::ruleset_copy_to(Ruleset &dest)
 {
-    Ruleset dest(this->n_samples);
+    while (!dest.entries.empty())
+        dest.recycle_to_pool();
     for (auto &entry : this->entries)
     {
-        dest.entries.emplace_back(entry.rule_id, entry.ncaptured, this->n_samples);
+        dest.alloc_from_pool(entry.rule_id, entry.ncaptured);
         entry.captures.rule_copy(dest.entries.back().captures, this->n_samples);
     }
-    return dest;
 }
 
 /*
@@ -372,7 +394,7 @@ void Ruleset::ruleset_add(std::vector<Rule> &rules, int nrules, int newrule, int
     g_not_caught->zero_myself();
 
     const auto n_rules = this->length();
-    this->entries.emplace_back(0, 0, this->n_samples);
+    this->alloc_from_pool(0, 0);
     /*
      * Compute all the samples that are caught by rules AFTER the
      * rule we are inserting. Then we'll recompute all the captures
@@ -458,7 +480,7 @@ void Ruleset::ruleset_delete(std::vector<Rule> &rules, int nrules, int ndx)
         for (int i = ndx; i < n_rules - 1; ++i)
             std::swap(this->entries[i], this->entries[i + 1]);
 
-    this->entries.pop_back();
+    this->recycle_to_pool();
     return;
 }
 

@@ -45,6 +45,7 @@
  * These make the library not thread safe. If we want to be thread safe during
  * training, then we should reference count these global tables.
  */
+extern Ruleset g_rs_new;
 extern std::unique_ptr<BitVec> g_v0;
 static std::vector<double> log_lambda_pmf;
 static std::vector<double> log_eta_pmf;
@@ -112,27 +113,27 @@ void propose(Ruleset &rs, std::vector<Rule> &rules, std::vector<Rule> &labels, i
     Step stepchar;
     double new_log_post, prefix_bound;
     int change_ndx, ndx1, ndx2;
-    Ruleset rs_new = rs.ruleset_copy();
+    rs.ruleset_copy_to(g_rs_new);
 
-    rs_new.ruleset_proposal(nrules, ndx1, ndx2, stepchar, jump_prob, RAND_GSL);
+    g_rs_new.ruleset_proposal(nrules, ndx1, ndx2, stepchar, jump_prob, RAND_GSL);
 
     switch (stepchar)
     {
     case Step::Add:
         /* Add the rule whose id is ndx1 at position ndx2 */
-        rs_new.ruleset_add(rules, nrules, ndx1, ndx2);
+        g_rs_new.ruleset_add(rules, nrules, ndx1, ndx2);
         change_ndx = ndx2 + 1;
         n_add++;
         break;
     case Step::Delete:
         /* Delete the rule at position ndx1. */
         change_ndx = ndx1;
-        rs_new.ruleset_delete(rules, nrules, ndx1);
+        g_rs_new.ruleset_delete(rules, nrules, ndx1);
         n_delete++;
         break;
     case Step::Swap:
         /* Swap the rules at ndx1 and ndx2. */
-        rs_new.ruleset_swap_any(ndx1, ndx2, rules);
+        g_rs_new.ruleset_swap_any(ndx1, ndx2, rules);
         change_ndx = 1 + (ndx1 > ndx2 ? ndx1 : ndx2);
         n_swap++;
         break;
@@ -140,7 +141,7 @@ void propose(Ruleset &rs, std::vector<Rule> &rules, std::vector<Rule> &labels, i
         break;
     }
 
-    new_log_post = compute_log_posterior(rs_new,
+    new_log_post = compute_log_posterior(g_rs_new,
                                          rules, nrules, labels, params, 0, change_ndx, prefix_bound);
 
     if (prefix_bound < max_log_post)
@@ -150,7 +151,10 @@ void propose(Ruleset &rs, std::vector<Rule> &rules, std::vector<Rule> &labels, i
                     ret_log_post, prefix_bound, max_log_post, extra, RAND_GSL))
     {
         ret_log_post = new_log_post;
-        rs = std::move(rs_new);
+        // rs = std::move(g_rs_new);
+        while (!rs.entries.empty())
+            rs.recycle_to_pool();
+        rs.entries.swap(g_rs_new.entries);
     }
 }
 

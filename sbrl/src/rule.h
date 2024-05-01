@@ -211,7 +211,9 @@ struct Ruleset
     void ruleset_swap_any(int, int, std::vector<Rule> &);
     static Ruleset ruleset_init(int, const std::vector<int> &, std::vector<Rule> &);
     static Ruleset create_random_ruleset(int, int, int, std::vector<Rule> &, gsl_rng *);
-    Ruleset ruleset_copy();
+    void ruleset_copy_to(Ruleset &dest);
+    void alloc_from_pool(unsigned id, int cap);
+    void recycle_to_pool();
 };
 
 struct Params
