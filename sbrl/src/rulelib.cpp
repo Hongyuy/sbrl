@@ -387,7 +387,7 @@ void Ruleset::ruleset_copy_to(Ruleset &dest)
  * Add the specified rule to the ruleset at position ndx (shifting
  * all rules after ndx down by one).
  */
-void Ruleset::ruleset_add(std::vector<Rule> &rules, int nrules, int newrule, int ndx)
+void Ruleset::ruleset_add(std::vector<Rule> &rules, int newrule, int ndx)
 {
     int i, cnt;
     // RulesetEntry *expand, *cur_re;

@@ -65,7 +65,7 @@ int debug;
 double compute_log_posterior(Ruleset &,
                              const std::vector<Rule> &, const int, std::vector<Rule> &, const Params &, const int, const int, double &);
 int gen_poission(double);
-std::vector<double> get_theta(Ruleset &, std::vector<Rule> &, std::vector<Rule> &, const Params &);
+std::vector<double> get_theta(Ruleset &, std::vector<Rule> &, const Params &);
 void gsl_ran_poisson_test(void);
 void init_gsl_rand_gen(gsl_rng **);
 
@@ -121,7 +121,7 @@ void propose(Ruleset &rs, std::vector<Rule> &rules, std::vector<Rule> &labels, i
     {
     case Step::Add:
         /* Add the rule whose id is ndx1 at position ndx2 */
-        g_rs_new.ruleset_add(rules, nrules, ndx1, ndx2);
+        g_rs_new.ruleset_add(rules, ndx1, ndx2);
         change_ndx = ndx2 + 1;
         n_add++;
         break;
@@ -253,13 +253,13 @@ train(Data &train_data, int initialization, int method, const Params &params)
             max_pos = pos_temp;
         }
     }
-    const auto thetas = get_theta(rs, train_data.rules, train_data.labels, params);
+    const auto thetas = get_theta(rs, train_data.labels, params);
     gsl_rng_free(RAND_GSL);
     return {rs.backup(), thetas, {}};
 }
 
 std::vector<double>
-get_theta(Ruleset &rs, std::vector<Rule> &rules, std::vector<Rule> &labels, const Params &params)
+get_theta(Ruleset &rs, std::vector<Rule> &labels, const Params &params)
 {
     /* calculate captured 0's and 1's */
     std::vector<double> theta;

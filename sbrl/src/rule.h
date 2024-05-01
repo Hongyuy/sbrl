@@ -121,8 +121,8 @@ struct BitVec
     void zero_myself() { mpz_set_ui(vec, 0); }
     BitVec(size_t n) { rule_vinit(n); };
     BitVec() = delete;
-    BitVec(const BitVec &other) = delete;
-    BitVec &operator=(const BitVec &other) = delete;
+    BitVec(const BitVec &) = delete;
+    BitVec &operator=(const BitVec &) = delete;
     BitVec(BitVec &&other)
     {
         vec->_mp_alloc = other.vec->_mp_alloc;
@@ -159,10 +159,10 @@ struct Rule
     BitVec truthtable; /* Truth table; one bit per sample. */
     Rule(const std::string &feat, int supp, int card, size_t len) : features{feat}, support{supp}, cardinality{card}, truthtable{len} {}
     Rule() = delete;
-    Rule(const Rule &other) = delete;
-    Rule &operator=(const Rule &other) = delete;
+    Rule(const Rule &) = delete;
+    Rule &operator=(const Rule &) = delete;
     Rule(Rule &&other) : features{std::move(other.features)}, support{other.support}, cardinality{other.cardinality}, truthtable{std::move(other.truthtable)} {}
-    Rule &operator=(Rule &&other) = delete;
+    Rule &operator=(Rule &&) = delete;
 };
 
 struct RulesetEntry
@@ -172,8 +172,8 @@ struct RulesetEntry
     BitVec captures; /* Bit vector. */
     RulesetEntry(unsigned id, int ncap, size_t len) : rule_id{id}, ncaptured{ncap}, captures{len} {}
     RulesetEntry() = delete;
-    RulesetEntry(const RulesetEntry &other) = delete;
-    RulesetEntry &operator=(const RulesetEntry &other) = delete;
+    RulesetEntry(const RulesetEntry &) = delete;
+    RulesetEntry &operator=(const RulesetEntry &) = delete;
     RulesetEntry(RulesetEntry &&other) : rule_id{other.rule_id}, ncaptured{other.ncaptured}, captures{std::move(other.captures)}
     {
         other.rule_id = (unsigned int)-1;
@@ -196,16 +196,16 @@ struct Ruleset
     std::vector<RulesetEntry> entries; /* Array of rules. */
     Ruleset() = default;
     Ruleset(int nsamp) : n_samples{nsamp}, entries{} {}
-    Ruleset(const Ruleset &other) = delete;
-    Ruleset &operator=(const Ruleset &other) = delete;
-    Ruleset(Ruleset &&other) = default;
-    Ruleset &operator=(Ruleset &&other) = default;
+    Ruleset(const Ruleset &) = delete;
+    Ruleset &operator=(const Ruleset &) = delete;
+    Ruleset(Ruleset &&) = default;
+    Ruleset &operator=(Ruleset &&) = default;
 
     int length() const { return static_cast<int>(entries.size()); }
     std::vector<int> backup() const;
     int pick_random_rule(int, gsl_rng *) const;
     void ruleset_proposal(int, int &, int &, Step &, double &, gsl_rng *) const;
-    void ruleset_add(std::vector<Rule> &, int, int, int);
+    void ruleset_add(std::vector<Rule> &, int, int);
     void ruleset_delete(std::vector<Rule> &, int, int);
     void ruleset_swap(int, int, std::vector<Rule> &);
     void ruleset_swap_any(int, int, std::vector<Rule> &);
